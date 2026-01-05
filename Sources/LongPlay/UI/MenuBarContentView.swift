@@ -62,81 +62,86 @@ struct MenuBarContentView: View {
             VStack(alignment: .leading, spacing: 12) {
                 headerRow
                 tabBar
-                if !networkMonitor.isOnline {
-                    NoticeCard(
-                        title: "You're offline",
-                        message: "Check your connection to download audio.",
-                        actionTitle: "Copy Diagnostics",
-                        action: { copyDiagnostics() }
-                    )
-                }
-                if ytdlpMissing {
-                    NoticeCard(
-                        title: "yt-dlp not found",
-                        message: "Bundled binary missing. Reinstall or update LongPlay.",
-                        actionTitle: "Copy Diagnostics",
-                        action: { copyDiagnostics() }
-                    )
-                }
-                if ffmpegMissing {
-                    NoticeCard(
-                        title: "ffmpeg missing",
-                        message: "Audio conversion requires ffmpeg. Reinstall or update LongPlay.",
-                        actionTitle: "Copy Diagnostics",
-                        action: { copyDiagnostics() }
-                    )
-                }
-                if let ytdlpWarning {
-                    NoticeCard(
-                        title: "yt-dlp update recommended",
-                        message: ytdlpWarning,
-                        actionTitle: "Copy Diagnostics",
-                        action: { copyDiagnostics() }
-                    )
-                }
-            if let globalErrorMessage {
-                SectionCard {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(failedTrack == nil ? "Input issue" : "Download issue")
-                            .font(sectionTitleFont)
-                        Text(globalErrorMessage)
-                            .font(.custom("Avenir Next", size: 12))
-                            .foregroundColor(.secondary)
-                        HStack(spacing: 8) {
-                            if let failedTrack, shouldOfferDownloadAnyway(failedTrack) {
-                                Button("Download Anyway") {
-                                    downloadOnly(failedTrack)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if !networkMonitor.isOnline {
+                            NoticeCard(
+                                title: "You're offline",
+                                message: "Check your connection to download audio.",
+                                actionTitle: "Copy Diagnostics",
+                                action: { copyDiagnostics() }
+                            )
+                        }
+                        if ytdlpMissing {
+                            NoticeCard(
+                                title: "yt-dlp not found",
+                                message: "Bundled binary missing. Reinstall or update LongPlay.",
+                                actionTitle: "Copy Diagnostics",
+                                action: { copyDiagnostics() }
+                            )
+                        }
+                        if ffmpegMissing {
+                            NoticeCard(
+                                title: "ffmpeg missing",
+                                message: "Audio conversion requires ffmpeg. Reinstall or update LongPlay.",
+                                actionTitle: "Copy Diagnostics",
+                                action: { copyDiagnostics() }
+                            )
+                        }
+                        if let ytdlpWarning {
+                            NoticeCard(
+                                title: "yt-dlp update recommended",
+                                message: ytdlpWarning,
+                                actionTitle: "Copy Diagnostics",
+                                action: { copyDiagnostics() }
+                            )
+                        }
+                        if let globalErrorMessage {
+                            SectionCard {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(failedTrack == nil ? "Input issue" : "Download issue")
+                                        .font(sectionTitleFont)
+                                    Text(globalErrorMessage)
+                                        .font(.custom("Avenir Next", size: 12))
+                                        .foregroundColor(.secondary)
+                                    HStack(spacing: 8) {
+                                        if let failedTrack, shouldOfferDownloadAnyway(failedTrack) {
+                                            Button("Download Anyway") {
+                                                downloadOnly(failedTrack)
+                                            }
+                                            .buttonStyle(PrimaryButtonStyle())
+                                        }
+                                        if let failedTrack {
+                                            Button("Retry") {
+                                                resolveAndDownload(failedTrack)
+                                            }
+                                            .buttonStyle(PrimaryButtonStyle())
+                                        }
+                                        Button("Logs") {
+                                            copyDiagnostics()
+                                        }
+                                        .buttonStyle(SecondaryButtonStyle())
+                                        Button("Dismiss") {
+                                            self.globalErrorMessage = nil
+                                            self.failedTrack = nil
+                                        }
+                                        .buttonStyle(SecondaryButtonStyle())
+                                    }
                                 }
-                                .buttonStyle(PrimaryButtonStyle())
-                            }
-                            if let failedTrack {
-                                Button("Retry") {
-                                    resolveAndDownload(failedTrack)
-                                }
-                                .buttonStyle(PrimaryButtonStyle())
-                            }
-                            Button("Logs") {
-                                    copyDiagnostics()
-                                }
-                                .buttonStyle(SecondaryButtonStyle())
-                                Button("Dismiss") {
-                                    self.globalErrorMessage = nil
-                                    self.failedTrack = nil
-                                }
-                                .buttonStyle(SecondaryButtonStyle())
                             }
                         }
+                        switch selectedTab {
+                        case .listen:
+                            nowPlayingSection
+                            searchSection
+                            trackListSection
+                        case .add:
+                            addNewSection
+                        case .utilities:
+                            utilitiesSection
+                        }
                     }
-                }
-                switch selectedTab {
-                case .listen:
-                    nowPlayingSection
-                    searchSection
-                    trackListSection
-                case .add:
-                    addNewSection
-                case .utilities:
-                    utilitiesSection
+                    .padding(.bottom, 4)
                 }
             }
             .padding(14)
