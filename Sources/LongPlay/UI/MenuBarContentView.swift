@@ -22,6 +22,8 @@ struct MenuBarContentView: View {
     @State private var failedTrack: Track?
     @State private var renameCandidate: Track?
     @State private var renameText: String = ""
+    @State private var ytdlpVersion: String?
+    @State private var ytdlpWarning: String?
 
     private enum FocusField {
         case search
@@ -56,6 +58,23 @@ struct MenuBarContentView: View {
                     Button("Copy Install Command") {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString("brew install yt-dlp", forType: .string)
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .padding(8)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
+            }
+            if let ytdlpWarning {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("yt-dlp update recommended")
+                        .font(.headline)
+                    Text(ytdlpWarning)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Button("Copy Update Command") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString("brew upgrade yt-dlp", forType: .string)
                     }
                     .buttonStyle(.bordered)
                 }
@@ -106,9 +125,19 @@ struct MenuBarContentView: View {
                 }
             }
             Task.detached {
-                let available = YtDlpClient().isAvailable()
+                let client = YtDlpClient()
+                let available = client.isAvailable()
+                let version = client.fetchVersion()
+                var warning: String?
+                if available, let version, client.isVersionOutdated(version) {
+                    warning = "Bundled yt-dlp version \(version) is older than \(YtDlpClient.minimumSupportedVersion)."
+                } else if available, version == nil {
+                    warning = "Unable to read yt-dlp version. Downloads may fail."
+                }
                 await MainActor.run {
                     ytdlpMissing = !available
+                    ytdlpVersion = version
+                    ytdlpWarning = warning
                 }
             }
             DispatchQueue.main.async {

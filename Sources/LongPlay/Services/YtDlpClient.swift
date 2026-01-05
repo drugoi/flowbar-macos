@@ -54,13 +54,15 @@ struct YtDlpClient {
         self.executable = executable
     }
 
+    static let minimumSupportedVersion = "2024.01.01"
+
     private var bundledExecutableURL: URL? {
         Bundle.main.url(forResource: "yt-dlp", withExtension: nil)
     }
 
     func isAvailable() -> Bool {
-        if bundledExecutableURL != nil {
-            return true
+        if let bundled = bundledExecutableURL {
+            return (try? runSync(executableURL: bundled, args: ["--version"])) != nil
         }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
@@ -75,6 +77,35 @@ struct YtDlpClient {
         }
         process.waitUntilExit()
         return process.terminationStatus == 0
+    }
+
+    func fetchVersion() -> String? {
+        if let bundled = bundledExecutableURL {
+            return try? runSync(executableURL: bundled, args: ["--version"]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = [executable, "--version"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        do {
+            try process.run()
+        } catch {
+            return nil
+        }
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else { return nil }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    func isVersionOutdated(_ version: String) -> Bool {
+        guard let current = Self.parseVersionDate(version),
+              let minimum = Self.parseVersionDate(Self.minimumSupportedVersion) else {
+            return true
+        }
+        return current < minimum
     }
 
     func resolveMetadata(url: URL) async throws -> YtDlpMetadata {
@@ -175,6 +206,29 @@ struct YtDlpClient {
                 }
             }
         }
+    }
+
+    private func runSync(executableURL: URL, args: [String]) throws -> String {
+        let process = Process()
+        process.executableURL = executableURL
+        process.arguments = args
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else {
+            throw YtDlpError.executionFailed("")
+        }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+
+    private static func parseVersionDate(_ value: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy.MM.dd"
+        return formatter.date(from: value.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     private func parseProgress(line: String) -> Double? {
