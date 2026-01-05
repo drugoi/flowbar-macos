@@ -25,8 +25,8 @@ targets:
     deploymentTarget: "13.0"
     sources:
       - path: Sources/LongPlay
-    resources:
-      - path: Resources
+      - path: Resources/yt-dlp
+        buildPhase: resources
     info:
       path: Config/Info.plist
     settings:

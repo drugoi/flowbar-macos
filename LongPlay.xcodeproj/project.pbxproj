@@ -12,6 +12,7 @@
 		22AACC6B1C14CE9EAACAEEC5 /* LongPlayUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A234124F9F19264781D5A485 /* LongPlayUITests.swift */; };
 		2EC490F0E77B40DDD2D56FBD /* DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 568F5146C0ADF6CC8CECC574 /* DownloadManager.swift */; };
 		33A6116EC4D71C704644D741 /* MenuBarLabelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 475F726D5E95E321629190C2 /* MenuBarLabelView.swift */; };
+		561A2356A1CE6DB398B7040D /* yt-dlp in Resources */ = {isa = PBXBuildFile; fileRef = D5773B0A212BD33B734B9E80 /* yt-dlp */; };
 		5B34B748F1438A7DF9461DE9 /* LongPlayApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF45F3D95CAE89A623DD1A8 /* LongPlayApp.swift */; };
 		6D4FE929433891F68D396353 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = B008A05ADD3FF001551C3648 /* Track.swift */; };
 		773828250ED003F5C11999AA /* PlaybackController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038971798A3D5B3BB0197C31 /* PlaybackController.swift */; };
@@ -50,6 +51,7 @@
 		C873901169AFBA8D6073A8E0 /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
 		CBE63D78D68BFBD7E40BA17F /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		CBF45F3D95CAE89A623DD1A8 /* LongPlayApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongPlayApp.swift; sourceTree = "<group>"; };
+		D5773B0A212BD33B734B9E80 /* yt-dlp */ = {isa = PBXFileReference; path = "yt-dlp"; sourceTree = "<group>"; };
 		F79AD5D69C726DA17FC29662 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		FFE10CBD3062ACB8F748396E /* MetadataResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataResolver.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -60,6 +62,7 @@
 			children = (
 				F35A06325C2F39012DBCB017 /* LongPlay */,
 				B29243641C21F2C42118BAC0 /* LongPlayUITests */,
+				F83A2E3E4E647734BDB013DF /* Resources */,
 				760BB8554FBE0A132EAAFDC9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -128,6 +131,14 @@
 			path = Sources/LongPlay;
 			sourceTree = "<group>";
 		};
+		F83A2E3E4E647734BDB013DF /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				D5773B0A212BD33B734B9E80 /* yt-dlp */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -154,6 +165,7 @@
 			buildConfigurationList = 2EB5084476187FC7A3D1C4B4 /* Build configuration list for PBXNativeTarget "LongPlay" */;
 			buildPhases = (
 				F0F64C2955DCB14DEA0BC15A /* Sources */,
+				D35CF6E695E0FAA3C655C52E /* Resources */,
 			);
 			buildRules = (
 			);
@@ -205,6 +217,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D35CF6E695E0FAA3C655C52E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				561A2356A1CE6DB398B7040D /* yt-dlp in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		09B8A30E90310B1D73C8A78F /* Sources */ = {
