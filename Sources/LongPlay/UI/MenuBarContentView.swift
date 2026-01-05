@@ -6,6 +6,8 @@ struct MenuBarContentView: View {
     @ObservedObject var playbackController: PlaybackController
     @ObservedObject var downloadManager: DownloadManager
 
+    @Environment(\.dismiss) private var dismiss
+
     @State private var searchText = ""
     @State private var newURL = ""
     @State private var newDisplayName = ""
@@ -53,6 +55,9 @@ struct MenuBarContentView: View {
                 }
             }
         }
+        .onExitCommand {
+            dismiss()
+        }
     }
 
     private var nowPlayingSection: some View {
@@ -69,6 +74,7 @@ struct MenuBarContentView: View {
                         playbackController.resume()
                     }
                 }
+                .keyboardShortcut(.space, modifiers: [])
                 Button("Stop") {
                     playbackController.stop()
                 }
@@ -164,8 +170,14 @@ struct MenuBarContentView: View {
                 .font(.headline)
             TextField("YouTube URL", text: $newURL)
                 .textFieldStyle(.roundedBorder)
+                .onSubmit {
+                    addNewTrack()
+                }
             TextField("Display name (optional)", text: $newDisplayName)
                 .textFieldStyle(.roundedBorder)
+                .onSubmit {
+                    addNewTrack()
+                }
             if let validationError {
                 Text(validationError)
                     .font(.caption)
@@ -174,6 +186,7 @@ struct MenuBarContentView: View {
             Button("Add") {
                 addNewTrack()
             }
+            .keyboardShortcut(.return, modifiers: [])
         }
     }
 
