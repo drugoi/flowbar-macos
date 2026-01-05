@@ -85,22 +85,28 @@ struct MenuBarContentView: View {
                         action: { copyDiagnostics() }
                     )
                 }
-                if let globalErrorMessage {
-                    SectionCard {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(failedTrack == nil ? "Input issue" : "Download issue")
-                                .font(sectionTitleFont)
-                            Text(globalErrorMessage)
-                                .font(.custom("Avenir Next", size: 12))
-                                .foregroundColor(.secondary)
-                            HStack(spacing: 8) {
-                                if let failedTrack {
-                                    Button("Retry") {
-                                        resolveAndDownload(failedTrack)
-                                    }
-                                    .buttonStyle(PrimaryButtonStyle())
+            if let globalErrorMessage {
+                SectionCard {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(failedTrack == nil ? "Input issue" : "Download issue")
+                            .font(sectionTitleFont)
+                        Text(globalErrorMessage)
+                            .font(.custom("Avenir Next", size: 12))
+                            .foregroundColor(.secondary)
+                        HStack(spacing: 8) {
+                            if let failedTrack, shouldOfferDownloadAnyway(failedTrack) {
+                                Button("Download Anyway") {
+                                    downloadOnly(failedTrack)
                                 }
-                                Button("Logs") {
+                                .buttonStyle(PrimaryButtonStyle())
+                            }
+                            if let failedTrack {
+                                Button("Retry") {
+                                    resolveAndDownload(failedTrack)
+                                }
+                                .buttonStyle(PrimaryButtonStyle())
+                            }
+                            Button("Logs") {
                                     copyDiagnostics()
                                 }
                                 .buttonStyle(SecondaryButtonStyle())
@@ -502,6 +508,7 @@ struct MenuBarContentView: View {
             do {
                 globalErrorMessage = nil
                 failedTrack = nil
+                DiagnosticsLogger.shared.log(level: "info", message: "Resolving metadata for \(track.videoId)")
 
                 var resolving = track
                 resolving.downloadState = .resolving
@@ -534,6 +541,46 @@ struct MenuBarContentView: View {
                 DiagnosticsLogger.shared.log(level: "error", message: "Download failed: \(error.localizedDescription)")
                 globalErrorMessage = error.localizedDescription
                 failedTrack = failed
+            }
+        }
+    }
+
+    private func downloadOnly(_ track: Track) {
+        Task {
+            guard networkMonitor.isOnline else {
+                globalErrorMessage = "No internet connection."
+                failedTrack = track
+                return
+            }
+            if let activeId = downloadManager.activeTrackId, activeId != track.id {
+                DiagnosticsLogger.shared.log(level: "warning", message: "Download already in progress.")
+                return
+            }
+            do {
+                globalErrorMessage = nil
+                failedTrack = nil
+                var updated = track
+                updated.downloadState = .downloading
+                updated.lastError = nil
+                libraryStore.updateTrack(updated)
+                let fileURL = try await downloadManager.startDownload(for: updated)
+                updated.downloadState = .downloaded
+                updated.downloadProgress = 1.0
+                updated.localFilePath = fileURL.path
+                if let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
+                   let fileSize = attributes[.size] as? NSNumber {
+                    updated.fileSizeBytes = fileSize.int64Value
+                }
+                libraryStore.updateTrack(updated)
+                libraryStore.refreshCacheSize()
+            } catch {
+                var failed = track
+                failed.downloadState = .failed
+                failed.lastError = error.localizedDescription
+                libraryStore.updateTrack(failed)
+                globalErrorMessage = error.localizedDescription
+                failedTrack = failed
+                DiagnosticsLogger.shared.log(level: "error", message: "Download failed: \(error.localizedDescription)")
             }
         }
     }
@@ -578,6 +625,11 @@ struct MenuBarContentView: View {
     private func beginRename(_ track: Track) {
         renameCandidate = track
         renameText = track.displayName
+    }
+
+    private func shouldOfferDownloadAnyway(_ track: Track) -> Bool {
+        guard let error = track.lastError?.lowercased() else { return false }
+        return error.contains("timed out")
     }
 
     private func copyDiagnostics() {
