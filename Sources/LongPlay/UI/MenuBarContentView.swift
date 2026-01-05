@@ -539,46 +539,9 @@ struct MenuBarContentView: View {
             do {
                 globalErrorMessage = nil
                 failedTrack = nil
-                DiagnosticsLogger.shared.log(level: "info", message: "Resolving metadata for \(track.videoId)")
+                DiagnosticsLogger.shared.log(level: "info", message: "Starting download for \(track.videoId)")
 
-                var resolving = track
-                resolving.downloadState = .resolving
-                resolving.lastError = nil
-                libraryStore.updateTrack(resolving)
-
-                let resolved = try await MetadataResolver.resolve(for: track.sourceURL)
-                var updated = resolving
-                updated.resolvedTitle = resolved.title
-                updated.durationSeconds = resolved.durationSeconds
-                updated.downloadState = .downloading
-                updated.lastError = nil
-                libraryStore.updateTrack(updated)
-
-                let fileURL = try await downloadManager.startDownload(for: updated)
-                updated.downloadState = .downloaded
-                updated.downloadProgress = 1.0
-                updated.localFilePath = fileURL.path
-                if let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
-                   let fileSize = attributes[.size] as? NSNumber {
-                    updated.fileSizeBytes = fileSize.int64Value
-                }
-                libraryStore.updateTrack(updated)
-                libraryStore.refreshCacheSize()
-            } catch let error as MetadataResolveError {
-                if case .timeout = error {
-                    DiagnosticsLogger.shared.log(level: "warning", message: "Metadata timeout, downloading anyway for \(track.videoId)")
-                    globalErrorMessage = "Metadata timed out; downloading without title."
-                    failedTrack = track
-                    await downloadOnly(track)
-                    return
-                }
-                var failed = track
-                failed.downloadState = .failed
-                failed.lastError = error.localizedDescription
-                libraryStore.updateTrack(failed)
-                DiagnosticsLogger.shared.log(level: "error", message: "Download failed: \(error.localizedDescription)")
-                globalErrorMessage = error.localizedDescription
-                failedTrack = failed
+                await downloadOnly(track)
             } catch {
                 var failed = track
                 failed.downloadState = .failed
@@ -694,9 +657,6 @@ struct MenuBarContentView: View {
         if downloadManager.activeTrackId == track.id {
             let percentage = Int((downloadManager.progress ?? 0) * 100)
             return "Downloading \(percentage)%"
-        }
-        if track.downloadState == .resolving {
-            return "Resolving metadata..."
         }
         if track.downloadState == .failed, let error = track.lastError {
             return error
