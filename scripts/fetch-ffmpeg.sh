@@ -37,3 +37,10 @@ if [ ! -f "$FFMPEG_BIN" ] || [ ! -f "$FFPROBE_BIN" ]; then
 fi
 
 /bin/chmod +x "$FFMPEG_BIN" "$FFPROBE_BIN" 2>/dev/null || true
+
+if [ -n "$TARGET_BUILD_DIR" ] && [ -n "$UNLOCALIZED_RESOURCES_FOLDER_PATH" ]; then
+  BUILD_DIR="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/bin"
+  mkdir -p "$BUILD_DIR"
+  /bin/cp "$FFMPEG_BIN" "$BUILD_DIR/ffmpeg"
+  /bin/cp "$FFPROBE_BIN" "$BUILD_DIR/ffprobe"
+fi

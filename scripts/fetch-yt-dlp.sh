@@ -13,3 +13,9 @@ fi
 mkdir -p "$DEST_DIR"
 /usr/bin/curl -L --fail --retry 3 --retry-delay 1 -o "$DEST" "$URL"
 chmod +x "$DEST"
+
+if [ -n "$TARGET_BUILD_DIR" ] && [ -n "$UNLOCALIZED_RESOURCES_FOLDER_PATH" ]; then
+  BUILD_DEST="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/bin/yt-dlp"
+  mkdir -p "$(dirname "$BUILD_DEST")"
+  /bin/cp "$DEST" "$BUILD_DEST"
+fi
