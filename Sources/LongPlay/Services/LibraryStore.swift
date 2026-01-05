@@ -70,6 +70,57 @@ final class LibraryStore: ObservableObject {
         save()
     }
 
+    func removeDownload(for track: Track) {
+        guard let path = track.localFilePath else { return }
+        do {
+            try FileManager.default.removeItem(atPath: path)
+            var updated = track
+            updated.localFilePath = nil
+            updated.fileSizeBytes = nil
+            updated.downloadProgress = nil
+            updated.downloadState = .notDownloaded
+            updated.lastError = nil
+            if replace(track: updated) {
+                save()
+            }
+        } catch {
+            lastError = "Failed to remove download."
+            DiagnosticsLogger.shared.log(level: "error", message: "Failed to remove download: \(error)")
+        }
+    }
+
+    func clearDownloads() {
+        do {
+            let cacheDir = try AppPaths.cachesDirectory()
+            let contents = try FileManager.default.contentsOfDirectory(at: cacheDir, includingPropertiesForKeys: nil)
+            for url in contents {
+                try FileManager.default.removeItem(at: url)
+            }
+            library.featured = library.featured.map { track in
+                var updated = track
+                updated.localFilePath = nil
+                updated.fileSizeBytes = nil
+                updated.downloadProgress = nil
+                updated.downloadState = .notDownloaded
+                updated.lastError = nil
+                return updated
+            }
+            library.userLibrary = library.userLibrary.map { track in
+                var updated = track
+                updated.localFilePath = nil
+                updated.fileSizeBytes = nil
+                updated.downloadProgress = nil
+                updated.downloadState = .notDownloaded
+                updated.lastError = nil
+                return updated
+            }
+            save()
+        } catch {
+            lastError = "Failed to clear downloads."
+            DiagnosticsLogger.shared.log(level: "error", message: "Failed to clear downloads: \(error)")
+        }
+    }
+
     func updatePlaybackPosition(trackId: UUID, position: TimeInterval) {
         guard let track = trackById(trackId) else { return }
         var updated = track

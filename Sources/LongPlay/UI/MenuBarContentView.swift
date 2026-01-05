@@ -97,8 +97,13 @@ struct MenuBarContentView: View {
                                 track: track,
                                 progress: progressText(for: track),
                                 downloadDisabled: downloadManager.activeTrackId != nil && downloadManager.activeTrackId != track.id,
+                                isUserTrack: false,
                                 onPlay: { play(track) },
-                                onDownload: { resolveAndDownload(track) }
+                                onDownload: { resolveAndDownload(track) },
+                                onRetry: { resolveAndDownload(track) },
+                                onCancel: { cancelDownload(for: track) },
+                                onRemoveDownload: { libraryStore.removeDownload(for: track) },
+                                onDelete: nil
                             )
                         }
                     }
@@ -111,8 +116,13 @@ struct MenuBarContentView: View {
                                 track: track,
                                 progress: progressText(for: track),
                                 downloadDisabled: downloadManager.activeTrackId != nil && downloadManager.activeTrackId != track.id,
+                                isUserTrack: true,
                                 onPlay: { play(track) },
-                                onDownload: { resolveAndDownload(track) }
+                                onDownload: { resolveAndDownload(track) },
+                                onRetry: { resolveAndDownload(track) },
+                                onCancel: { cancelDownload(for: track) },
+                                onRemoveDownload: { libraryStore.removeDownload(for: track) },
+                                onDelete: { libraryStore.removeTrack(track) }
                             )
                         }
                     }
@@ -151,7 +161,7 @@ struct MenuBarContentView: View {
                     .foregroundColor(.red)
             }
             Button("Clear Downloads") {
-                // TODO: Implement cache clearing.
+                libraryStore.clearDownloads()
             }
             Button("Copy Diagnostics") {
                 let diagnostics = DiagnosticsLogger.shared.formattedDiagnostics()
@@ -213,8 +223,13 @@ struct MenuBarContentView: View {
                 return
             }
             do {
+                var resolving = track
+                resolving.downloadState = .resolving
+                resolving.lastError = nil
+                libraryStore.updateTrack(resolving)
+
                 let resolved = try await MetadataResolver.resolve(for: track.sourceURL)
-                var updated = track
+                var updated = resolving
                 updated.resolvedTitle = resolved.title
                 updated.durationSeconds = resolved.durationSeconds
                 updated.downloadState = .downloading
@@ -242,6 +257,17 @@ struct MenuBarContentView: View {
         playbackController.loadAndPlay(track: track, fileURL: url, startAt: track.playbackPositionSeconds)
     }
 
+    private func cancelDownload(for track: Track) {
+        guard downloadManager.activeTrackId == track.id else { return }
+        downloadManager.cancelDownload()
+        var updated = track
+        updated.downloadState = .notDownloaded
+        updated.downloadProgress = nil
+        updated.lastError = "Download cancelled."
+        libraryStore.updateTrack(updated)
+        DiagnosticsLogger.shared.log(level: "info", message: "Download cancelled for \(track.videoId)")
+    }
+
     private func progressText(for track: Track) -> String? {
         if downloadManager.activeTrackId == track.id {
             let percentage = Int((downloadManager.progress ?? 0) * 100)
@@ -264,8 +290,13 @@ private struct TrackRow: View {
     let track: Track
     let progress: String?
     let downloadDisabled: Bool
+    let isUserTrack: Bool
     let onPlay: () -> Void
     let onDownload: () -> Void
+    let onRetry: () -> Void
+    let onCancel: () -> Void
+    let onRemoveDownload: () -> Void
+    let onDelete: (() -> Void)?
 
     var body: some View {
         HStack {
@@ -284,13 +315,27 @@ private struct TrackRow: View {
                 }
             }
             Spacer()
-            if track.downloadState == .downloaded {
-                Button("Play", action: onPlay)
-                    .buttonStyle(.bordered)
-            } else {
-                Button("Download", action: onDownload)
-                    .buttonStyle(.borderedProminent)
-                    .disabled(downloadDisabled)
+            HStack(spacing: 6) {
+                if track.downloadState == .downloaded {
+                    Button("Play", action: onPlay)
+                        .buttonStyle(.bordered)
+                    Button("Remove", action: onRemoveDownload)
+                        .buttonStyle(.bordered)
+                } else if track.downloadState == .downloading {
+                    Button("Cancel", action: onCancel)
+                        .buttonStyle(.bordered)
+                } else if track.downloadState == .failed {
+                    Button("Retry", action: onRetry)
+                        .buttonStyle(.borderedProminent)
+                } else {
+                    Button("Download", action: onDownload)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(downloadDisabled)
+                }
+                if isUserTrack, let onDelete {
+                    Button("Delete", action: onDelete)
+                        .buttonStyle(.bordered)
+                }
             }
         }
         .padding(6)

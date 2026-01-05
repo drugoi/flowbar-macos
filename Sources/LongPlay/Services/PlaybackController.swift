@@ -22,6 +22,9 @@ final class PlaybackController: ObservableObject {
 
     func loadAndPlay(track: Track, fileURL: URL, startAt: TimeInterval = 0) {
         do {
+            if let player {
+                player.stop()
+            }
             let player = try AVAudioPlayer(contentsOf: fileURL)
             player.prepareToPlay()
             self.player = player

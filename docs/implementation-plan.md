@@ -40,12 +40,13 @@
 ### M4: Playback + Resume
 - [x] Add `PlaybackController` using `AVAudioPlayer`.
 - [x] Persist playback position periodically and on pause/stop/quit.
-- [ ] Enforce single-track playback.
+- [x] Enforce single-track playback.
 
 ### M5: UI Polish + UX
-- [ ] Bind UI to state and service events.
-- [ ] Add error surfaces with Retry and Diagnostics.
-- [ ] Add search filtering and keyboard shortcuts.
+- [x] Bind UI to state and service events.
+- [x] Add error surfaces with Retry and Diagnostics.
+- [x] Add search filtering.
+- [ ] Add keyboard shortcuts.
 
 ### M6: Distribution Prep
 - [ ] Document code signing and notarization steps.
