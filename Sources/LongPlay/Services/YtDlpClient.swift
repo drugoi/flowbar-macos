@@ -112,6 +112,9 @@ struct YtDlpClient {
         let args = [
             "--dump-json",
             "--no-playlist",
+            "--socket-timeout", "10",
+            "--retries", "1",
+            "--no-warnings",
             url.absoluteString
         ]
         let output = try await run(args)

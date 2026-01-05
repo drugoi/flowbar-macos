@@ -23,7 +23,7 @@ enum MetadataResolver {
     static func resolve(for url: URL) async throws -> ResolvedMetadata {
         do {
             let client = YtDlpClient()
-            let result = try await withTimeout(seconds: 15) {
+            let result = try await withTimeout(seconds: 20) {
                 try await client.resolveMetadata(url: url)
             }
             return ResolvedMetadata(title: result.title, durationSeconds: result.durationSeconds)
