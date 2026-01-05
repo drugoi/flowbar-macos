@@ -13,6 +13,8 @@ struct MenuBarContentView: View {
     @State private var newDisplayName = ""
     @State private var validationError: String?
     @State private var ytdlpMissing = false
+    @State private var showClearDownloadsConfirm = false
+    @State private var deleteCandidate: Track?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -57,6 +59,31 @@ struct MenuBarContentView: View {
         }
         .onExitCommand {
             dismiss()
+        }
+        .alert("Clear all downloads?", isPresented: $showClearDownloadsConfirm) {
+            Button("Clear Downloads", role: .destructive) {
+                libraryStore.clearDownloads()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will remove all cached audio files.")
+        }
+        .alert("Delete track?", isPresented: Binding(get: {
+            deleteCandidate != nil
+        }, set: { newValue in
+            if !newValue { deleteCandidate = nil }
+        })) {
+            Button("Delete", role: .destructive) {
+                if let track = deleteCandidate {
+                    libraryStore.removeTrack(track)
+                }
+                deleteCandidate = nil
+            }
+            Button("Cancel", role: .cancel) {
+                deleteCandidate = nil
+            }
+        } message: {
+            Text("This removes the track and any downloaded audio.")
         }
     }
 
@@ -154,7 +181,7 @@ struct MenuBarContentView: View {
                                 onCancel: { cancelDownload(for: track) },
                                 onRemoveDownload: { libraryStore.removeDownload(for: track) },
                                 onDiagnostics: { copyDiagnostics() },
-                                onDelete: { libraryStore.removeTrack(track) }
+                                onDelete: { deleteCandidate = track }
                             )
                         }
                     }
@@ -200,7 +227,7 @@ struct MenuBarContentView: View {
                     .foregroundColor(.red)
             }
             Button("Clear Downloads") {
-                libraryStore.clearDownloads()
+                showClearDownloadsConfirm = true
             }
             Button("Copy Diagnostics") {
                 copyDiagnostics()
