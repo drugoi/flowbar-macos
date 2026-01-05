@@ -106,9 +106,11 @@ struct MenuBarContentView: View {
                                         .foregroundColor(.secondary)
                                     HStack(spacing: 8) {
                                         if let failedTrack, shouldOfferDownloadAnyway(failedTrack) {
-                                            Button("Download Anyway") {
-                                                downloadOnly(failedTrack)
-                                            }
+                                    Button("Download Anyway") {
+                                        Task {
+                                            await downloadOnly(failedTrack)
+                                        }
+                                    }
                                             .buttonStyle(PrimaryButtonStyle())
                                         }
                                         if let failedTrack {
@@ -562,6 +564,21 @@ struct MenuBarContentView: View {
                 }
                 libraryStore.updateTrack(updated)
                 libraryStore.refreshCacheSize()
+            } catch let error as MetadataResolveError {
+                if case .timeout = error {
+                    DiagnosticsLogger.shared.log(level: "warning", message: "Metadata timeout, downloading anyway for \(track.videoId)")
+                    globalErrorMessage = "Metadata timed out; downloading without title."
+                    failedTrack = track
+                    await downloadOnly(track)
+                    return
+                }
+                var failed = track
+                failed.downloadState = .failed
+                failed.lastError = error.localizedDescription
+                libraryStore.updateTrack(failed)
+                DiagnosticsLogger.shared.log(level: "error", message: "Download failed: \(error.localizedDescription)")
+                globalErrorMessage = error.localizedDescription
+                failedTrack = failed
             } catch {
                 var failed = track
                 failed.downloadState = .failed
@@ -574,8 +591,7 @@ struct MenuBarContentView: View {
         }
     }
 
-    private func downloadOnly(_ track: Track) {
-        Task {
+    private func downloadOnly(_ track: Track) async {
             guard networkMonitor.isOnline else {
                 globalErrorMessage = "No internet connection."
                 failedTrack = track
@@ -611,7 +627,6 @@ struct MenuBarContentView: View {
                 failedTrack = failed
                 DiagnosticsLogger.shared.log(level: "error", message: "Download failed: \(error.localizedDescription)")
             }
-        }
     }
 
     private func play(_ track: Track) {
