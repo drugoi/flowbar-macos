@@ -83,7 +83,7 @@ Product metrics:
 ## 6. Platform, distribution, and compliance
 
 ### 6.1 Platform
-- **macOS minimum:** TBD by engineering, but intended to target **recent popular versions** to enable modern SwiftUI.
+- **macOS minimum:** macOS 13.0 (Ventura) to enable modern SwiftUI APIs.
 - **UI framework:** **SwiftUI**
 - **App type:** menu bar app using `MenuBarExtra` with **window-style** popover UI.
 
@@ -281,8 +281,12 @@ Categories:
 ---
 
 ## 12. Featured content (MVP)
-Open decision: choose 3–5 stable long-form videos likely to remain available.
-Criteria:
+Selected featured list (subject to availability):
+1. Lofi hip hop radio (DWcJFNfaw9c)
+2. Ambient space music (lCOF9LN_Zxs)
+3. Classical focus mix (2OEL4P1Rz04)
+
+Criteria (for future refresh):
 - reputable channels
 - long duration (≥ 1 hour)
 - minimal takedown risk
@@ -301,10 +305,10 @@ Criteria:
 ---
 
 ## 14. Open questions
-1. Minimum supported macOS version for MVP (recommend selecting and locking it early).
-2. Cache policy: manual only vs fixed max + eviction.
-3. Stop behavior confirmed? (Current MVP: Stop resets position to 0.)
-4. Final set of Featured mixes.
+Resolved for MVP:
+1. Minimum macOS version: 13.0 (Ventura).
+2. Cache policy: manual-only for MVP (no eviction).
+3. Stop behavior: Stop resets position to 0.
+4. Featured list: three items selected (see section 12).
 
 ---
-
