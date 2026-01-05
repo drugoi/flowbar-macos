@@ -25,7 +25,7 @@
 
 ## Notes
 - This app uses `LSUIElement` to stay menu-bar only.
-- `yt-dlp` is bundled in `Resources/yt-dlp` and executed from the app bundle.
-- Each release must include the updated `yt-dlp` binary; do not rely on Homebrew at runtime.
-- Refresh `minimumSupportedVersion` in `YtDlpClient` to match the bundled version.
+- `yt-dlp` is fetched at build time from `https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos` into `Resources/yt-dlp`.
+- Keep `Resources/yt-dlp` out of git; it is generated during builds.
+- Refresh `minimumSupportedVersion` in `YtDlpClient` to match the fetched version.
 - Keep distribution artifacts outside the repo.

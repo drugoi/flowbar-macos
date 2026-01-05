@@ -164,6 +164,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2EB5084476187FC7A3D1C4B4 /* Build configuration list for PBXNativeTarget "LongPlay" */;
 			buildPhases = (
+				B21081955FAAD44DC56A76F8 /* Fetch yt-dlp */,
 				F0F64C2955DCB14DEA0BC15A /* Sources */,
 				D35CF6E695E0FAA3C655C52E /* Resources */,
 			);
@@ -228,6 +229,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		B21081955FAAD44DC56A76F8 /* Fetch yt-dlp */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Fetch yt-dlp";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "scripts/fetch-yt-dlp.sh";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		09B8A30E90310B1D73C8A78F /* Sources */ = {

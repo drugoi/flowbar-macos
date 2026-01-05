@@ -27,6 +27,10 @@ targets:
       - path: Sources/LongPlay
       - path: Resources/yt-dlp
         buildPhase: resources
+    preBuildScripts:
+      - name: Fetch yt-dlp
+        script: scripts/fetch-yt-dlp.sh
+        showEnvVars: false
     info:
       path: Config/Info.plist
     settings:
