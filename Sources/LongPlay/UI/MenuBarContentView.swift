@@ -17,6 +17,8 @@ struct MenuBarContentView: View {
     @State private var deleteCandidate: Track?
     @State private var globalErrorMessage: String?
     @State private var failedTrack: Track?
+    @State private var renameCandidate: Track?
+    @State private var renameText: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -114,6 +116,26 @@ struct MenuBarContentView: View {
         } message: {
             Text("This removes the track and any downloaded audio.")
         }
+        .alert("Rename track", isPresented: Binding(get: {
+            renameCandidate != nil
+        }, set: { newValue in
+            if !newValue { renameCandidate = nil }
+        })) {
+            TextField("Display name", text: $renameText)
+            Button("Save") {
+                guard var track = renameCandidate else { return }
+                let trimmed = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
+                track.displayName = trimmed
+                libraryStore.updateTrack(track)
+                renameCandidate = nil
+            }
+            Button("Cancel", role: .cancel) {
+                renameCandidate = nil
+            }
+        } message: {
+            Text("Update the track display name.")
+        }
     }
 
     private var nowPlayingSection: some View {
@@ -190,7 +212,8 @@ struct MenuBarContentView: View {
                                 onCancel: { cancelDownload(for: track) },
                                 onRemoveDownload: { libraryStore.removeDownload(for: track) },
                                 onDiagnostics: { copyDiagnostics() },
-                                onDelete: nil
+                                onDelete: nil,
+                                onRename: nil
                             )
                         }
                     }
@@ -210,7 +233,8 @@ struct MenuBarContentView: View {
                                 onCancel: { cancelDownload(for: track) },
                                 onRemoveDownload: { libraryStore.removeDownload(for: track) },
                                 onDiagnostics: { copyDiagnostics() },
-                                onDelete: { deleteCandidate = track }
+                                onDelete: { deleteCandidate = track },
+                                onRename: { beginRename(track) }
                             )
                         }
                     }
@@ -385,6 +409,11 @@ struct MenuBarContentView: View {
         DiagnosticsLogger.shared.log(level: "info", message: "Download cancelled for \(track.videoId)")
     }
 
+    private func beginRename(_ track: Track) {
+        renameCandidate = track
+        renameText = track.displayName
+    }
+
     private func copyDiagnostics() {
         let diagnostics = DiagnosticsLogger.shared.formattedDiagnostics()
         NSPasteboard.general.clearContents()
@@ -422,6 +451,7 @@ private struct TrackRow: View {
     let onRemoveDownload: () -> Void
     let onDiagnostics: () -> Void
     let onDelete: (() -> Void)?
+    let onRename: (() -> Void)?
 
     var body: some View {
         HStack {
@@ -460,6 +490,10 @@ private struct TrackRow: View {
                         .disabled(downloadDisabled)
                 }
                 if isUserTrack, let onDelete {
+                    if let onRename {
+                        Button("Rename", action: onRename)
+                            .buttonStyle(.bordered)
+                    }
                     Button("Delete", action: onDelete)
                         .buttonStyle(.bordered)
                 }
