@@ -55,7 +55,7 @@
 - [x] Add confirmations for destructive actions.
 - [x] Reflect app state in menu bar icon (idle/resolving/downloading/playing/paused/error).
 - [x] Expand Featured list to 3–5 stable items.
-- [ ] Set consistent focus on open (search or URL field).
+- [x] Set consistent focus on open (search or URL field).
 - [x] Add rename UI for library items.
 - [ ] Add accessibility labels for primary controls.
 

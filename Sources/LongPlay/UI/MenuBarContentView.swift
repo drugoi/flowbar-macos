@@ -7,6 +7,7 @@ struct MenuBarContentView: View {
     @ObservedObject var downloadManager: DownloadManager
 
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var focusedField: FocusField?
 
     @State private var searchText = ""
     @State private var newURL = ""
@@ -19,6 +20,11 @@ struct MenuBarContentView: View {
     @State private var failedTrack: Track?
     @State private var renameCandidate: Track?
     @State private var renameText: String = ""
+
+    private enum FocusField {
+        case search
+        case url
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -86,6 +92,9 @@ struct MenuBarContentView: View {
                 await MainActor.run {
                     ytdlpMissing = !available
                 }
+            }
+            DispatchQueue.main.async {
+                focusedField = .search
             }
         }
         .onExitCommand {
@@ -187,6 +196,7 @@ struct MenuBarContentView: View {
                 .font(.headline)
             TextField("Search tracks", text: $searchText)
                 .textFieldStyle(.roundedBorder)
+                .focused($focusedField, equals: .search)
         }
     }
 
@@ -253,6 +263,7 @@ struct MenuBarContentView: View {
                 .onSubmit {
                     addNewTrack()
                 }
+                .focused($focusedField, equals: .url)
             TextField("Display name (optional)", text: $newDisplayName)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit {
