@@ -460,6 +460,8 @@ struct MenuBarContentView: View {
             DiagnosticsLogger.shared.log(level: "info", message: "Added track \(validated.videoId)")
             newURL = ""
             newDisplayName = ""
+            selectedTab = .listen
+            focusedField = .search
             resolveAndDownload(track)
         }
     }
