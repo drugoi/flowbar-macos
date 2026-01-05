@@ -39,6 +39,17 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "201F1A60F9DA5AA5DE1AE59A"
+               BuildableName = "LongPlayUITests.xctest"
+               BlueprintName = "LongPlayUITests"
+               ReferencedContainer = "container:LongPlay.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

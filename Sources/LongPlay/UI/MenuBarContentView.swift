@@ -218,6 +218,7 @@ struct MenuBarContentView: View {
                 .textFieldStyle(.roundedBorder)
                 .focused($focusedField, equals: .search)
                 .accessibilityLabel("Search tracks")
+                .accessibilityIdentifier("SearchField")
         }
     }
 
@@ -286,12 +287,14 @@ struct MenuBarContentView: View {
                 }
                 .focused($focusedField, equals: .url)
                 .accessibilityLabel("YouTube URL")
+                .accessibilityIdentifier("URLField")
             TextField("Display name (optional)", text: $newDisplayName)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit {
                     addNewTrack()
                 }
                 .accessibilityLabel("Display name")
+                .accessibilityIdentifier("DisplayNameField")
             if let validationError {
                 Text(validationError)
                     .font(.caption)
@@ -302,6 +305,7 @@ struct MenuBarContentView: View {
             }
             .keyboardShortcut(.return, modifiers: [])
             .accessibilityLabel("Add track")
+            .accessibilityIdentifier("AddTrackButton")
         }
     }
 

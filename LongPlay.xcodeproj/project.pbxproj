@@ -9,29 +9,46 @@
 /* Begin PBXBuildFile section */
 		0A64933ECEC03AACC7B72B9D /* DiagnosticsLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B891EC912E12D38750ED338C /* DiagnosticsLogger.swift */; };
 		1815FCE09B51762B38E5A73C /* YtDlpClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104AC197F3E43D26B3B19C25 /* YtDlpClient.swift */; };
+		22AACC6B1C14CE9EAACAEEC5 /* LongPlayUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A234124F9F19264781D5A485 /* LongPlayUITests.swift */; };
 		2EC490F0E77B40DDD2D56FBD /* DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 568F5146C0ADF6CC8CECC574 /* DownloadManager.swift */; };
+		33A6116EC4D71C704644D741 /* MenuBarLabelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 475F726D5E95E321629190C2 /* MenuBarLabelView.swift */; };
 		5B34B748F1438A7DF9461DE9 /* LongPlayApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF45F3D95CAE89A623DD1A8 /* LongPlayApp.swift */; };
 		6D4FE929433891F68D396353 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = B008A05ADD3FF001551C3648 /* Track.swift */; };
 		773828250ED003F5C11999AA /* PlaybackController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038971798A3D5B3BB0197C31 /* PlaybackController.swift */; };
 		955C8D52938C670ACD78742D /* MenuBarContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 945700A6E76399ADBF4EAB4D /* MenuBarContentView.swift */; };
 		9BE16290BC22CDB639BF6AFC /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = F79AD5D69C726DA17FC29662 /* AppPaths.swift */; };
 		9C771FA676013AAAFA6A91E7 /* URLValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198DD2DDAD27AD36559790BE /* URLValidator.swift */; };
+		A8C6EAB981DD50252A793B7C /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBE63D78D68BFBD7E40BA17F /* NetworkMonitor.swift */; };
 		BCA0014FD4C8857A023444FD /* Library.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99132F07D2CEBE82DA612836 /* Library.swift */; };
 		D890D1C7AD76FF618AB9D8B8 /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C873901169AFBA8D6073A8E0 /* LibraryStore.swift */; };
 		DE06CD85D3B86DE145970B9F /* MetadataResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFE10CBD3062ACB8F748396E /* MetadataResolver.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		1A960594905C23A83DC751E5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0A3F4F96FCD3C2EFA825BA62 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 92734DCEB2EA188AD30B87F6;
+			remoteInfo = LongPlay;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		038971798A3D5B3BB0197C31 /* PlaybackController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackController.swift; sourceTree = "<group>"; };
 		104AC197F3E43D26B3B19C25 /* YtDlpClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YtDlpClient.swift; sourceTree = "<group>"; };
 		198DD2DDAD27AD36559790BE /* URLValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLValidator.swift; sourceTree = "<group>"; };
+		2AE44025648A2DD2D2EED889 /* LongPlayUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LongPlayUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		475F726D5E95E321629190C2 /* MenuBarLabelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabelView.swift; sourceTree = "<group>"; };
 		568F5146C0ADF6CC8CECC574 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
 		619BBD6C2746326C84E77B80 /* LongPlay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LongPlay.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		945700A6E76399ADBF4EAB4D /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
 		99132F07D2CEBE82DA612836 /* Library.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Library.swift; sourceTree = "<group>"; };
+		A234124F9F19264781D5A485 /* LongPlayUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongPlayUITests.swift; sourceTree = "<group>"; };
 		B008A05ADD3FF001551C3648 /* Track.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Track.swift; sourceTree = "<group>"; };
 		B891EC912E12D38750ED338C /* DiagnosticsLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsLogger.swift; sourceTree = "<group>"; };
 		C873901169AFBA8D6073A8E0 /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
+		CBE63D78D68BFBD7E40BA17F /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		CBF45F3D95CAE89A623DD1A8 /* LongPlayApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongPlayApp.swift; sourceTree = "<group>"; };
 		F79AD5D69C726DA17FC29662 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		FFE10CBD3062ACB8F748396E /* MetadataResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataResolver.swift; sourceTree = "<group>"; };
@@ -42,6 +59,7 @@
 			isa = PBXGroup;
 			children = (
 				F35A06325C2F39012DBCB017 /* LongPlay */,
+				B29243641C21F2C42118BAC0 /* LongPlayUITests */,
 				760BB8554FBE0A132EAAFDC9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -59,6 +77,7 @@
 			isa = PBXGroup;
 			children = (
 				619BBD6C2746326C84E77B80 /* LongPlay.app */,
+				2AE44025648A2DD2D2EED889 /* LongPlayUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -68,8 +87,18 @@
 			children = (
 				CBF45F3D95CAE89A623DD1A8 /* LongPlayApp.swift */,
 				945700A6E76399ADBF4EAB4D /* MenuBarContentView.swift */,
+				475F726D5E95E321629190C2 /* MenuBarLabelView.swift */,
 			);
 			path = UI;
+			sourceTree = "<group>";
+		};
+		B29243641C21F2C42118BAC0 /* LongPlayUITests */ = {
+			isa = PBXGroup;
+			children = (
+				A234124F9F19264781D5A485 /* LongPlayUITests.swift */,
+			);
+			name = LongPlayUITests;
+			path = Tests/LongPlayUITests;
 			sourceTree = "<group>";
 		};
 		E8124A5A3E488E65381F2AEC /* Services */ = {
@@ -80,6 +109,7 @@
 				568F5146C0ADF6CC8CECC574 /* DownloadManager.swift */,
 				C873901169AFBA8D6073A8E0 /* LibraryStore.swift */,
 				FFE10CBD3062ACB8F748396E /* MetadataResolver.swift */,
+				CBE63D78D68BFBD7E40BA17F /* NetworkMonitor.swift */,
 				038971798A3D5B3BB0197C31 /* PlaybackController.swift */,
 				198DD2DDAD27AD36559790BE /* URLValidator.swift */,
 				104AC197F3E43D26B3B19C25 /* YtDlpClient.swift */,
@@ -101,6 +131,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		201F1A60F9DA5AA5DE1AE59A /* LongPlayUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7043EA28C00DAB80933E76B8 /* Build configuration list for PBXNativeTarget "LongPlayUITests" */;
+			buildPhases = (
+				09B8A30E90310B1D73C8A78F /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A3499CD1780F549552305195 /* PBXTargetDependency */,
+			);
+			name = LongPlayUITests;
+			packageProductDependencies = (
+			);
+			productName = LongPlayUITests;
+			productReference = 2AE44025648A2DD2D2EED889 /* LongPlayUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		92734DCEB2EA188AD30B87F6 /* LongPlay */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2EB5084476187FC7A3D1C4B4 /* Build configuration list for PBXNativeTarget "LongPlay" */;
@@ -127,6 +175,11 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					201F1A60F9DA5AA5DE1AE59A = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+						TestTargetID = 92734DCEB2EA188AD30B87F6;
+					};
 					92734DCEB2EA188AD30B87F6 = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
@@ -148,11 +201,20 @@
 			projectRoot = "";
 			targets = (
 				92734DCEB2EA188AD30B87F6 /* LongPlay */,
+				201F1A60F9DA5AA5DE1AE59A /* LongPlayUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		09B8A30E90310B1D73C8A78F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				22AACC6B1C14CE9EAACAEEC5 /* LongPlayUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F0F64C2955DCB14DEA0BC15A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -164,7 +226,9 @@
 				D890D1C7AD76FF618AB9D8B8 /* LibraryStore.swift in Sources */,
 				5B34B748F1438A7DF9461DE9 /* LongPlayApp.swift in Sources */,
 				955C8D52938C670ACD78742D /* MenuBarContentView.swift in Sources */,
+				33A6116EC4D71C704644D741 /* MenuBarLabelView.swift in Sources */,
 				DE06CD85D3B86DE145970B9F /* MetadataResolver.swift in Sources */,
+				A8C6EAB981DD50252A793B7C /* NetworkMonitor.swift in Sources */,
 				773828250ED003F5C11999AA /* PlaybackController.swift in Sources */,
 				6D4FE929433891F68D396353 /* Track.swift in Sources */,
 				9C771FA676013AAAFA6A91E7 /* URLValidator.swift in Sources */,
@@ -173,6 +237,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A3499CD1780F549552305195 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 92734DCEB2EA188AD30B87F6 /* LongPlay */;
+			targetProxy = 1A960594905C23A83DC751E5 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		35DFCD6C34D9602475CFE91F /* Debug */ = {
@@ -268,6 +340,22 @@
 			};
 			name = Release;
 		};
+		ADD916F3681E093EC0165934 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				SDKROOT = macosx;
+				TEST_TARGET_NAME = LongPlay;
+			};
+			name = Debug;
+		};
 		E0B6EC223C8D93ACFB4B3B67 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -336,6 +424,22 @@
 			};
 			name = Debug;
 		};
+		E7E4348D283AADEED44A15F1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				SDKROOT = macosx;
+				TEST_TARGET_NAME = LongPlay;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -353,6 +457,15 @@
 			buildConfigurations = (
 				E0B6EC223C8D93ACFB4B3B67 /* Debug */,
 				435D46A68FF7E35D8895C6E4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		7043EA28C00DAB80933E76B8 /* Build configuration list for PBXNativeTarget "LongPlayUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ADD916F3681E093EC0165934 /* Debug */,
+				E7E4348D283AADEED44A15F1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

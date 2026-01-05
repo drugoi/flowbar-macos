@@ -7,6 +7,7 @@ struct MenuBarLabelView: View {
 
     var body: some View {
         Image(systemName: iconName)
+            .accessibilityLabel("LongPlay")
     }
 
     private var iconName: String {

@@ -32,4 +32,13 @@ targets:
         PRODUCT_NAME: LongPlay
         INFOPLIST_FILE: Config/Info.plist
     scheme:
-      testTargets: []
+      testTargets:
+        - LongPlayUITests
+  LongPlayUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    deploymentTarget: "13.0"
+    sources:
+      - path: Tests/LongPlayUITests
+    dependencies:
+      - target: LongPlay
