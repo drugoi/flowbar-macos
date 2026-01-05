@@ -64,9 +64,9 @@
 - [ ] Homebrew cask packaging outline.
 
 ### M7: Reliability + Policy
-- [ ] Handle no-internet / offline states with user-facing errors.
-- [ ] Handle removed/unavailable videos with clear messaging and retry.
-- [ ] Handle low disk space failures during download.
+- [x] Handle no-internet / offline states with user-facing errors.
+- [x] Handle removed/unavailable videos with clear messaging and retry.
+- [x] Handle low disk space failures during download.
 - [ ] Document cache policy (manual vs eviction) in UI or docs.
 
 ## Immediate Next Steps (This Sprint)

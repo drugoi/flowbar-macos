@@ -10,10 +10,35 @@ enum YtDlpError: LocalizedError {
         case .notInstalled:
             return "yt-dlp is not installed or not found in PATH."
         case .executionFailed(let message):
-            return "yt-dlp failed: \(message)"
+            return YtDlpError.userFacingMessage(from: message)
         case .invalidOutput:
             return "yt-dlp returned unexpected output."
         }
+    }
+
+    private static func userFacingMessage(from output: String) -> String {
+        let lowercased = output.lowercased()
+        if lowercased.contains("no space left on device") {
+            return "Not enough disk space to complete the download."
+        }
+        if lowercased.contains("video unavailable")
+            || lowercased.contains("this video is unavailable")
+            || lowercased.contains("private video")
+            || lowercased.contains("members-only")
+            || lowercased.contains("sign in to confirm") {
+            return "Video unavailable or restricted."
+        }
+        if lowercased.contains("http error 429") || lowercased.contains("too many requests") {
+            return "YouTube rate-limited the request. Try again later."
+        }
+        if lowercased.contains("unable to download") || lowercased.contains("failed to download") {
+            return "Download failed. Check your connection and try again."
+        }
+        let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return "yt-dlp failed for an unknown reason."
+        }
+        return "yt-dlp failed: \(trimmed)"
     }
 }
 

@@ -9,6 +9,8 @@ struct MenuBarContentView: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: FocusField?
 
+    @StateObject private var networkMonitor = NetworkMonitor()
+
     @State private var searchText = ""
     @State private var newURL = ""
     @State private var newDisplayName = ""
@@ -28,6 +30,22 @@ struct MenuBarContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if !networkMonitor.isOnline {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("You're offline")
+                        .font(.headline)
+                    Text("Check your internet connection to download audio.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Button("Copy Diagnostics") {
+                        copyDiagnostics()
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .padding(8)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
+            }
             if ytdlpMissing {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("yt-dlp not found")
@@ -354,6 +372,16 @@ struct MenuBarContentView: View {
 
     private func resolveAndDownload(_ track: Track) {
         Task {
+            guard networkMonitor.isOnline else {
+                var failed = track
+                failed.downloadState = .failed
+                failed.lastError = "No internet connection."
+                libraryStore.updateTrack(failed)
+                globalErrorMessage = "No internet connection."
+                failedTrack = failed
+                DiagnosticsLogger.shared.log(level: "warning", message: "Download blocked: offline")
+                return
+            }
             if let activeId = downloadManager.activeTrackId, activeId != track.id {
                 DiagnosticsLogger.shared.log(level: "warning", message: "Download already in progress.")
                 return
