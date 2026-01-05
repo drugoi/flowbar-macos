@@ -44,3 +44,6 @@ targets:
       - path: Tests/LongPlayUITests
     dependencies:
       - target: LongPlay
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
