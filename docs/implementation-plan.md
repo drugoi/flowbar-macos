@@ -57,7 +57,7 @@
 - [x] Expand Featured list to 3–5 stable items.
 - [x] Set consistent focus on open (search or URL field).
 - [x] Add rename UI for library items.
-- [ ] Add accessibility labels for primary controls.
+- [x] Add accessibility labels for primary controls.
 
 ### M6: Distribution Prep
 - [ ] Document code signing and notarization steps.

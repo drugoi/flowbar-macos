@@ -162,9 +162,11 @@ struct MenuBarContentView: View {
                     }
                 }
                 .keyboardShortcut(.space, modifiers: [])
+                .accessibilityLabel(playbackController.state == .playing ? "Pause playback" : "Resume playback")
                 Button("Stop") {
                     playbackController.stop()
                 }
+                .accessibilityLabel("Stop playback")
             }
             .disabled(playbackController.currentTrack == nil)
             Text(statusLine)
@@ -197,6 +199,7 @@ struct MenuBarContentView: View {
             TextField("Search tracks", text: $searchText)
                 .textFieldStyle(.roundedBorder)
                 .focused($focusedField, equals: .search)
+                .accessibilityLabel("Search tracks")
         }
     }
 
@@ -264,11 +267,13 @@ struct MenuBarContentView: View {
                     addNewTrack()
                 }
                 .focused($focusedField, equals: .url)
+                .accessibilityLabel("YouTube URL")
             TextField("Display name (optional)", text: $newDisplayName)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit {
                     addNewTrack()
                 }
+                .accessibilityLabel("Display name")
             if let validationError {
                 Text(validationError)
                     .font(.caption)
@@ -278,6 +283,7 @@ struct MenuBarContentView: View {
                 addNewTrack()
             }
             .keyboardShortcut(.return, modifiers: [])
+            .accessibilityLabel("Add track")
         }
     }
 
@@ -293,13 +299,16 @@ struct MenuBarContentView: View {
             Button("Clear Downloads") {
                 showClearDownloadsConfirm = true
             }
+            .accessibilityLabel("Clear all downloads")
             Button("Copy Diagnostics") {
                 copyDiagnostics()
             }
+            .accessibilityLabel("Copy diagnostics")
             Divider()
             Button("Quit") {
                 NSApplication.shared.terminate(nil)
             }
+            .accessibilityLabel("Quit LongPlay")
         }
     }
 
@@ -485,28 +494,36 @@ private struct TrackRow: View {
                 if track.downloadState == .downloaded {
                     Button("Play", action: onPlay)
                         .buttonStyle(.bordered)
+                        .accessibilityLabel("Play track")
                     Button("Remove", action: onRemoveDownload)
                         .buttonStyle(.bordered)
+                        .accessibilityLabel("Remove download")
                 } else if track.downloadState == .downloading {
                     Button("Cancel", action: onCancel)
                         .buttonStyle(.bordered)
+                        .accessibilityLabel("Cancel download")
                 } else if track.downloadState == .failed {
                     Button("Retry", action: onRetry)
                         .buttonStyle(.borderedProminent)
+                        .accessibilityLabel("Retry download")
                     Button("Logs", action: onDiagnostics)
                         .buttonStyle(.bordered)
+                        .accessibilityLabel("Copy diagnostics")
                 } else {
                     Button("Download", action: onDownload)
                         .buttonStyle(.borderedProminent)
                         .disabled(downloadDisabled)
+                        .accessibilityLabel("Download track")
                 }
                 if isUserTrack, let onDelete {
                     if let onRename {
                         Button("Rename", action: onRename)
                             .buttonStyle(.bordered)
+                            .accessibilityLabel("Rename track")
                     }
                     Button("Delete", action: onDelete)
                         .buttonStyle(.bordered)
+                        .accessibilityLabel("Delete track")
                 }
             }
         }
