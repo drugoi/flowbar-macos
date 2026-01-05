@@ -179,14 +179,6 @@ struct MenuBarContentView: View {
         .onExitCommand {
             dismiss()
         }
-        .alert("Clear all downloads?", isPresented: $showClearDownloadsConfirm) {
-            Button("Clear Downloads", role: .destructive) {
-                libraryStore.clearDownloads()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will remove all cached audio files.")
-        }
         .alert("Delete track?", isPresented: Binding(get: {
             deleteCandidate != nil
         }, set: { newValue in
@@ -443,6 +435,27 @@ struct MenuBarContentView: View {
                 }
                 .accessibilityLabel("Clear all downloads")
                 .buttonStyle(SecondaryButtonStyle())
+                if showClearDownloadsConfirm {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Remove all cached audio files?")
+                            .font(.custom("Avenir Next", size: 11))
+                            .foregroundColor(.secondary)
+                        HStack(spacing: 8) {
+                            Button("Clear") {
+                                libraryStore.clearDownloads()
+                                showClearDownloadsConfirm = false
+                            }
+                            .buttonStyle(PrimaryButtonStyle())
+                            Button("Cancel") {
+                                showClearDownloadsConfirm = false
+                            }
+                            .buttonStyle(SecondaryButtonStyle())
+                        }
+                    }
+                    .padding(8)
+                    .background(Color.white.opacity(0.7))
+                    .cornerRadius(8)
+                }
                 Text("Cache: \(formattedBytes(libraryStore.cacheSizeBytes)) • Manual cleanup")
                     .font(.custom("Avenir Next", size: 11))
                     .foregroundColor(.secondary)
