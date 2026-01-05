@@ -2,7 +2,11 @@
 set -e
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-DEST_DIR="$ROOT_DIR/Resources/bin"
+if [ -n "$TARGET_BUILD_DIR" ] && [ -n "$UNLOCALIZED_RESOURCES_FOLDER_PATH" ]; then
+  DEST_DIR="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/bin"
+else
+  DEST_DIR="$ROOT_DIR/Resources/bin"
+fi
 FFMPEG_BIN="$DEST_DIR/ffmpeg"
 FFPROBE_BIN="$DEST_DIR/ffprobe"
 URL="https://evermeet.cx/ffmpeg/ffmpeg-7.0.1.zip"
