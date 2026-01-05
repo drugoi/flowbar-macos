@@ -37,6 +37,7 @@
 - [x] Extract metadata (title, duration) and select audio-only format.
 - [x] Download audio to Caches with progress updates and cancel support.
 - [x] Detect missing `yt-dlp` and surface install guidance.
+- [x] Add global error banner with retry and diagnostics for yt-dlp failures.
 
 ### M4: Playback + Resume
 - [x] Add `PlaybackController` using `AVAudioPlayer`.

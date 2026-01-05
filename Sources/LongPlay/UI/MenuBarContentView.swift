@@ -15,6 +15,8 @@ struct MenuBarContentView: View {
     @State private var ytdlpMissing = false
     @State private var showClearDownloadsConfirm = false
     @State private var deleteCandidate: Track?
+    @State private var globalErrorMessage: String?
+    @State private var failedTrack: Track?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -30,6 +32,33 @@ struct MenuBarContentView: View {
                         NSPasteboard.general.setString("brew install yt-dlp", forType: .string)
                     }
                     .buttonStyle(.bordered)
+                }
+                .padding(8)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
+            }
+            if let globalErrorMessage {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Download issue")
+                        .font(.headline)
+                    Text(globalErrorMessage)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    HStack(spacing: 8) {
+                        if let failedTrack {
+                            Button("Retry") {
+                                resolveAndDownload(failedTrack)
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                        Button("Logs") {
+                            copyDiagnostics()
+                        }
+                        Button("Dismiss") {
+                            self.globalErrorMessage = nil
+                            self.failedTrack = nil
+                        }
+                    }
                 }
                 .padding(8)
                 .background(Color(NSColor.controlBackgroundColor))
@@ -286,6 +315,9 @@ struct MenuBarContentView: View {
                 return
             }
             do {
+                globalErrorMessage = nil
+                failedTrack = nil
+
                 var resolving = track
                 resolving.downloadState = .resolving
                 resolving.lastError = nil
@@ -310,6 +342,8 @@ struct MenuBarContentView: View {
                 failed.lastError = error.localizedDescription
                 libraryStore.updateTrack(failed)
                 DiagnosticsLogger.shared.log(level: "error", message: "Download failed: \(error.localizedDescription)")
+                globalErrorMessage = error.localizedDescription
+                failedTrack = failed
             }
         }
     }
