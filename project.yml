@@ -32,13 +32,13 @@ targets:
         script: scripts/fetch-yt-dlp.sh
         showEnvVars: false
         outputFiles:
-          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/bin/yt-dlp
+          - Resources/bin/yt-dlp
       - name: Fetch ffmpeg
         script: scripts/fetch-ffmpeg.sh
         showEnvVars: false
         outputFiles:
-          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/bin/ffmpeg
-          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/bin/ffprobe
+          - Resources/bin/ffmpeg
+          - Resources/bin/ffprobe
     info:
       path: Config/Info.plist
     settings:

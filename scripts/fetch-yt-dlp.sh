@@ -2,11 +2,7 @@
 set -e
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-if [ -n "$TARGET_BUILD_DIR" ] && [ -n "$UNLOCALIZED_RESOURCES_FOLDER_PATH" ]; then
-  DEST_DIR="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/bin"
-else
-  DEST_DIR="$ROOT_DIR/Resources/bin"
-fi
+DEST_DIR="$ROOT_DIR/Resources/bin"
 DEST="$DEST_DIR/yt-dlp"
 URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos"
 
