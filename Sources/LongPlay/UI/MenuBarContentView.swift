@@ -31,91 +31,81 @@ struct MenuBarContentView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if !networkMonitor.isOnline {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("You're offline")
-                        .font(.headline)
-                    Text("Check your internet connection to download audio.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Button("Copy Diagnostics") {
-                        copyDiagnostics()
-                    }
-                    .buttonStyle(.bordered)
+        ZStack {
+            LinearGradient(
+                colors: [Color(red: 0.96, green: 0.96, blue: 0.99),
+                         Color(red: 0.92, green: 0.94, blue: 0.98)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            VStack(alignment: .leading, spacing: 12) {
+                headerRow
+                if !networkMonitor.isOnline {
+                    NoticeCard(
+                        title: "You're offline",
+                        message: "Check your connection to download audio.",
+                        actionTitle: "Copy Diagnostics",
+                        action: { copyDiagnostics() }
+                    )
                 }
-                .padding(8)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(8)
-            }
-            if ytdlpMissing {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("yt-dlp not found")
-                        .font(.headline)
-                    Text("Install with: brew install yt-dlp")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Button("Copy Install Command") {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString("brew install yt-dlp", forType: .string)
-                    }
-                    .buttonStyle(.bordered)
+                if ytdlpMissing {
+                    NoticeCard(
+                        title: "yt-dlp not found",
+                        message: "Install with: brew install yt-dlp",
+                        actionTitle: "Copy Install Command",
+                        action: {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString("brew install yt-dlp", forType: .string)
+                        }
+                    )
                 }
-                .padding(8)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(8)
-            }
-            if let ytdlpWarning {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("yt-dlp update recommended")
-                        .font(.headline)
-                    Text(ytdlpWarning)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Button("Copy Update Command") {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString("brew upgrade yt-dlp", forType: .string)
-                    }
-                    .buttonStyle(.bordered)
+                if let ytdlpWarning {
+                    NoticeCard(
+                        title: "yt-dlp update recommended",
+                        message: ytdlpWarning,
+                        actionTitle: "Copy Update Command",
+                        action: {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString("brew upgrade yt-dlp", forType: .string)
+                        }
+                    )
                 }
-                .padding(8)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(8)
-            }
-            if let globalErrorMessage {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(failedTrack == nil ? "Input issue" : "Download issue")
-                        .font(.headline)
-                    Text(globalErrorMessage)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    HStack(spacing: 8) {
-                        if let failedTrack {
-                            Button("Retry") {
-                                resolveAndDownload(failedTrack)
+                if let globalErrorMessage {
+                    SectionCard {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(failedTrack == nil ? "Input issue" : "Download issue")
+                                .font(sectionTitleFont)
+                            Text(globalErrorMessage)
+                                .font(.custom("Avenir Next", size: 12))
+                                .foregroundColor(.secondary)
+                            HStack(spacing: 8) {
+                                if let failedTrack {
+                                    Button("Retry") {
+                                        resolveAndDownload(failedTrack)
+                                    }
+                                    .buttonStyle(PrimaryButtonStyle())
+                                }
+                                Button("Logs") {
+                                    copyDiagnostics()
+                                }
+                                .buttonStyle(SecondaryButtonStyle())
+                                Button("Dismiss") {
+                                    self.globalErrorMessage = nil
+                                    self.failedTrack = nil
+                                }
+                                .buttonStyle(SecondaryButtonStyle())
                             }
-                            .buttonStyle(.borderedProminent)
-                        }
-                        Button("Logs") {
-                            copyDiagnostics()
-                        }
-                        Button("Dismiss") {
-                            self.globalErrorMessage = nil
-                            self.failedTrack = nil
                         }
                     }
                 }
-                .padding(8)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(8)
+                nowPlayingSection
+                searchSection
+                trackListSection
+                addNewSection
+                utilitiesSection
             }
-            nowPlayingSection
-            searchSection
-            trackListSection
-            addNewSection
-            utilitiesSection
+            .padding(14)
         }
-        .padding(12)
         .onAppear {
             libraryStore.load()
             playbackController.positionUpdateHandler = { [weak libraryStore, weak playbackController] time in
@@ -194,34 +184,50 @@ struct MenuBarContentView: View {
         }
     }
 
-    private var nowPlayingSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Now Playing")
-                .font(.headline)
-            Text(playbackController.currentTrack?.displayName ?? "Nothing yet")
-                .lineLimit(2)
-            HStack(spacing: 8) {
-                Button(playbackController.state == .playing ? "Pause" : "Play") {
-                    if playbackController.state == .playing {
-                        playbackController.pause()
-                    } else {
-                        playbackController.resume()
-                    }
-                }
-                .keyboardShortcut(.space, modifiers: [])
-                .accessibilityLabel(playbackController.state == .playing ? "Pause playback" : "Resume playback")
-                Button("Stop") {
-                    playbackController.stop()
-                    if let trackId = playbackController.currentTrack?.id {
-                        libraryStore.resetPlaybackPosition(trackId: trackId)
-                    }
-                }
-                .accessibilityLabel("Stop playback")
-            }
-            .disabled(playbackController.currentTrack == nil)
-            Text(statusLine)
-                .font(.caption)
+    private var headerRow: some View {
+        HStack {
+            Text("LongPlay")
+                .font(.custom("Avenir Next Demi Bold", size: 16))
+            Spacer()
+            Text("v0.1")
+                .font(.custom("Avenir Next", size: 11))
                 .foregroundColor(.secondary)
+        }
+    }
+
+    private var nowPlayingSection: some View {
+        SectionCard {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Now Playing")
+                    .font(sectionTitleFont)
+                Text(playbackController.currentTrack?.displayName ?? "Nothing yet")
+                    .font(.custom("Avenir Next", size: 14))
+                    .lineLimit(2)
+                HStack(spacing: 8) {
+                    Button(playbackController.state == .playing ? "Pause" : "Play") {
+                        if playbackController.state == .playing {
+                            playbackController.pause()
+                        } else {
+                            playbackController.resume()
+                        }
+                    }
+                    .keyboardShortcut(.space, modifiers: [])
+                    .accessibilityLabel(playbackController.state == .playing ? "Pause playback" : "Resume playback")
+                    .buttonStyle(PrimaryButtonStyle())
+                    Button("Stop") {
+                        playbackController.stop()
+                        if let trackId = playbackController.currentTrack?.id {
+                            libraryStore.resetPlaybackPosition(trackId: trackId)
+                        }
+                    }
+                    .accessibilityLabel("Stop playback")
+                    .buttonStyle(SecondaryButtonStyle())
+                }
+                .disabled(playbackController.currentTrack == nil)
+                Text(statusLine)
+                    .font(.custom("Avenir Next", size: 11))
+                    .foregroundColor(.secondary)
+            }
         }
     }
 
@@ -243,129 +249,141 @@ struct MenuBarContentView: View {
     }
 
     private var searchSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Search")
-                .font(.headline)
-            TextField("Search tracks", text: $searchText)
-                .textFieldStyle(.roundedBorder)
-                .focused($focusedField, equals: .search)
-                .accessibilityLabel("Search tracks")
-                .accessibilityIdentifier("SearchField")
+        SectionCard {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Search")
+                    .font(sectionTitleFont)
+                TextField("Search tracks", text: $searchText)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .search)
+                    .accessibilityLabel("Search tracks")
+                    .accessibilityIdentifier("SearchField")
+            }
         }
     }
 
     private var trackListSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Tracks")
-                .font(.headline)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    if !filteredFeatured.isEmpty {
-                        Text("Featured")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        ForEach(filteredFeatured) { track in
-                            TrackRow(
-                                track: track,
-                                progress: progressText(for: track),
-                                downloadDisabled: downloadManager.activeTrackId != nil && downloadManager.activeTrackId != track.id,
-                                isUserTrack: false,
-                                onPlay: { play(track) },
-                                onDownload: { resolveAndDownload(track) },
-                                onRetry: { resolveAndDownload(track) },
-                                onCancel: { cancelDownload(for: track) },
-                                onRemoveDownload: { libraryStore.removeDownload(for: track) },
-                                onDiagnostics: { copyDiagnostics() },
-                                onDelete: nil,
-                                onRename: nil
-                            )
+        SectionCard {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Tracks")
+                    .font(sectionTitleFont)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if !filteredFeatured.isEmpty {
+                            Text("Featured")
+                                .font(.custom("Avenir Next Demi Bold", size: 12))
+                                .foregroundColor(.secondary)
+                            ForEach(filteredFeatured) { track in
+                                TrackRow(
+                                    track: track,
+                                    progress: progressText(for: track),
+                                    downloadDisabled: downloadManager.activeTrackId != nil && downloadManager.activeTrackId != track.id,
+                                    isUserTrack: false,
+                                    onPlay: { play(track) },
+                                    onDownload: { resolveAndDownload(track) },
+                                    onRetry: { resolveAndDownload(track) },
+                                    onCancel: { cancelDownload(for: track) },
+                                    onRemoveDownload: { libraryStore.removeDownload(for: track) },
+                                    onDiagnostics: { copyDiagnostics() },
+                                    onDelete: nil,
+                                    onRename: nil
+                                )
+                            }
                         }
-                    }
-                    if !filteredLibrary.isEmpty {
-                        Text("My Library")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        ForEach(filteredLibrary) { track in
-                            TrackRow(
-                                track: track,
-                                progress: progressText(for: track),
-                                downloadDisabled: downloadManager.activeTrackId != nil && downloadManager.activeTrackId != track.id,
-                                isUserTrack: true,
-                                onPlay: { play(track) },
-                                onDownload: { resolveAndDownload(track) },
-                                onRetry: { resolveAndDownload(track) },
-                                onCancel: { cancelDownload(for: track) },
-                                onRemoveDownload: { libraryStore.removeDownload(for: track) },
-                                onDiagnostics: { copyDiagnostics() },
-                                onDelete: { deleteCandidate = track },
-                                onRename: { beginRename(track) }
-                            )
+                        if !filteredLibrary.isEmpty {
+                            Text("My Library")
+                                .font(.custom("Avenir Next Demi Bold", size: 12))
+                                .foregroundColor(.secondary)
+                            ForEach(filteredLibrary) { track in
+                                TrackRow(
+                                    track: track,
+                                    progress: progressText(for: track),
+                                    downloadDisabled: downloadManager.activeTrackId != nil && downloadManager.activeTrackId != track.id,
+                                    isUserTrack: true,
+                                    onPlay: { play(track) },
+                                    onDownload: { resolveAndDownload(track) },
+                                    onRetry: { resolveAndDownload(track) },
+                                    onCancel: { cancelDownload(for: track) },
+                                    onRemoveDownload: { libraryStore.removeDownload(for: track) },
+                                    onDiagnostics: { copyDiagnostics() },
+                                    onDelete: { deleteCandidate = track },
+                                    onRename: { beginRename(track) }
+                                )
+                            }
                         }
                     }
                 }
+                .frame(maxHeight: 220)
             }
-            .frame(maxHeight: 220)
         }
     }
 
     private var addNewSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Add New")
-                .font(.headline)
-            TextField("YouTube URL", text: $newURL)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit {
+        SectionCard {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Add New")
+                    .font(sectionTitleFont)
+                TextField("YouTube URL", text: $newURL)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit {
+                        addNewTrack()
+                    }
+                    .focused($focusedField, equals: .url)
+                    .accessibilityLabel("YouTube URL")
+                    .accessibilityIdentifier("URLField")
+                TextField("Display name (optional)", text: $newDisplayName)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit {
+                        addNewTrack()
+                    }
+                    .accessibilityLabel("Display name")
+                    .accessibilityIdentifier("DisplayNameField")
+                if let validationError {
+                    Text(validationError)
+                        .font(.custom("Avenir Next", size: 11))
+                        .foregroundColor(.red)
+                }
+                Button("Add") {
                     addNewTrack()
                 }
-                .focused($focusedField, equals: .url)
-                .accessibilityLabel("YouTube URL")
-                .accessibilityIdentifier("URLField")
-            TextField("Display name (optional)", text: $newDisplayName)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit {
-                    addNewTrack()
-                }
-                .accessibilityLabel("Display name")
-                .accessibilityIdentifier("DisplayNameField")
-            if let validationError {
-                Text(validationError)
-                    .font(.caption)
-                    .foregroundColor(.red)
+                .keyboardShortcut(.return, modifiers: [])
+                .accessibilityLabel("Add track")
+                .accessibilityIdentifier("AddTrackButton")
+                .buttonStyle(PrimaryButtonStyle())
             }
-            Button("Add") {
-                addNewTrack()
-            }
-            .keyboardShortcut(.return, modifiers: [])
-            .accessibilityLabel("Add track")
-            .accessibilityIdentifier("AddTrackButton")
         }
     }
 
     private var utilitiesSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Utilities")
-                .font(.headline)
-            if let lastError = libraryStore.lastError {
-                Text(lastError)
-                    .font(.caption)
-                    .foregroundColor(.red)
+        SectionCard {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Utilities")
+                    .font(sectionTitleFont)
+                if let lastError = libraryStore.lastError {
+                    Text(lastError)
+                        .font(.custom("Avenir Next", size: 11))
+                        .foregroundColor(.red)
+                }
+                Button("Clear Downloads") {
+                    showClearDownloadsConfirm = true
+                }
+                .accessibilityLabel("Clear all downloads")
+                .buttonStyle(SecondaryButtonStyle())
+                Text("Cache: \(formattedBytes(libraryStore.cacheSizeBytes)) • Manual cleanup")
+                    .font(.custom("Avenir Next", size: 11))
+                    .foregroundColor(.secondary)
+                Button("Copy Diagnostics") {
+                    copyDiagnostics()
+                }
+                .accessibilityLabel("Copy diagnostics")
+                .buttonStyle(SecondaryButtonStyle())
+                Divider()
+                Button("Quit") {
+                    NSApplication.shared.terminate(nil)
+                }
+                .accessibilityLabel("Quit LongPlay")
+                .buttonStyle(SecondaryButtonStyle())
             }
-            Button("Clear Downloads") {
-                showClearDownloadsConfirm = true
-            }
-            .accessibilityLabel("Clear all downloads")
-            Text("Cache: \(formattedBytes(libraryStore.cacheSizeBytes)) • Manual cleanup")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Button("Copy Diagnostics") {
-                copyDiagnostics()
-            }
-            .accessibilityLabel("Copy diagnostics")
-            Divider()
-            Button("Quit") {
-                NSApplication.shared.terminate(nil)
-            }
-            .accessibilityLabel("Quit LongPlay")
         }
     }
 
@@ -558,15 +576,15 @@ private struct TrackRow: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(track.displayName)
-                    .font(.body)
+                    .font(.custom("Avenir Next Demi Bold", size: 13))
                 if let resolvedTitle = track.resolvedTitle, resolvedTitle != track.displayName {
                     Text(resolvedTitle)
-                        .font(.caption)
+                        .font(.custom("Avenir Next", size: 11))
                         .foregroundColor(.secondary)
                 }
                 if let progress {
                     Text(progress)
-                        .font(.caption2)
+                        .font(.custom("Avenir Next", size: 10))
                         .foregroundColor(.secondary)
                 }
             }
@@ -574,32 +592,32 @@ private struct TrackRow: View {
             HStack(spacing: 6) {
                 if track.downloadState == .downloaded {
                     Button("Play", action: onPlay)
-                        .buttonStyle(.bordered)
+                        .buttonStyle(SecondaryButtonStyle())
                         .accessibilityLabel("Play track")
                     Button("Remove", action: onRemoveDownload)
-                        .buttonStyle(.bordered)
+                        .buttonStyle(SecondaryButtonStyle())
                         .accessibilityLabel("Remove download")
                 } else if track.downloadState == .downloading {
                     Button("Cancel", action: onCancel)
-                        .buttonStyle(.bordered)
+                        .buttonStyle(SecondaryButtonStyle())
                         .accessibilityLabel("Cancel download")
                 } else if track.downloadState == .failed {
                     Button("Retry", action: onRetry)
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(PrimaryButtonStyle())
                         .accessibilityLabel("Retry download")
                     Button("Logs", action: onDiagnostics)
-                        .buttonStyle(.bordered)
+                        .buttonStyle(SecondaryButtonStyle())
                         .accessibilityLabel("Copy diagnostics")
                 } else {
                     Button("Download", action: onDownload)
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(PrimaryButtonStyle())
                         .disabled(downloadDisabled)
                         .accessibilityLabel("Download track")
                 }
             }
         }
         .padding(6)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(Color.white.opacity(0.7))
         .cornerRadius(6)
         .contentShape(Rectangle())
         .onTapGesture {
@@ -634,4 +652,78 @@ private struct TrackRow: View {
             }
         }
     }
+}
+
+private struct SectionCard<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(10)
+            .background(Color.white.opacity(0.8))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
+            )
+    }
+}
+
+private struct NoticeCard: View {
+    let title: String
+    let message: String
+    let actionTitle: String
+    let action: () -> Void
+
+    var body: some View {
+        SectionCard {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.custom("Avenir Next Demi Bold", size: 13))
+                Text(message)
+                    .font(.custom("Avenir Next", size: 11))
+                    .foregroundColor(.secondary)
+                Button(actionTitle, action: action)
+                    .buttonStyle(SecondaryButtonStyle())
+            }
+        }
+    }
+}
+
+private struct PrimaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.custom("Avenir Next Demi Bold", size: 12))
+            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .background(Color(red: 0.22, green: 0.41, blue: 0.86))
+            .foregroundColor(.white)
+            .cornerRadius(8)
+            .opacity(configuration.isPressed ? 0.8 : 1)
+    }
+}
+
+private struct SecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.custom("Avenir Next", size: 12))
+            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .background(Color.white.opacity(0.9))
+            .foregroundColor(Color(red: 0.18, green: 0.2, blue: 0.25))
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.white.opacity(0.6), lineWidth: 1)
+            )
+            .opacity(configuration.isPressed ? 0.85 : 1)
+    }
+}
+
+private var sectionTitleFont: Font {
+    .custom("Avenir Next Demi Bold", size: 13)
 }
