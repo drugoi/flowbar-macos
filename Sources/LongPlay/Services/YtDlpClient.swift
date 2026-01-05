@@ -54,7 +54,14 @@ struct YtDlpClient {
         self.executable = executable
     }
 
+    private var bundledExecutableURL: URL? {
+        Bundle.main.url(forResource: "yt-dlp", withExtension: nil)
+    }
+
     func isAvailable() -> Bool {
+        if bundledExecutableURL != nil {
+            return true
+        }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         process.arguments = [executable, "--version"]
@@ -103,8 +110,13 @@ struct YtDlpClient {
 
     private func run(_ args: [String], progress: ((Double?) -> Void)? = nil) async throws -> String {
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = [executable] + args
+        if let bundled = bundledExecutableURL {
+            process.executableURL = bundled
+            process.arguments = args
+        } else {
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+            process.arguments = [executable] + args
+        }
 
         let stdout = Pipe()
         let stderr = Pipe()

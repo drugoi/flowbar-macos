@@ -25,6 +25,8 @@ targets:
     deploymentTarget: "13.0"
     sources:
       - path: Sources/LongPlay
+    resources:
+      - path: Resources
     info:
       path: Config/Info.plist
     settings:
