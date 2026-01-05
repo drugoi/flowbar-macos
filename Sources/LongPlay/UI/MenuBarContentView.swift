@@ -57,6 +57,10 @@ struct MenuBarContentView: View {
     }
 
     private var statusLine: String {
+        if let activeId = downloadManager.activeTrackId {
+            let percentage = Int((downloadManager.progress ?? 0) * 100)
+            return "Downloading \(percentage)%"
+        }
         switch playbackController.state {
         case .idle:
             return "Idle"
@@ -89,7 +93,13 @@ struct MenuBarContentView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                         ForEach(filteredFeatured) { track in
-                            TrackRow(track: track)
+                            TrackRow(
+                                track: track,
+                                progress: progressText(for: track),
+                                downloadDisabled: downloadManager.activeTrackId != nil && downloadManager.activeTrackId != track.id,
+                                onPlay: { play(track) },
+                                onDownload: { resolveAndDownload(track) }
+                            )
                         }
                     }
                     if !filteredLibrary.isEmpty {
@@ -97,7 +107,13 @@ struct MenuBarContentView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                         ForEach(filteredLibrary) { track in
-                            TrackRow(track: track)
+                            TrackRow(
+                                track: track,
+                                progress: progressText(for: track),
+                                downloadDisabled: downloadManager.activeTrackId != nil && downloadManager.activeTrackId != track.id,
+                                onPlay: { play(track) },
+                                onDownload: { resolveAndDownload(track) }
+                            )
                         }
                     }
                 }
@@ -129,6 +145,11 @@ struct MenuBarContentView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Utilities")
                 .font(.headline)
+            if let lastError = libraryStore.lastError {
+                Text(lastError)
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
             Button("Clear Downloads") {
                 // TODO: Implement cache clearing.
             }
@@ -136,6 +157,7 @@ struct MenuBarContentView: View {
                 let diagnostics = DiagnosticsLogger.shared.formattedDiagnostics()
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(diagnostics, forType: .string)
+                DiagnosticsLogger.shared.log(level: "info", message: "Diagnostics copied to clipboard")
             }
             Divider()
             Button("Quit") {
@@ -149,17 +171,21 @@ struct MenuBarContentView: View {
         switch URLValidator.validate(newURL) {
         case .failure(let error):
             validationError = error.localizedDescription
+            DiagnosticsLogger.shared.log(level: "warning", message: "URL validation failed: \(error.localizedDescription)")
         case .success(let validated):
             let name = newDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
             let displayName = name.isEmpty ? validated.videoId : name
-            let track = Track.makeNew(
+            var track = Track.makeNew(
                 sourceURL: validated.canonicalURL,
                 videoId: validated.videoId,
                 displayName: displayName
             )
+            track.downloadState = .resolving
             libraryStore.addToLibrary(track)
+            DiagnosticsLogger.shared.log(level: "info", message: "Added track \(validated.videoId)")
             newURL = ""
             newDisplayName = ""
+            resolveAndDownload(track)
         }
     }
 
@@ -179,10 +205,67 @@ struct MenuBarContentView: View {
                 || (track.resolvedTitle?.lowercased().contains(needle) ?? false)
         }
     }
+
+    private func resolveAndDownload(_ track: Track) {
+        Task {
+            if let activeId = downloadManager.activeTrackId, activeId != track.id {
+                DiagnosticsLogger.shared.log(level: "warning", message: "Download already in progress.")
+                return
+            }
+            do {
+                let resolved = try await MetadataResolver.resolve(for: track.sourceURL)
+                var updated = track
+                updated.resolvedTitle = resolved.title
+                updated.durationSeconds = resolved.durationSeconds
+                updated.downloadState = .downloading
+                updated.lastError = nil
+                libraryStore.updateTrack(updated)
+
+                let fileURL = try await downloadManager.startDownload(for: updated)
+                updated.downloadState = .downloaded
+                updated.downloadProgress = 1.0
+                updated.localFilePath = fileURL.path
+                libraryStore.updateTrack(updated)
+            } catch {
+                var failed = track
+                failed.downloadState = .failed
+                failed.lastError = error.localizedDescription
+                libraryStore.updateTrack(failed)
+                DiagnosticsLogger.shared.log(level: "error", message: "Download failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func play(_ track: Track) {
+        guard let path = track.localFilePath else { return }
+        let url = URL(fileURLWithPath: path)
+        playbackController.loadAndPlay(track: track, fileURL: url, startAt: track.playbackPositionSeconds)
+    }
+
+    private func progressText(for track: Track) -> String? {
+        if downloadManager.activeTrackId == track.id {
+            let percentage = Int((downloadManager.progress ?? 0) * 100)
+            return "Downloading \(percentage)%"
+        }
+        if track.downloadState == .resolving {
+            return "Resolving metadata..."
+        }
+        if track.downloadState == .failed, let error = track.lastError {
+            return error
+        }
+        if track.downloadState == .downloaded {
+            return "Ready offline"
+        }
+        return nil
+    }
 }
 
 private struct TrackRow: View {
     let track: Track
+    let progress: String?
+    let downloadDisabled: Bool
+    let onPlay: () -> Void
+    let onDownload: () -> Void
 
     var body: some View {
         HStack {
@@ -194,12 +277,21 @@ private struct TrackRow: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
+                if let progress {
+                    Text(progress)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
             }
             Spacer()
-            Button("Play") {
-                // TODO: Hook up playback when downloads are ready.
+            if track.downloadState == .downloaded {
+                Button("Play", action: onPlay)
+                    .buttonStyle(.bordered)
+            } else {
+                Button("Download", action: onDownload)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(downloadDisabled)
             }
-            .buttonStyle(.bordered)
         }
         .padding(6)
         .background(Color(NSColor.windowBackgroundColor))

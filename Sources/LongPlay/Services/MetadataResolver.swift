@@ -1,10 +1,13 @@
 import Foundation
 
 enum MetadataResolveError: LocalizedError {
-    case unsupported
+    case failed(String)
 
     var errorDescription: String? {
-        "Metadata resolution is not implemented yet."
+        switch self {
+        case .failed(let message):
+            return message
+        }
     }
 }
 
@@ -15,6 +18,12 @@ struct ResolvedMetadata: Equatable {
 
 enum MetadataResolver {
     static func resolve(for url: URL) async throws -> ResolvedMetadata {
-        throw MetadataResolveError.unsupported
+        do {
+            let client = YtDlpClient()
+            let result = try await client.resolveMetadata(url: url)
+            return ResolvedMetadata(title: result.title, durationSeconds: result.durationSeconds)
+        } catch {
+            throw MetadataResolveError.failed(error.localizedDescription)
+        }
     }
 }

@@ -3,6 +3,7 @@ import Combine
 
 final class LibraryStore: ObservableObject {
     @Published private(set) var library: Library
+    @Published private(set) var lastError: String?
 
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
@@ -35,7 +36,9 @@ final class LibraryStore: ObservableObject {
                 decoded.schemaVersion = Library.currentSchemaVersion
             }
             library = decoded
+            lastError = nil
         } catch {
+            lastError = "Failed to load library."
             DiagnosticsLogger.shared.log(level: "error", message: "Failed to load library: \(error)")
         }
     }
@@ -45,7 +48,9 @@ final class LibraryStore: ObservableObject {
             let url = try AppPaths.libraryFileURL()
             let data = try encoder.encode(library)
             try data.write(to: url, options: [.atomic])
+            lastError = nil
         } catch {
+            lastError = "Failed to save library."
             DiagnosticsLogger.shared.log(level: "error", message: "Failed to save library: \(error)")
         }
     }

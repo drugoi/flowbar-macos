@@ -23,23 +23,23 @@
 
 ### M1: App Shell + Core Models
 - [ ] Decide minimum macOS version and update settings.
-- [ ] Create app target with `MenuBarExtra` and popover layout skeleton.
-- [ ] Implement `Track`, `Library`, and download state enums.
-- [ ] Add `Featured` seed list (placeholder IDs/URLs).
+- [x] Create app target with `MenuBarExtra` and popover layout skeleton.
+- [x] Implement `Track`, `Library`, and download state enums.
+- [x] Add `Featured` seed list (placeholder IDs/URLs).
 
 ### M2: Persistence + URL Validation
-- [ ] Implement `LibraryStore` with JSON schema versioning.
-- [ ] Add `URLValidator` with allowlisted hosts and normalization.
-- [ ] Implement `DiagnosticsLogger` + copy-to-clipboard.
+- [x] Implement `LibraryStore` with JSON schema versioning.
+- [x] Add `URLValidator` with allowlisted hosts and normalization.
+- [x] Implement `DiagnosticsLogger` + copy-to-clipboard.
 
 ### M3: Resolve + Download
-- [ ] Integrate `yt-dlp` wrapper using argument arrays (no shell execution).
-- [ ] Extract metadata (title, duration) and select audio-only format.
-- [ ] Download audio to Caches with progress updates and cancel support.
+- [x] Integrate `yt-dlp` wrapper using argument arrays (no shell execution).
+- [x] Extract metadata (title, duration) and select audio-only format.
+- [x] Download audio to Caches with progress updates and cancel support.
 
 ### M4: Playback + Resume
-- [ ] Add `PlaybackController` using `AVAudioPlayer`.
-- [ ] Persist playback position periodically and on pause/stop/quit.
+- [x] Add `PlaybackController` using `AVAudioPlayer`.
+- [x] Persist playback position periodically and on pause/stop/quit.
 - [ ] Enforce single-track playback.
 
 ### M5: UI Polish + UX
@@ -52,6 +52,8 @@
 - [ ] Homebrew cask packaging outline.
 
 ## Immediate Next Steps (This Sprint)
-- Scaffold `Sources/LongPlay` with core models and persistence stubs.
-- Add URL validation, diagnostics logger, and JSON storage layout.
-- Draft menu bar SwiftUI skeleton (no styling yet).
+- [x] Scaffold `Sources/LongPlay` with core models and persistence stubs.
+- [x] Add URL validation, diagnostics logger, and JSON storage layout.
+- [x] Draft menu bar SwiftUI skeleton (no styling yet).
+- [ ] Create Xcode project and set minimum macOS target.
+- [ ] Wire build settings and app bundle identifier.
