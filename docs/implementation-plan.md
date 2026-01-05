@@ -22,7 +22,7 @@
 ## Milestones and Task Checklist
 
 ### M1: App Shell + Core Models
-- [ ] Decide minimum macOS version and update settings.
+- [x] Decide minimum macOS version and update settings.
 - [x] Create app target with `MenuBarExtra` and popover layout skeleton.
 - [x] Implement `Track`, `Library`, and download state enums.
 - [x] Add `Featured` seed list (placeholder IDs/URLs).
@@ -43,6 +43,9 @@
 - [x] Add `PlaybackController` using `AVAudioPlayer`.
 - [x] Persist playback position periodically and on pause/stop/quit.
 - [x] Enforce single-track playback.
+- [ ] Ensure Stop resets persisted position to 0.
+- [ ] Start playback on track selection (default behavior).
+- [ ] Surface playback failures (missing/corrupt file) with retry and diagnostics.
 
 ### M5: UI Polish + UX
 - [x] Bind UI to state and service events.
@@ -52,10 +55,19 @@
 - [x] Add confirmations for destructive actions.
 - [x] Reflect app state in menu bar icon (idle/resolving/downloading/playing/paused/error).
 - [x] Expand Featured list to 3–5 stable items.
+- [ ] Set consistent focus on open (search or URL field).
+- [ ] Add rename UI for library items.
+- [ ] Add accessibility labels for primary controls.
 
 ### M6: Distribution Prep
 - [ ] Document code signing and notarization steps.
 - [ ] Homebrew cask packaging outline.
+
+### M7: Reliability + Policy
+- [ ] Handle no-internet / offline states with user-facing errors.
+- [ ] Handle removed/unavailable videos with clear messaging and retry.
+- [ ] Handle low disk space failures during download.
+- [ ] Document cache policy (manual vs eviction) in UI or docs.
 
 ## Immediate Next Steps (This Sprint)
 - [x] Scaffold `Sources/LongPlay` with core models and persistence stubs.
