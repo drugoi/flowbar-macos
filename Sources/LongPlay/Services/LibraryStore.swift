@@ -99,15 +99,6 @@ final class LibraryStore: ObservableObject {
             for url in contents {
                 try FileManager.default.removeItem(at: url)
             }
-            library.featured = library.featured.map { track in
-                var updated = track
-                updated.localFilePath = nil
-                updated.fileSizeBytes = nil
-                updated.downloadProgress = nil
-                updated.downloadState = .notDownloaded
-                updated.lastError = nil
-                return updated
-            }
             library.userLibrary = library.userLibrary.map { track in
                 var updated = track
                 updated.localFilePath = nil
@@ -176,9 +167,6 @@ final class LibraryStore: ObservableObject {
         if let track = library.userLibrary.first(where: { $0.id == id }) {
             return track
         }
-        if let track = library.featured.first(where: { $0.id == id }) {
-            return track
-        }
         return nil
     }
 
@@ -187,31 +175,10 @@ final class LibraryStore: ObservableObject {
             library.userLibrary[index] = track
             return true
         }
-        if let index = library.featured.firstIndex(where: { $0.id == track.id }) {
-            library.featured[index] = track
-            return true
-        }
         return false
     }
 
     static func makeDefaultLibrary() -> Library {
-        let featured: [Track] = [
-            Track.makeNew(
-                sourceURL: URL(string: "https://www.youtube.com/watch?v=DWcJFNfaw9c")!,
-                videoId: "DWcJFNfaw9c",
-                displayName: "Lofi hip hop radio (featured)"
-            ),
-            Track.makeNew(
-                sourceURL: URL(string: "https://www.youtube.com/watch?v=lCOF9LN_Zxs")!,
-                videoId: "lCOF9LN_Zxs",
-                displayName: "Ambient space music (featured)"
-            ),
-            Track.makeNew(
-                sourceURL: URL(string: "https://www.youtube.com/watch?v=2OEL4P1Rz04")!,
-                videoId: "2OEL4P1Rz04",
-                displayName: "Classical focus mix (featured)"
-            )
-        ]
-        return Library(featured: featured, userLibrary: [])
+        return Library(userLibrary: [])
     }
 }

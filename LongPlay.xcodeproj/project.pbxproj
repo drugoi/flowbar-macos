@@ -15,6 +15,7 @@
 		5B34B748F1438A7DF9461DE9 /* LongPlayApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF45F3D95CAE89A623DD1A8 /* LongPlayApp.swift */; };
 		6D4FE929433891F68D396353 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = B008A05ADD3FF001551C3648 /* Track.swift */; };
 		773828250ED003F5C11999AA /* PlaybackController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038971798A3D5B3BB0197C31 /* PlaybackController.swift */; };
+		7FDD7C8749C63ADDF4566626 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 751363014FB175AEC734B11C /* NotificationManager.swift */; };
 		955C8D52938C670ACD78742D /* MenuBarContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 945700A6E76399ADBF4EAB4D /* MenuBarContentView.swift */; };
 		9BE16290BC22CDB639BF6AFC /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = F79AD5D69C726DA17FC29662 /* AppPaths.swift */; };
 		9C771FA676013AAAFA6A91E7 /* URLValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198DD2DDAD27AD36559790BE /* URLValidator.swift */; };
@@ -42,6 +43,7 @@
 		475F726D5E95E321629190C2 /* MenuBarLabelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabelView.swift; sourceTree = "<group>"; };
 		568F5146C0ADF6CC8CECC574 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
 		619BBD6C2746326C84E77B80 /* LongPlay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LongPlay.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		751363014FB175AEC734B11C /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		945700A6E76399ADBF4EAB4D /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
 		99132F07D2CEBE82DA612836 /* Library.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Library.swift; sourceTree = "<group>"; };
 		A234124F9F19264781D5A485 /* LongPlayUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongPlayUITests.swift; sourceTree = "<group>"; };
@@ -110,6 +112,7 @@
 				C873901169AFBA8D6073A8E0 /* LibraryStore.swift */,
 				FFE10CBD3062ACB8F748396E /* MetadataResolver.swift */,
 				CBE63D78D68BFBD7E40BA17F /* NetworkMonitor.swift */,
+				751363014FB175AEC734B11C /* NotificationManager.swift */,
 				038971798A3D5B3BB0197C31 /* PlaybackController.swift */,
 				198DD2DDAD27AD36559790BE /* URLValidator.swift */,
 				104AC197F3E43D26B3B19C25 /* YtDlpClient.swift */,
@@ -278,6 +281,7 @@
 				33A6116EC4D71C704644D741 /* MenuBarLabelView.swift in Sources */,
 				DE06CD85D3B86DE145970B9F /* MetadataResolver.swift in Sources */,
 				A8C6EAB981DD50252A793B7C /* NetworkMonitor.swift in Sources */,
+				7FDD7C8749C63ADDF4566626 /* NotificationManager.swift in Sources */,
 				773828250ED003F5C11999AA /* PlaybackController.swift in Sources */,
 				6D4FE929433891F68D396353 /* Track.swift in Sources */,
 				9C771FA676013AAAFA6A91E7 /* URLValidator.swift in Sources */,

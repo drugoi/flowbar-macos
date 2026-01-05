@@ -17,8 +17,7 @@ struct MenuBarLabelView: View {
         if downloadManager.activeTrackId != nil {
             return "arrow.down.circle.fill"
         }
-        if libraryStore.library.featured.contains(where: { $0.downloadState == .resolving })
-            || libraryStore.library.userLibrary.contains(where: { $0.downloadState == .resolving }) {
+        if libraryStore.library.userLibrary.contains(where: { $0.downloadState == .resolving }) {
             return "arrow.triangle.2.circlepath.circle.fill"
         }
         switch playbackController.state {
