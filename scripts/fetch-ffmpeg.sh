@@ -9,7 +9,8 @@ else
 fi
 FFMPEG_BIN="$DEST_DIR/ffmpeg"
 FFPROBE_BIN="$DEST_DIR/ffprobe"
-URL="https://evermeet.cx/ffmpeg/ffmpeg-7.0.1.zip"
+FFMPEG_URL="https://evermeet.cx/ffmpeg/ffmpeg-7.0.1.zip"
+FFPROBE_URL="https://evermeet.cx/ffmpeg/ffprobe-7.0.1.zip"
 
 if [ -f "$FFMPEG_BIN" ] && [ -f "$FFPROBE_BIN" ]; then
   exit 0
@@ -21,12 +22,16 @@ cleanup() {
 }
 trap cleanup EXIT
 
-/usr/bin/curl -L --fail --retry 3 --retry-delay 1 -o "$TMP_DIR/ffmpeg.zip" "$URL"
-/usr/bin/unzip -q "$TMP_DIR/ffmpeg.zip" -d "$TMP_DIR"
+/usr/bin/curl -L --fail --retry 3 --retry-delay 1 -o "$TMP_DIR/ffmpeg.zip" "$FFMPEG_URL"
+/usr/bin/curl -L --fail --retry 3 --retry-delay 1 -o "$TMP_DIR/ffprobe.zip" "$FFPROBE_URL"
+/usr/bin/unzip -q "$TMP_DIR/ffmpeg.zip" -d "$TMP_DIR/ffmpeg"
+/usr/bin/unzip -q "$TMP_DIR/ffprobe.zip" -d "$TMP_DIR/ffprobe"
 
 mkdir -p "$DEST_DIR"
-if [ -f "$TMP_DIR/ffmpeg" ]; then
-  /bin/cp "$TMP_DIR/ffmpeg" "$FFMPEG_BIN"
-  /bin/cp "$TMP_DIR/ffprobe" "$FFPROBE_BIN" || true
-  /bin/chmod +x "$FFMPEG_BIN" "$FFPROBE_BIN" 2>/dev/null || true
+if [ -f "$TMP_DIR/ffmpeg/ffmpeg" ]; then
+  /bin/cp "$TMP_DIR/ffmpeg/ffmpeg" "$FFMPEG_BIN"
 fi
+if [ -f "$TMP_DIR/ffprobe/ffprobe" ]; then
+  /bin/cp "$TMP_DIR/ffprobe/ffprobe" "$FFPROBE_BIN"
+fi
+/bin/chmod +x "$FFMPEG_BIN" "$FFPROBE_BIN" 2>/dev/null || true
