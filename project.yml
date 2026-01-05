@@ -1,0 +1,35 @@
+name: LongPlay
+options:
+  bundleIdPrefix: com.longplay
+  deploymentTarget:
+    macOS: "13.0"
+settings:
+  base:
+    SWIFT_VERSION: 5.9
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+    PRODUCT_BUNDLE_IDENTIFIER: com.longplay.macos
+    CODE_SIGN_STYLE: Automatic
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: 0.1.0
+    DEVELOPMENT_TEAM: ""
+  configs:
+    Debug:
+      SWIFT_OPTIMIZATION_LEVEL: -Onone
+    Release:
+      SWIFT_OPTIMIZATION_LEVEL: -O
+
+targets:
+  LongPlay:
+    type: application
+    platform: macOS
+    deploymentTarget: "13.0"
+    sources:
+      - path: Sources/LongPlay
+    info:
+      path: Config/Info.plist
+    settings:
+      base:
+        PRODUCT_NAME: LongPlay
+        INFOPLIST_FILE: Config/Info.plist
+    scheme:
+      testTargets: []

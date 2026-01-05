@@ -55,5 +55,5 @@
 - [x] Scaffold `Sources/LongPlay` with core models and persistence stubs.
 - [x] Add URL validation, diagnostics logger, and JSON storage layout.
 - [x] Draft menu bar SwiftUI skeleton (no styling yet).
-- [ ] Create Xcode project and set minimum macOS target.
-- [ ] Wire build settings and app bundle identifier.
+- [x] Create Xcode project and set minimum macOS target.
+- [x] Wire build settings and app bundle identifier.
