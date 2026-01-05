@@ -20,7 +20,15 @@ struct MenuBarContentView: View {
             utilitiesSection
         }
         .padding(12)
-        .onAppear { libraryStore.load() }
+        .onAppear {
+            libraryStore.load()
+            playbackController.positionUpdateHandler = { [weak libraryStore, weak playbackController] time in
+                guard let trackId = playbackController?.currentTrack?.id else { return }
+                DispatchQueue.main.async {
+                    libraryStore?.updatePlaybackPosition(trackId: trackId, position: time)
+                }
+            }
+        }
     }
 
     private var nowPlayingSection: some View {
