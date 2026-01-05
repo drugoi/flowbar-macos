@@ -57,7 +57,12 @@ struct YtDlpClient {
     static let minimumSupportedVersion = "2024.01.01"
 
     private var bundledExecutableURL: URL? {
-        Bundle.main.url(forResource: "yt-dlp", withExtension: nil)
+        Bundle.main.url(forResource: "yt-dlp", withExtension: nil, subdirectory: "bin")
+    }
+
+    private var bundledFfmpegDirectory: URL? {
+        Bundle.main.url(forResource: "ffmpeg", withExtension: nil, subdirectory: "bin")
+            .map { $0.deletingLastPathComponent() }
     }
 
     func isAvailable() -> Bool {
@@ -108,6 +113,14 @@ struct YtDlpClient {
         return current < minimum
     }
 
+    func isFfmpegAvailable() -> Bool {
+        guard let dir = bundledFfmpegDirectory else { return false }
+        let ffmpeg = dir.appendingPathComponent("ffmpeg").path
+        let ffprobe = dir.appendingPathComponent("ffprobe").path
+        return FileManager.default.fileExists(atPath: ffmpeg)
+            && FileManager.default.fileExists(atPath: ffprobe)
+    }
+
     func resolveMetadata(url: URL) async throws -> YtDlpMetadata {
         let args = [
             "--dump-json",
@@ -130,7 +143,7 @@ struct YtDlpClient {
     }
 
     func downloadAudio(url: URL, destinationURL: URL, progress: @escaping (Double?) -> Void) async throws {
-        let args = [
+        var args = [
             "-x",
             "--audio-format", "m4a",
             "--audio-quality", "0",
@@ -139,6 +152,9 @@ struct YtDlpClient {
             "-o", destinationURL.path,
             url.absoluteString
         ]
+        if let ffmpegDir = bundledFfmpegDirectory {
+            args.insert(contentsOf: ["--ffmpeg-location", ffmpegDir.path], at: 0)
+        }
         _ = try await run(args, progress: progress)
     }
 

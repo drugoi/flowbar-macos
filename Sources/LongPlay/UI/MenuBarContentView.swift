@@ -24,6 +24,7 @@ struct MenuBarContentView: View {
     @State private var renameText: String = ""
     @State private var ytdlpVersion: String?
     @State private var ytdlpWarning: String?
+    @State private var ffmpegMissing = false
     @State private var selectedTab: Tab = .listen
 
     private enum FocusField {
@@ -73,6 +74,14 @@ struct MenuBarContentView: View {
                     NoticeCard(
                         title: "yt-dlp not found",
                         message: "Bundled binary missing. Reinstall or update LongPlay.",
+                        actionTitle: "Copy Diagnostics",
+                        action: { copyDiagnostics() }
+                    )
+                }
+                if ffmpegMissing {
+                    NoticeCard(
+                        title: "ffmpeg missing",
+                        message: "Audio conversion requires ffmpeg. Reinstall or update LongPlay.",
                         actionTitle: "Copy Diagnostics",
                         action: { copyDiagnostics() }
                     )
@@ -144,6 +153,7 @@ struct MenuBarContentView: View {
                 let client = YtDlpClient()
                 let available = client.isAvailable()
                 let version = client.fetchVersion()
+                let ffmpegAvailable = client.isFfmpegAvailable()
                 var warning: String?
                 if available, let version, client.isVersionOutdated(version) {
                     warning = "Bundled yt-dlp version \(version) is older than \(YtDlpClient.minimumSupportedVersion)."
@@ -154,6 +164,7 @@ struct MenuBarContentView: View {
                     ytdlpMissing = !available
                     ytdlpVersion = version
                     ytdlpWarning = warning
+                    ffmpegMissing = !ffmpegAvailable
                 }
             }
             DispatchQueue.main.async {

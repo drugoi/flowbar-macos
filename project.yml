@@ -25,11 +25,14 @@ targets:
     deploymentTarget: "13.0"
     sources:
       - path: Sources/LongPlay
-      - path: Resources/yt-dlp
-        buildPhase: resources
+    resources:
+      - path: Resources/bin
     preBuildScripts:
       - name: Fetch yt-dlp
         script: scripts/fetch-yt-dlp.sh
+        showEnvVars: false
+      - name: Fetch ffmpeg
+        script: scripts/fetch-ffmpeg.sh
         showEnvVars: false
     info:
       path: Config/Info.plist

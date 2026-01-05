@@ -6,8 +6,12 @@
 
 ## yt-dlp
 - [ ] Run `scripts/fetch-yt-dlp.sh` to download the latest binary.
-- [ ] Verify `Resources/yt-dlp` executes and returns a version.
+- [ ] Verify `Resources/bin/yt-dlp` executes and returns a version.
 - [ ] Confirm `YtDlpClient.minimumSupportedVersion` matches the fetched binary.
+
+## ffmpeg
+- [ ] Run `scripts/fetch-ffmpeg.sh` to download `ffmpeg` and `ffprobe`.
+- [ ] Verify `Resources/bin/ffmpeg` and `Resources/bin/ffprobe` are executable.
 
 ## Signing + Notarization
 - [ ] Archive Release build.

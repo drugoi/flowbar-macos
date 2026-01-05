@@ -25,7 +25,8 @@
 
 ## Notes
 - This app uses `LSUIElement` to stay menu-bar only.
-- `yt-dlp` is fetched at build time from `https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos` into `Resources/yt-dlp`.
-- Keep `Resources/yt-dlp` out of git; it is generated during builds.
+- `yt-dlp` is fetched at build time from `https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos` into `Resources/bin/yt-dlp`.
+- `ffmpeg`/`ffprobe` are fetched at build time into `Resources/bin/` for audio conversion.
+- Keep `Resources/bin/*` out of git; they are generated during builds.
 - Refresh `minimumSupportedVersion` in `YtDlpClient` to match the fetched version.
 - Keep distribution artifacts outside the repo.

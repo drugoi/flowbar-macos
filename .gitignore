@@ -30,7 +30,9 @@ playground.xcworkspace
 # .swiftpm
 
 .build/
-Resources/yt-dlp
+Resources/bin/yt-dlp
+Resources/bin/ffmpeg
+Resources/bin/ffprobe
 
 # CocoaPods
 #
