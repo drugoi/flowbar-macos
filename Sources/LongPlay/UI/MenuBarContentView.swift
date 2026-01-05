@@ -350,8 +350,28 @@ struct MenuBarContentView: View {
 
     private func play(_ track: Track) {
         guard let path = track.localFilePath else { return }
+        guard FileManager.default.fileExists(atPath: path) else {
+            var failed = track
+            failed.downloadState = .failed
+            failed.lastError = "Local file missing. Re-download required."
+            libraryStore.updateTrack(failed)
+            globalErrorMessage = "Playback failed. Local file is missing."
+            failedTrack = failed
+            DiagnosticsLogger.shared.log(level: "error", message: "Playback file missing for \(track.videoId)")
+            return
+        }
         let url = URL(fileURLWithPath: path)
-        playbackController.loadAndPlay(track: track, fileURL: url, startAt: track.playbackPositionSeconds)
+        do {
+            try playbackController.loadAndPlay(track: track, fileURL: url, startAt: track.playbackPositionSeconds)
+        } catch {
+            var failed = track
+            failed.downloadState = .failed
+            failed.lastError = "Playback failed. Try re-downloading."
+            libraryStore.updateTrack(failed)
+            globalErrorMessage = error.localizedDescription
+            failedTrack = failed
+            DiagnosticsLogger.shared.log(level: "error", message: "Playback failed for \(track.videoId): \(error.localizedDescription)")
+        }
     }
 
     private func cancelDownload(for track: Track) {
@@ -448,5 +468,16 @@ private struct TrackRow: View {
         .padding(6)
         .background(Color(NSColor.windowBackgroundColor))
         .cornerRadius(6)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            switch track.downloadState {
+            case .downloaded:
+                onPlay()
+            case .downloading, .resolving:
+                break
+            default:
+                onDownload()
+            }
+        }
     }
 }

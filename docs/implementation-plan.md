@@ -43,9 +43,9 @@
 - [x] Add `PlaybackController` using `AVAudioPlayer`.
 - [x] Persist playback position periodically and on pause/stop/quit.
 - [x] Enforce single-track playback.
-- [ ] Ensure Stop resets persisted position to 0.
-- [ ] Start playback on track selection (default behavior).
-- [ ] Surface playback failures (missing/corrupt file) with retry and diagnostics.
+- [x] Ensure Stop resets persisted position to 0.
+- [x] Start playback on track selection (default behavior).
+- [x] Surface playback failures (missing/corrupt file) with retry and diagnostics.
 
 ### M5: UI Polish + UX
 - [x] Bind UI to state and service events.

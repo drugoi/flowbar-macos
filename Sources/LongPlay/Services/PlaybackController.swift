@@ -20,7 +20,7 @@ final class PlaybackController: ObservableObject {
     private var player: AVAudioPlayer?
     private var positionTimer: Timer?
 
-    func loadAndPlay(track: Track, fileURL: URL, startAt: TimeInterval = 0) {
+    func loadAndPlay(track: Track, fileURL: URL, startAt: TimeInterval = 0) throws {
         do {
             if let player {
                 player.stop()
@@ -39,6 +39,7 @@ final class PlaybackController: ObservableObject {
         } catch {
             state = .error
             DiagnosticsLogger.shared.log(level: "error", message: "Playback failed: \(error)")
+            throw error
         }
     }
 
