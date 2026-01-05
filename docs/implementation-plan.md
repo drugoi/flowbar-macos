@@ -47,7 +47,7 @@
 - [x] Bind UI to state and service events.
 - [x] Add error surfaces with Retry and Diagnostics.
 - [x] Add search filtering.
-- [ ] Add keyboard shortcuts.
+- [x] Add keyboard shortcuts.
 - [x] Reflect app state in menu bar icon (idle/resolving/downloading/playing/paused/error).
 - [x] Expand Featured list to 3–5 stable items.
 
