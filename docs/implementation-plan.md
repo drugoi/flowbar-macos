@@ -36,6 +36,7 @@
 - [x] Integrate `yt-dlp` wrapper using argument arrays (no shell execution).
 - [x] Extract metadata (title, duration) and select audio-only format.
 - [x] Download audio to Caches with progress updates and cancel support.
+- [x] Detect missing `yt-dlp` and surface install guidance.
 
 ### M4: Playback + Resume
 - [x] Add `PlaybackController` using `AVAudioPlayer`.
@@ -47,6 +48,8 @@
 - [x] Add error surfaces with Retry and Diagnostics.
 - [x] Add search filtering.
 - [ ] Add keyboard shortcuts.
+- [x] Reflect app state in menu bar icon (idle/resolving/downloading/playing/paused/error).
+- [x] Expand Featured list to 3–5 stable items.
 
 ### M6: Distribution Prep
 - [ ] Document code signing and notarization steps.

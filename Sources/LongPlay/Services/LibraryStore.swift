@@ -164,9 +164,19 @@ final class LibraryStore: ObservableObject {
     static func makeDefaultLibrary() -> Library {
         let featured: [Track] = [
             Track.makeNew(
-                sourceURL: URL(string: "https://www.youtube.com/watch?v=5qap5aO4i9A")!,
-                videoId: "5qap5aO4i9A",
-                displayName: "Lo-fi beats (featured placeholder)"
+                sourceURL: URL(string: "https://www.youtube.com/watch?v=DWcJFNfaw9c")!,
+                videoId: "DWcJFNfaw9c",
+                displayName: "Lofi hip hop radio (featured)"
+            ),
+            Track.makeNew(
+                sourceURL: URL(string: "https://www.youtube.com/watch?v=lCOF9LN_Zxs")!,
+                videoId: "lCOF9LN_Zxs",
+                displayName: "Ambient space music (featured)"
+            ),
+            Track.makeNew(
+                sourceURL: URL(string: "https://www.youtube.com/watch?v=2OEL4P1Rz04")!,
+                videoId: "2OEL4P1Rz04",
+                displayName: "Classical focus mix (featured)"
             )
         ]
         return Library(featured: featured, userLibrary: [])

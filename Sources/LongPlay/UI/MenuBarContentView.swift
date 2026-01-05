@@ -10,9 +10,27 @@ struct MenuBarContentView: View {
     @State private var newURL = ""
     @State private var newDisplayName = ""
     @State private var validationError: String?
+    @State private var ytdlpMissing = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if ytdlpMissing {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("yt-dlp not found")
+                        .font(.headline)
+                    Text("Install with: brew install yt-dlp")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Button("Copy Install Command") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString("brew install yt-dlp", forType: .string)
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .padding(8)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
+            }
             nowPlayingSection
             searchSection
             trackListSection
@@ -26,6 +44,12 @@ struct MenuBarContentView: View {
                 guard let trackId = playbackController?.currentTrack?.id else { return }
                 DispatchQueue.main.async {
                     libraryStore?.updatePlaybackPosition(trackId: trackId, position: time)
+                }
+            }
+            Task.detached {
+                let available = YtDlpClient().isAvailable()
+                await MainActor.run {
+                    ytdlpMissing = !available
                 }
             }
         }
@@ -103,6 +127,7 @@ struct MenuBarContentView: View {
                                 onRetry: { resolveAndDownload(track) },
                                 onCancel: { cancelDownload(for: track) },
                                 onRemoveDownload: { libraryStore.removeDownload(for: track) },
+                                onDiagnostics: { copyDiagnostics() },
                                 onDelete: nil
                             )
                         }
@@ -122,6 +147,7 @@ struct MenuBarContentView: View {
                                 onRetry: { resolveAndDownload(track) },
                                 onCancel: { cancelDownload(for: track) },
                                 onRemoveDownload: { libraryStore.removeDownload(for: track) },
+                                onDiagnostics: { copyDiagnostics() },
                                 onDelete: { libraryStore.removeTrack(track) }
                             )
                         }
@@ -164,10 +190,7 @@ struct MenuBarContentView: View {
                 libraryStore.clearDownloads()
             }
             Button("Copy Diagnostics") {
-                let diagnostics = DiagnosticsLogger.shared.formattedDiagnostics()
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(diagnostics, forType: .string)
-                DiagnosticsLogger.shared.log(level: "info", message: "Diagnostics copied to clipboard")
+                copyDiagnostics()
             }
             Divider()
             Button("Quit") {
@@ -268,6 +291,13 @@ struct MenuBarContentView: View {
         DiagnosticsLogger.shared.log(level: "info", message: "Download cancelled for \(track.videoId)")
     }
 
+    private func copyDiagnostics() {
+        let diagnostics = DiagnosticsLogger.shared.formattedDiagnostics()
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(diagnostics, forType: .string)
+        DiagnosticsLogger.shared.log(level: "info", message: "Diagnostics copied to clipboard")
+    }
+
     private func progressText(for track: Track) -> String? {
         if downloadManager.activeTrackId == track.id {
             let percentage = Int((downloadManager.progress ?? 0) * 100)
@@ -296,6 +326,7 @@ private struct TrackRow: View {
     let onRetry: () -> Void
     let onCancel: () -> Void
     let onRemoveDownload: () -> Void
+    let onDiagnostics: () -> Void
     let onDelete: (() -> Void)?
 
     var body: some View {
@@ -327,6 +358,8 @@ private struct TrackRow: View {
                 } else if track.downloadState == .failed {
                     Button("Retry", action: onRetry)
                         .buttonStyle(.borderedProminent)
+                    Button("Logs", action: onDiagnostics)
+                        .buttonStyle(.bordered)
                 } else {
                     Button("Download", action: onDownload)
                         .buttonStyle(.borderedProminent)

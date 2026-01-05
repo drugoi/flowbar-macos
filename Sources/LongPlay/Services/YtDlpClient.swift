@@ -29,6 +29,22 @@ struct YtDlpClient {
         self.executable = executable
     }
 
+    func isAvailable() -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = [executable, "--version"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        do {
+            try process.run()
+        } catch {
+            return false
+        }
+        process.waitUntilExit()
+        return process.terminationStatus == 0
+    }
+
     func resolveMetadata(url: URL) async throws -> YtDlpMetadata {
         let args = [
             "--dump-json",

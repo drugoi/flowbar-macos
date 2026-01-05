@@ -7,13 +7,19 @@ struct LongPlayApp: App {
     @StateObject private var downloadManager = DownloadManager()
 
     var body: some Scene {
-        MenuBarExtra("LongPlay", systemImage: "music.note") {
+        MenuBarExtra {
             MenuBarContentView(
                 libraryStore: libraryStore,
                 playbackController: playbackController,
                 downloadManager: downloadManager
             )
             .frame(width: 360)
+        } label: {
+            MenuBarLabelView(
+                libraryStore: libraryStore,
+                playbackController: playbackController,
+                downloadManager: downloadManager
+            )
         }
         .menuBarExtraStyle(.window)
     }
