@@ -183,6 +183,9 @@ struct MenuBarContentView: View {
                 .accessibilityLabel(playbackController.state == .playing ? "Pause playback" : "Resume playback")
                 Button("Stop") {
                     playbackController.stop()
+                    if let trackId = playbackController.currentTrack?.id {
+                        libraryStore.resetPlaybackPosition(trackId: trackId)
+                    }
                 }
                 .accessibilityLabel("Stop playback")
             }

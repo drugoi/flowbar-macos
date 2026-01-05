@@ -154,6 +154,15 @@ final class LibraryStore: ObservableObject {
         saveDebounced()
     }
 
+    func resetPlaybackPosition(trackId: UUID) {
+        guard let track = trackById(trackId) else { return }
+        var updated = track
+        updated.playbackPositionSeconds = 0
+        updated.lastPlayedAt = Date()
+        guard replace(track: updated) else { return }
+        save()
+    }
+
     private func saveDebounced() {
         pendingSave?.cancel()
         let workItem = DispatchWorkItem { [weak self] in
