@@ -18,6 +18,7 @@ final class LibraryStore: ObservableObject {
         self.decoder = decoder
 
         self.library = LibraryStore.makeDefaultLibrary()
+        load()
     }
 
     func load() {
@@ -27,7 +28,11 @@ final class LibraryStore: ObservableObject {
                 return
             }
             let data = try Data(contentsOf: url)
-            let decoded = try decoder.decode(Library.self, from: data)
+            var decoded = try decoder.decode(Library.self, from: data)
+            if decoded.schemaVersion != Library.currentSchemaVersion {
+                DiagnosticsLogger.shared.log(level: "info", message: "Upgrading library schema from \(decoded.schemaVersion) to \(Library.currentSchemaVersion).")
+                decoded.schemaVersion = Library.currentSchemaVersion
+            }
             library = decoded
         } catch {
             DiagnosticsLogger.shared.log(level: "error", message: "Failed to load library: \(error)")
