@@ -318,6 +318,9 @@ struct MenuBarContentView: View {
                 showClearDownloadsConfirm = true
             }
             .accessibilityLabel("Clear all downloads")
+            Text("Cache: \(formattedBytes(libraryStore.cacheSizeBytes)) • Manual cleanup")
+                .font(.caption)
+                .foregroundColor(.secondary)
             Button("Copy Diagnostics") {
                 copyDiagnostics()
             }
@@ -407,7 +410,12 @@ struct MenuBarContentView: View {
                 updated.downloadState = .downloaded
                 updated.downloadProgress = 1.0
                 updated.localFilePath = fileURL.path
+                if let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
+                   let fileSize = attributes[.size] as? NSNumber {
+                    updated.fileSizeBytes = fileSize.int64Value
+                }
                 libraryStore.updateTrack(updated)
+                libraryStore.refreshCacheSize()
             } catch {
                 var failed = track
                 failed.downloadState = .failed
@@ -467,6 +475,13 @@ struct MenuBarContentView: View {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(diagnostics, forType: .string)
         DiagnosticsLogger.shared.log(level: "info", message: "Diagnostics copied to clipboard")
+    }
+
+    private func formattedBytes(_ bytes: Int64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: bytes)
     }
 
     private func progressText(for track: Track) -> String? {

@@ -3,6 +3,7 @@ import Combine
 
 final class LibraryStore: ObservableObject {
     @Published private(set) var library: Library
+    @Published private(set) var cacheSizeBytes: Int64 = 0
     @Published private(set) var lastError: String?
 
     private let encoder: JSONEncoder
@@ -21,6 +22,7 @@ final class LibraryStore: ObservableObject {
 
         self.library = LibraryStore.makeDefaultLibrary()
         load()
+        refreshCacheSize()
     }
 
     func load() {
@@ -83,6 +85,7 @@ final class LibraryStore: ObservableObject {
             if replace(track: updated) {
                 save()
             }
+            refreshCacheSize()
         } catch {
             lastError = "Failed to remove download."
             DiagnosticsLogger.shared.log(level: "error", message: "Failed to remove download: \(error)")
@@ -115,10 +118,31 @@ final class LibraryStore: ObservableObject {
                 return updated
             }
             save()
+            refreshCacheSize()
         } catch {
             lastError = "Failed to clear downloads."
             DiagnosticsLogger.shared.log(level: "error", message: "Failed to clear downloads: \(error)")
         }
+    }
+
+    func refreshCacheSize() {
+        DispatchQueue.global(qos: .utility).async {
+            let size = (try? Self.calculateCacheSize()) ?? 0
+            DispatchQueue.main.async {
+                self.cacheSizeBytes = size
+            }
+        }
+    }
+
+    private static func calculateCacheSize() throws -> Int64 {
+        let cacheDir = try AppPaths.cachesDirectory()
+        let files = try FileManager.default.contentsOfDirectory(at: cacheDir, includingPropertiesForKeys: [.fileSizeKey], options: [])
+        var total: Int64 = 0
+        for file in files {
+            let values = try file.resourceValues(forKeys: [.fileSizeKey])
+            total += Int64(values.fileSize ?? 0)
+        }
+        return total
     }
 
     func updatePlaybackPosition(trackId: UUID, position: TimeInterval) {
