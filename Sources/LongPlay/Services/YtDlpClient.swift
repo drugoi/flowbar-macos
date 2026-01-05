@@ -122,7 +122,7 @@ struct YtDlpClient {
     }
 
     func resolveMetadata(url: URL) async throws -> YtDlpMetadata {
-        let args = [
+        let args = baseArgs() + [
             "--dump-json",
             "--no-playlist",
             "--socket-timeout", "10",
@@ -143,7 +143,7 @@ struct YtDlpClient {
     }
 
     func downloadAudio(url: URL, destinationURL: URL, progress: @escaping (Double?) -> Void) async throws {
-        var args = [
+        var args = baseArgs() + [
             "-x",
             "--audio-format", "m4a",
             "--audio-quality", "0",
@@ -156,6 +156,12 @@ struct YtDlpClient {
             args.insert(contentsOf: ["--ffmpeg-location", ffmpegDir.path], at: 0)
         }
         _ = try await run(args, progress: progress)
+    }
+
+    private func baseArgs() -> [String] {
+        [
+            "--extractor-args", "youtube:player_client=android"
+        ]
     }
 
     private func run(_ args: [String], progress: ((Double?) -> Void)? = nil) async throws -> String {
