@@ -543,16 +543,6 @@ private struct TrackRow: View {
                         .disabled(downloadDisabled)
                         .accessibilityLabel("Download track")
                 }
-                if isUserTrack, let onDelete {
-                    if let onRename {
-                        Button("Rename", action: onRename)
-                            .buttonStyle(.bordered)
-                            .accessibilityLabel("Rename track")
-                    }
-                    Button("Delete", action: onDelete)
-                        .buttonStyle(.bordered)
-                        .accessibilityLabel("Delete track")
-                }
             }
         }
         .padding(6)
@@ -567,6 +557,27 @@ private struct TrackRow: View {
                 break
             default:
                 onDownload()
+            }
+        }
+        .contextMenu {
+            if track.downloadState == .downloaded {
+                Button("Play", action: onPlay)
+                Button("Remove Download", action: onRemoveDownload)
+            } else if track.downloadState == .failed {
+                Button("Retry Download", action: onRetry)
+                Button("Copy Diagnostics", action: onDiagnostics)
+            } else if track.downloadState == .downloading {
+                Button("Cancel Download", action: onCancel)
+            } else {
+                Button("Download", action: onDownload)
+            }
+            if isUserTrack {
+                if let onRename {
+                    Button("Rename", action: onRename)
+                }
+                if let onDelete {
+                    Button("Delete", role: .destructive, action: onDelete)
+                }
             }
         }
     }
