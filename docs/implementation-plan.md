@@ -60,14 +60,14 @@
 - [x] Add accessibility labels for primary controls.
 
 ### M6: Distribution Prep
-- [ ] Document code signing and notarization steps.
-- [ ] Homebrew cask packaging outline.
+- [x] Document code signing and notarization steps.
+- [x] Homebrew cask packaging outline.
 
 ### M7: Reliability + Policy
 - [x] Handle no-internet / offline states with user-facing errors.
 - [x] Handle removed/unavailable videos with clear messaging and retry.
 - [x] Handle low disk space failures during download.
-- [ ] Document cache policy (manual vs eviction) in UI or docs.
+- [x] Document cache policy (manual vs eviction) in UI or docs.
 
 ## Immediate Next Steps (This Sprint)
 - [x] Scaffold `Sources/LongPlay` with core models and persistence stubs.
