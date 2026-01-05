@@ -56,6 +56,9 @@ enum URLValidator {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             return .failure(.invalidURL)
         }
+        if let pathId = extractVideoIdFromPath(components.path) {
+            return .success(ValidatedURL(canonicalURL: canonicalWatchURL(videoId: pathId), videoId: pathId))
+        }
         let queryItems = components.queryItems ?? []
         if queryItems.contains(where: { $0.name == "list" }) {
             return .failure(.unsupportedPlaylist)
@@ -77,5 +80,17 @@ enum URLValidator {
     private static func isValidVideoId(_ value: String) -> Bool {
         let pattern = "^[A-Za-z0-9_-]{11}$"
         return value.range(of: pattern, options: .regularExpression) != nil
+    }
+
+    private static func extractVideoIdFromPath(_ path: String) -> String? {
+        let trimmed = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let parts = trimmed.split(separator: "/")
+        guard parts.count >= 2 else { return nil }
+        let prefix = parts[0].lowercased()
+        if prefix == "shorts" || prefix == "embed" {
+            let candidate = String(parts[1])
+            return isValidVideoId(candidate) ? candidate : nil
+        }
+        return nil
     }
 }

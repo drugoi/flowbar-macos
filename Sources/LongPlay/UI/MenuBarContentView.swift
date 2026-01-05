@@ -65,7 +65,7 @@ struct MenuBarContentView: View {
             }
             if let globalErrorMessage {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Download issue")
+                    Text(failedTrack == nil ? "Input issue" : "Download issue")
                         .font(.headline)
                     Text(globalErrorMessage)
                         .font(.caption)
@@ -342,6 +342,8 @@ struct MenuBarContentView: View {
         switch URLValidator.validate(newURL) {
         case .failure(let error):
             validationError = error.localizedDescription
+            globalErrorMessage = error.localizedDescription
+            failedTrack = nil
             DiagnosticsLogger.shared.log(level: "warning", message: "URL validation failed: \(error.localizedDescription)")
         case .success(let validated):
             let name = newDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
