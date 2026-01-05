@@ -24,10 +24,30 @@ struct MenuBarContentView: View {
     @State private var renameText: String = ""
     @State private var ytdlpVersion: String?
     @State private var ytdlpWarning: String?
+    @State private var selectedTab: Tab = .listen
 
     private enum FocusField {
         case search
         case url
+    }
+
+    private enum Tab: String, CaseIterable, Identifiable {
+        case listen = "Listen"
+        case add = "Add"
+        case utilities = "Utilities"
+
+        var id: String { rawValue }
+
+        var systemImage: String {
+            switch self {
+            case .listen:
+                return "headphones"
+            case .add:
+                return "plus.circle"
+            case .utilities:
+                return "gearshape"
+            }
+        }
     }
 
     var body: some View {
@@ -40,6 +60,7 @@ struct MenuBarContentView: View {
             )
             VStack(alignment: .leading, spacing: 12) {
                 headerRow
+                tabBar
                 if !networkMonitor.isOnline {
                     NoticeCard(
                         title: "You're offline",
@@ -92,11 +113,16 @@ struct MenuBarContentView: View {
                         }
                     }
                 }
-                nowPlayingSection
-                searchSection
-                trackListSection
-                addNewSection
-                utilitiesSection
+                switch selectedTab {
+                case .listen:
+                    nowPlayingSection
+                    searchSection
+                    trackListSection
+                case .add:
+                    addNewSection
+                case .utilities:
+                    utilitiesSection
+                }
             }
             .padding(14)
         }
@@ -125,7 +151,7 @@ struct MenuBarContentView: View {
                 }
             }
             DispatchQueue.main.async {
-                focusedField = .search
+                focusedField = selectedTab == .add ? .url : .search
             }
         }
         .onExitCommand {
@@ -187,6 +213,38 @@ struct MenuBarContentView: View {
                 .font(.custom("Avenir Next", size: 11))
                 .foregroundColor(.secondary)
         }
+    }
+
+    private var tabBar: some View {
+        HStack(spacing: 8) {
+            ForEach(Tab.allCases) { tab in
+                Button {
+                    selectedTab = tab
+                    focusedField = tab == .add ? .url : .search
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: tab.systemImage)
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(tab.rawValue)
+                            .font(.custom("Avenir Next Demi Bold", size: 12))
+                    }
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 10)
+                    .frame(maxWidth: .infinity)
+                    .background(tab == selectedTab ? Color.white : Color.white.opacity(0.6))
+                    .foregroundColor(Color(red: 0.18, green: 0.2, blue: 0.25))
+                    .cornerRadius(10)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.white.opacity(tab == selectedTab ? 0.8 : 0.4), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(6)
+        .background(Color.white.opacity(0.5))
+        .cornerRadius(12)
     }
 
     private var nowPlayingSection: some View {
