@@ -5,7 +5,8 @@
 - [ ] Smoke test menu bar behavior (open/close popover, play/pause, download).
 
 ## yt-dlp
-- [ ] Verify bundled `Resources/yt-dlp` executes and returns a version.
+- [ ] Bundle the latest `yt-dlp` binary into `Resources/yt-dlp`.
+- [ ] Verify bundled `yt-dlp` executes and returns a version.
 - [ ] Confirm `YtDlpClient.minimumSupportedVersion` matches the bundled binary.
 
 ## Signing + Notarization

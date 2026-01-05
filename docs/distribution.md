@@ -26,5 +26,6 @@
 ## Notes
 - This app uses `LSUIElement` to stay menu-bar only.
 - `yt-dlp` is bundled in `Resources/yt-dlp` and executed from the app bundle.
-- Update the bundled binary during releases and refresh `minimumSupportedVersion` in `YtDlpClient`.
+- Each release must include the updated `yt-dlp` binary; do not rely on Homebrew at runtime.
+- Refresh `minimumSupportedVersion` in `YtDlpClient` to match the bundled version.
 - Keep distribution artifacts outside the repo.

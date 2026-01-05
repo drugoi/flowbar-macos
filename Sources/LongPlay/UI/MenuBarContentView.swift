@@ -51,23 +51,17 @@ struct MenuBarContentView: View {
                 if ytdlpMissing {
                     NoticeCard(
                         title: "yt-dlp not found",
-                        message: "Install with: brew install yt-dlp",
-                        actionTitle: "Copy Install Command",
-                        action: {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString("brew install yt-dlp", forType: .string)
-                        }
+                        message: "Bundled binary missing. Reinstall or update LongPlay.",
+                        actionTitle: "Copy Diagnostics",
+                        action: { copyDiagnostics() }
                     )
                 }
                 if let ytdlpWarning {
                     NoticeCard(
                         title: "yt-dlp update recommended",
                         message: ytdlpWarning,
-                        actionTitle: "Copy Update Command",
-                        action: {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString("brew upgrade yt-dlp", forType: .string)
-                        }
+                        actionTitle: "Copy Diagnostics",
+                        action: { copyDiagnostics() }
                     )
                 }
                 if let globalErrorMessage {
