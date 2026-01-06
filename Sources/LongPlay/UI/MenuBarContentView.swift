@@ -66,11 +66,10 @@ struct MenuBarContentView: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [UI.base, UI.baseDeep],
+                colors: [UI.base, UI.baseAlt],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            .overlay(GridBackground().opacity(0.12))
             VStack(alignment: .leading, spacing: 14) {
                 headerRow
                 tabBar
@@ -113,8 +112,8 @@ struct MenuBarContentView: View {
                                 Text(failedTrack == nil ? "Input issue" : "Download issue")
                                     .font(sectionTitleFont)
                                 Text(globalErrorMessage)
-                                    .font(.system(size: 12, weight: .regular, design: .monospaced))
-                                    .foregroundColor(UI.ink.opacity(0.7))
+                                    .font(.system(size: 12, weight: .regular))
+                                    .foregroundColor(UI.inkMuted)
                                 HStack(spacing: 8) {
                                     if let failedTrack, shouldOfferDownloadAnyway(failedTrack) {
                                         Button("Download Anyway") {
@@ -208,6 +207,18 @@ struct MenuBarContentView: View {
                     libraryStore?.updatePlaybackPosition(trackId: trackId, position: time)
                 }
             }
+            playbackController.streamingFailedHandler = { track in
+                DispatchQueue.main.async {
+                    globalErrorMessage = "Streaming failed. We'll keep downloading and play offline once ready."
+                    failedTrack = track
+                }
+            }
+            playbackController.playbackEndedHandler = { [weak playbackController] finished in
+                DispatchQueue.main.async {
+                    guard playbackController != nil else { return }
+                    handlePlaybackEnded(finished)
+                }
+            }
             Task.detached {
                 let client = YtDlpClient()
                 let available = client.isAvailable()
@@ -245,25 +256,25 @@ struct MenuBarContentView: View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("LongPlay")
-                    .font(.system(size: 18, weight: .bold, design: .monospaced))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(UI.ink)
             }
             Spacer()
             Text("v0.1")
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .font(.system(size: 11, weight: .semibold))
                 .padding(.vertical, 4)
                 .padding(.horizontal, 8)
-                .background(UI.surface)
-                .cornerRadius(UI.cornerRadius)
+                .background(UI.surfaceAlt)
+                .cornerRadius(UI.smallRadius)
                 .overlay(
-                    RoundedRectangle(cornerRadius: UI.cornerRadius)
+                    RoundedRectangle(cornerRadius: UI.smallRadius)
                         .stroke(UI.border, lineWidth: 1)
                 )
         }
     }
 
     private var tabBar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             ForEach(Tab.allCases) { tab in
                 Button {
                     selectedTab = tab
@@ -273,23 +284,23 @@ struct MenuBarContentView: View {
                     Hoverable { hovering in
                         ZStack {
                             if isSelected {
-                                RoundedRectangle(cornerRadius: UI.cornerRadius)
-                                    .fill(UI.accent)
+                                RoundedRectangle(cornerRadius: UI.smallRadius)
+                                    .fill(UI.accent.opacity(0.12))
                                     .matchedGeometryEffect(id: "tab-pill", in: tabNamespace)
                             } else if hovering {
-                                RoundedRectangle(cornerRadius: UI.cornerRadius)
-                                    .fill(UI.surfaceAlt)
+                                RoundedRectangle(cornerRadius: UI.smallRadius)
+                                    .fill(UI.surfaceHover)
                             }
-                            HStack(spacing: 6) {
+                            HStack(spacing: 4) {
                                 Image(systemName: tab.systemImage)
                                     .font(.system(size: 11, weight: .semibold))
                                 Text(tab.rawValue)
-                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                    .font(.system(size: 12, weight: .semibold))
                             }
-                            .padding(.vertical, 4)
+                            .padding(.vertical, 5)
                             .padding(.horizontal, 8)
                             .frame(maxWidth: .infinity)
-                            .foregroundColor(isSelected ? UI.ink : UI.ink.opacity(0.8))
+                            .foregroundColor(isSelected ? UI.accent : UI.ink)
                         }
                         .contentShape(Rectangle())
                     }
@@ -298,14 +309,14 @@ struct MenuBarContentView: View {
                 .keyboardShortcut(tab.shortcutKey, modifiers: [.command])
             }
         }
-        .padding(4)
+        .padding(3)
         .background(UI.surface)
         .cornerRadius(UI.cornerRadius)
         .overlay(
             RoundedRectangle(cornerRadius: UI.cornerRadius)
                 .stroke(UI.border, lineWidth: 1)
         )
-        .frame(height: 36)
+        .frame(height: 32)
     }
 
     private var nowPlayingSection: some View {
@@ -314,7 +325,7 @@ struct MenuBarContentView: View {
                 Text("Now Playing")
                     .font(sectionTitleFont)
                 Text(nowPlayingTitle)
-                    .font(.system(size: 14, weight: .medium, design: .monospaced))
+                    .font(.system(size: 14, weight: .medium))
                     .lineLimit(2)
                 HStack(spacing: 8) {
                     StatusPill(label: nowPlayingStatus, color: nowPlayingStatusColor)
@@ -371,8 +382,8 @@ struct MenuBarContentView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         if !filteredLibrary.isEmpty {
                             Text("My Library")
-                                .font(.system(size: 12, weight: .bold, design: .monospaced))
-                                .foregroundColor(UI.ink.opacity(0.7))
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(UI.inkMuted)
                             ForEach(filteredLibrary) { track in
                                 TrackRow(
                                     track: track,
@@ -426,7 +437,7 @@ struct MenuBarContentView: View {
                 )
                 if let validationError {
                     Text(validationError)
-                        .font(.system(size: 11, weight: .regular, design: .monospaced))
+                        .font(.system(size: 11, weight: .regular))
                         .foregroundColor(UI.danger)
                 }
                 Button("Add") {
@@ -444,11 +455,9 @@ struct MenuBarContentView: View {
     private var utilitiesSection: some View {
         SectionCard {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Utilities")
-                    .font(sectionTitleFont)
                 if let lastError = libraryStore.lastError {
                     Text(lastError)
-                        .font(.system(size: 11, weight: .regular, design: .monospaced))
+                        .font(.system(size: 11, weight: .regular))
                         .foregroundColor(UI.danger)
                 }
                 Button {
@@ -461,8 +470,8 @@ struct MenuBarContentView: View {
                 if showClearDownloadsConfirm {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Remove all cached audio files?")
-                            .font(.system(size: 11, weight: .regular, design: .monospaced))
-                            .foregroundColor(UI.ink.opacity(0.7))
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(UI.inkMuted)
                         HStack(spacing: 8) {
                             Button("Clear") {
                                 libraryStore.clearDownloads()
@@ -484,8 +493,8 @@ struct MenuBarContentView: View {
                     )
                 }
                 Text("Cache: \(formattedBytes(libraryStore.cacheSizeBytes)) • Manual cleanup")
-                    .font(.system(size: 11, weight: .regular, design: .monospaced))
-                    .foregroundColor(UI.ink.opacity(0.7))
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundColor(UI.inkMuted)
                 Button {
                     copyDiagnostics()
                 } label: {
@@ -714,6 +723,10 @@ struct MenuBarContentView: View {
             if let localURL = completed.localFilePath {
                 try? playbackController.swapToLocalIfStreaming(trackId: completed.id, fileURL: URL(fileURLWithPath: localURL))
             }
+            if playbackController.currentTrack?.id == completed.id,
+               playbackController.state == .error {
+                play(completed)
+            }
             NotificationManager.shared.notifyDownloadComplete(track: completed)
         } catch {
             var failed = track
@@ -749,6 +762,23 @@ struct MenuBarContentView: View {
             globalErrorMessage = error.localizedDescription
             failedTrack = failed
             DiagnosticsLogger.shared.log(level: "error", message: "Playback failed for \(track.videoId): \(error.localizedDescription)")
+        }
+    }
+
+    private func handlePlaybackEnded(_ finished: Track?) {
+        let tracks = libraryStore.library.userLibrary
+        guard !tracks.isEmpty else { return }
+        let nextTrack: Track
+        if let finished, let index = tracks.firstIndex(where: { $0.id == finished.id }) {
+            let nextIndex = (index + 1) % tracks.count
+            nextTrack = tracks[nextIndex]
+        } else {
+            nextTrack = tracks[0]
+        }
+        if nextTrack.downloadState == .downloaded {
+            play(nextTrack)
+        } else {
+            streamAndDownload(nextTrack)
         }
     }
 
@@ -821,41 +851,29 @@ private struct TrackRow: View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(track.displayName)
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .font(.system(size: 13, weight: .semibold))
                 if let resolvedTitle = track.resolvedTitle, resolvedTitle != track.displayName {
                     Text(resolvedTitle)
-                        .font(.system(size: 11, weight: .regular, design: .monospaced))
-                        .foregroundColor(UI.ink.opacity(0.65))
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(UI.inkMuted)
                 }
                 if let progress {
                     Text(progress)
-                        .font(.system(size: 10, weight: .regular, design: .monospaced))
-                        .foregroundColor(UI.ink.opacity(0.6))
+                        .font(.system(size: 10, weight: .regular))
+                        .foregroundColor(UI.inkMuted)
                 }
             }
             Spacer(minLength: 6)
-            statusPillView
-            HStack(spacing: 6) {
-                if track.downloadState == .downloaded {
-                    TrackActionButton(icon: "play.fill", label: "Play", action: onPlay)
-                    if isUserTrack, let onDelete {
-                        TrackActionButton(icon: "trash", label: "Delete", action: onDelete)
-                    } else {
-                        TrackActionButton(icon: "trash", label: "Remove Download", action: onRemoveDownload)
-                    }
-                } else if track.downloadState == .downloading {
-                    TrackActionButton(icon: "xmark.circle", label: "Cancel", action: onCancel)
-                } else if track.downloadState == .failed {
-                    TrackActionButton(icon: "arrow.clockwise", label: "Retry", accent: true, action: onRetry)
-                    TrackActionButton(icon: "doc.on.doc", label: "Logs", action: onDiagnostics)
-                } else {
-                    TrackActionButton(icon: "arrow.down.circle", label: "Download", accent: true, action: onDownload)
-                        .disabled(downloadDisabled)
-                }
+            HStack(spacing: 8) {
+                statusPillView
+                actionsView
+                    .frame(width: 56, alignment: .trailing)
             }
+            .frame(width: 148, alignment: .trailing)
         }
-        .padding(6)
-        .background(isHovering ? UI.surfaceAlt : UI.surface)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 10)
+        .background(isHovering ? UI.surfaceHover : UI.surface)
         .cornerRadius(UI.cornerRadius)
         .overlay(
             RoundedRectangle(cornerRadius: UI.cornerRadius)
@@ -901,7 +919,28 @@ private struct TrackRow: View {
 
     private var statusPillView: some View {
         StatusPill(label: statusPillLabel, color: statusPillColor)
-            .frame(width: 92, alignment: .leading)
+            .frame(width: 84, alignment: .leading)
+    }
+
+    private var actionsView: some View {
+        HStack(spacing: 6) {
+            if track.downloadState == .downloaded {
+                TrackActionButton(icon: "play.fill", label: "Play", action: onPlay)
+                if isUserTrack, let onDelete {
+                    TrackActionButton(icon: "trash", label: "Delete", action: onDelete)
+                } else {
+                    TrackActionButton(icon: "trash", label: "Remove Download", action: onRemoveDownload)
+                }
+            } else if track.downloadState == .downloading {
+                TrackActionButton(icon: "xmark.circle", label: "Cancel", action: onCancel)
+            } else if track.downloadState == .failed {
+                TrackActionButton(icon: "arrow.clockwise", label: "Retry", accent: true, action: onRetry)
+                TrackActionButton(icon: "doc.on.doc", label: "Logs", action: onDiagnostics)
+            } else {
+                TrackActionButton(icon: "arrow.down.circle", label: "Download", accent: true, action: onDownload)
+                    .disabled(downloadDisabled)
+            }
+        }
     }
 
     private var statusPillLabel: String {
@@ -944,13 +983,15 @@ private struct SectionCard<Content: View>: View {
 
     var body: some View {
         content
-            .padding(9)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(UI.surface)
+            .cornerRadius(UI.cornerRadius)
             .overlay(
                 RoundedRectangle(cornerRadius: UI.cornerRadius)
-                    .stroke(UI.border, lineWidth: 1.2)
+                    .stroke(UI.border, lineWidth: 1)
             )
+            .shadow(color: UI.shadow, radius: 8, x: 0, y: 3)
     }
 }
 
@@ -968,10 +1009,10 @@ private struct NoticeCard: View {
                     .font(.system(size: 16, weight: .semibold))
                 VStack(alignment: .leading, spacing: 6) {
                     Text(title)
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .font(.system(size: 13, weight: .semibold))
                     Text(message)
-                        .font(.system(size: 11, weight: .regular, design: .monospaced))
-                        .foregroundColor(UI.ink.opacity(0.7))
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(UI.inkMuted)
                     Button(actionTitle, action: action)
                         .buttonStyle(SecondaryButtonStyle())
                 }
@@ -984,15 +1025,15 @@ private struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         Hoverable { hovering in
             configuration.label
-                .font(.system(size: 12, weight: .bold, design: .monospaced))
-                .padding(.vertical, 6)
-                .padding(.horizontal, 12)
+                .font(.system(size: 12, weight: .semibold))
+                .padding(.vertical, 7)
+                .padding(.horizontal, 14)
                 .background(hovering ? UI.accentHover : UI.accent)
-                .foregroundColor(UI.ink)
+                .foregroundColor(.white)
                 .cornerRadius(UI.cornerRadius)
                 .overlay(
                     RoundedRectangle(cornerRadius: UI.cornerRadius)
-                        .stroke(UI.border, lineWidth: 1)
+                        .stroke(Color.clear, lineWidth: 0)
                 )
                 .scaleEffect(configuration.isPressed ? 0.98 : 1)
                 .opacity(configuration.isPressed ? 0.9 : 1)
@@ -1004,15 +1045,15 @@ private struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         Hoverable { hovering in
             configuration.label
-                .font(.system(size: 12, weight: .medium, design: .monospaced))
-                .padding(.vertical, 6)
-                .padding(.horizontal, 12)
-                .background(hovering ? UI.surfaceAlt : UI.surface)
+                .font(.system(size: 12, weight: .medium))
+                .padding(.vertical, 7)
+                .padding(.horizontal, 14)
+                .background(hovering ? UI.surfaceHover : UI.surface)
                 .foregroundColor(UI.ink)
                 .cornerRadius(UI.cornerRadius)
                 .overlay(
                     RoundedRectangle(cornerRadius: UI.cornerRadius)
-                        .stroke(UI.border, lineWidth: 1)
+                        .stroke(hovering ? UI.borderHover : UI.border, lineWidth: 1)
                 )
                 .scaleEffect(configuration.isPressed ? 0.98 : 1)
                 .opacity(configuration.isPressed ? 0.9 : 1)
@@ -1021,22 +1062,27 @@ private struct SecondaryButtonStyle: ButtonStyle {
 }
 
 private var sectionTitleFont: Font {
-    .system(size: 13, weight: .bold, design: .monospaced)
+    .system(size: 12, weight: .semibold)
 }
 
 private enum UI {
-    static let base = Color(red: 0.96, green: 0.96, blue: 0.95)
-    static let baseDeep = Color(red: 0.91, green: 0.91, blue: 0.9)
+    static let base = Color(red: 0.97, green: 0.97, blue: 0.95)
+    static let baseAlt = Color(red: 0.95, green: 0.95, blue: 0.93)
     static let surface = Color.white
-    static let surfaceAlt = Color(red: 0.93, green: 0.93, blue: 0.92)
-    static let ink = Color(red: 0.1, green: 0.1, blue: 0.1)
-    static let border = Color.black.opacity(0.8)
-    static let accent = Color(red: 0.15, green: 0.95, blue: 0.6)
-    static let accentHover = Color(red: 0.1, green: 0.9, blue: 0.55)
-    static let success = Color(red: 0.12, green: 0.8, blue: 0.45)
-    static let warning = Color(red: 1.0, green: 0.76, blue: 0.2)
-    static let danger = Color(red: 0.95, green: 0.25, blue: 0.35)
-    static let cornerRadius: CGFloat = 6
+    static let surfaceAlt = Color(red: 0.96, green: 0.96, blue: 0.94)
+    static let surfaceHover = Color(red: 0.94, green: 0.94, blue: 0.92)
+    static let ink = Color(red: 0.12, green: 0.12, blue: 0.12)
+    static let inkMuted = Color(red: 0.42, green: 0.42, blue: 0.42)
+    static let border = Color.black.opacity(0.06)
+    static let borderHover = Color.black.opacity(0.1)
+    static let accent = Color(red: 0.28, green: 0.55, blue: 0.9)
+    static let accentHover = Color(red: 0.24, green: 0.5, blue: 0.85)
+    static let success = Color(red: 0.22, green: 0.7, blue: 0.42)
+    static let warning = Color(red: 0.98, green: 0.72, blue: 0.2)
+    static let danger = Color(red: 0.92, green: 0.26, blue: 0.38)
+    static let shadow = Color.black.opacity(0.06)
+    static let cornerRadius: CGFloat = 10
+    static let smallRadius: CGFloat = 8
 }
 
 private struct StatusPill: View {
@@ -1045,15 +1091,15 @@ private struct StatusPill: View {
 
     var body: some View {
         Text(label)
-            .font(.system(size: 10, weight: .bold, design: .monospaced))
+            .font(.system(size: 9, weight: .semibold))
             .padding(.vertical, 3)
-            .padding(.horizontal, 8)
-            .background(UI.surface)
+            .padding(.horizontal, 7)
+            .background(UI.surfaceAlt)
             .foregroundColor(UI.ink)
-            .cornerRadius(UI.cornerRadius)
+            .cornerRadius(UI.smallRadius)
             .overlay(
-                RoundedRectangle(cornerRadius: UI.cornerRadius)
-                    .stroke(color, lineWidth: 1)
+                RoundedRectangle(cornerRadius: UI.smallRadius)
+                    .stroke(color.opacity(0.7), lineWidth: 1)
             )
     }
 }
@@ -1084,7 +1130,7 @@ private struct ProgressBar: View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(UI.surface)
+                    .fill(UI.surfaceAlt)
                     .overlay(
                         Capsule()
                             .stroke(UI.border, lineWidth: 1)
@@ -1094,7 +1140,7 @@ private struct ProgressBar: View {
                     .frame(width: max(6, proxy.size.width * CGFloat(value)))
             }
         }
-        .frame(height: 6)
+        .frame(height: 7)
     }
 }
 
@@ -1112,7 +1158,7 @@ private struct LabeledTextField: View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(UI.ink.opacity(0.7))
+                .foregroundColor(UI.inkMuted)
             TextField(placeholder, text: $text)
                 .textFieldStyle(.plain)
                 .onSubmit(onSubmit)
@@ -1120,7 +1166,7 @@ private struct LabeledTextField: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 10)
-        .background(isHovering ? UI.surfaceAlt : UI.surface)
+        .background(isHovering ? UI.surfaceHover : UI.surface)
         .cornerRadius(UI.cornerRadius)
         .overlay(
             RoundedRectangle(cornerRadius: UI.cornerRadius)
@@ -1175,9 +1221,10 @@ private struct TrackActionButton: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .semibold))
-                .frame(width: 22, height: 22)
+                .frame(width: 24, height: 24)
                 .foregroundColor(UI.ink)
-                .opacity(isHovering ? 0.7 : 1)
+                .background(isHovering ? UI.surfaceHover : Color.clear)
+                .cornerRadius(UI.smallRadius)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
@@ -1223,11 +1270,11 @@ private struct DialogCard<Actions: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
-                .font(.system(size: 14, weight: .bold, design: .monospaced))
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(UI.ink)
             Text(message)
-                .font(.system(size: 12, weight: .regular, design: .monospaced))
-                .foregroundColor(UI.ink.opacity(0.7))
+                .font(.system(size: 12, weight: .regular))
+                .foregroundColor(UI.inkMuted)
             actions
         }
         .padding(14)
@@ -1240,6 +1287,7 @@ private struct DialogCard<Actions: View>: View {
             RoundedRectangle(cornerRadius: UI.cornerRadius)
                 .stroke(UI.border, lineWidth: 1)
         )
+        .shadow(color: UI.shadow, radius: 10, x: 0, y: 4)
     }
 }
 
@@ -1253,7 +1301,7 @@ private struct DialogTextField: View {
             .textFieldStyle(.plain)
             .padding(.vertical, 8)
             .padding(.horizontal, 10)
-            .background(isHovering ? UI.surfaceAlt : UI.surface)
+            .background(isHovering ? UI.surfaceHover : UI.surface)
             .cornerRadius(UI.cornerRadius)
             .overlay(
                 RoundedRectangle(cornerRadius: UI.cornerRadius)
@@ -1272,14 +1320,14 @@ private struct EmptyStateView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .font(.system(size: 12, weight: .semibold))
             Text(message)
-                .font(.system(size: 11, weight: .regular, design: .monospaced))
-                .foregroundColor(UI.ink.opacity(0.7))
+                .font(.system(size: 11, weight: .regular))
+                .foregroundColor(UI.inkMuted)
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(UI.surface)
+        .background(UI.surfaceAlt)
         .cornerRadius(UI.cornerRadius)
         .overlay(
             RoundedRectangle(cornerRadius: UI.cornerRadius)
@@ -1300,30 +1348,6 @@ private struct Hoverable<Content: View>: View {
     }
 }
 
-private struct GridBackground: View {
-    var body: some View {
-        GeometryReader { _ in
-            Canvas { context, size in
-                var path = Path()
-                let spacing: CGFloat = 24
-                let verticalCount = Int(size.width / spacing)
-                let horizontalCount = Int(size.height / spacing)
-                for index in 0...verticalCount {
-                    let x = CGFloat(index) * spacing
-                    path.move(to: CGPoint(x: x, y: 0))
-                    path.addLine(to: CGPoint(x: x, y: size.height))
-                }
-                for index in 0...horizontalCount {
-                    let y = CGFloat(index) * spacing
-                    path.move(to: CGPoint(x: 0, y: y))
-                    path.addLine(to: CGPoint(x: size.width, y: y))
-                }
-                context.stroke(path, with: .color(UI.border.opacity(0.18)), lineWidth: 1)
-            }
-        }
-    }
-}
-
 private extension PlaybackState {
     var label: String {
         switch self {
@@ -1341,7 +1365,7 @@ private extension PlaybackState {
     var color: Color {
         switch self {
         case .idle:
-            return UI.ink.opacity(0.6)
+            return UI.inkMuted
         case .playing:
             return UI.success
         case .paused:
@@ -1367,7 +1391,7 @@ private extension Track {
         case .failed:
             return UI.danger
         case .notDownloaded:
-            return UI.ink.opacity(0.6)
+            return UI.inkMuted
         }
     }
 }

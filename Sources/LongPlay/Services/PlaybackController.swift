@@ -11,7 +11,7 @@ enum PlaybackState: String {
     case error
 }
 
-final class PlaybackController: ObservableObject {
+final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published private(set) var state: PlaybackState = .idle
     @Published private(set) var currentTrack: Track?
     @Published private(set) var currentTime: TimeInterval = 0
@@ -19,15 +19,21 @@ final class PlaybackController: ObservableObject {
     @Published private(set) var isStreaming: Bool = false
 
     var positionUpdateHandler: ((TimeInterval) -> Void)?
+    var playbackEndedHandler: ((Track?) -> Void)?
+    var streamingFailedHandler: ((Track?) -> Void)?
 
     private var player: AVAudioPlayer?
     private var positionTimer: Timer?
     private var streamPlayer: AVPlayer?
     private var streamObserver: Any?
+    private var streamEndObserver: NSObjectProtocol?
+    private var streamFailureObserver: NSObjectProtocol?
+    private var streamStatusObserver: NSKeyValueObservation?
     private var outputDeviceListener: AudioObjectPropertyListenerBlock?
     private var nowPlayingInfo: [String: Any] = [:]
 
-    init() {
+    override init() {
+        super.init()
         configureRemoteCommands()
         setupOutputDeviceListener()
     }
@@ -41,6 +47,7 @@ final class PlaybackController: ObservableObject {
             stopStreaming()
             player?.stop()
             let player = try AVAudioPlayer(contentsOf: fileURL)
+            player.delegate = self
             player.prepareToPlay()
             self.player = player
             currentTrack = track
@@ -74,6 +81,9 @@ final class PlaybackController: ObservableObject {
             player.seek(to: CMTime(seconds: startAt, preferredTimescale: 600))
         }
         addStreamObserver()
+        addStreamEndObserver(for: item)
+        addStreamFailureObserver(for: item)
+        addStreamStatusObserver(for: item)
         player.play()
         updateNowPlayingInfo(elapsedOverride: startAt)
     }
@@ -177,7 +187,11 @@ final class PlaybackController: ObservableObject {
         streamPlayer?.pause()
         streamPlayer?.replaceCurrentItem(with: nil)
         removeStreamObserver()
+        removeStreamEndObserver()
+        removeStreamFailureObserver()
+        removeStreamStatusObserver()
         streamPlayer = nil
+        isStreaming = false
     }
 
     private func configureRemoteCommands() {
@@ -236,6 +250,80 @@ final class PlaybackController: ObservableObject {
         let systemObject = AudioObjectID(kAudioObjectSystemObject)
         AudioObjectRemovePropertyListenerBlock(systemObject, &address, DispatchQueue.main, block)
         outputDeviceListener = nil
+    }
+
+    private func addStreamEndObserver(for item: AVPlayerItem) {
+        removeStreamEndObserver()
+        streamEndObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: item,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handlePlaybackFinished()
+        }
+    }
+
+    private func removeStreamEndObserver() {
+        if let observer = streamEndObserver {
+            NotificationCenter.default.removeObserver(observer)
+            streamEndObserver = nil
+        }
+    }
+
+    private func addStreamFailureObserver(for item: AVPlayerItem) {
+        removeStreamFailureObserver()
+        streamFailureObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemFailedToPlayToEndTime,
+            object: item,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleStreamingFailure(item.error)
+        }
+    }
+
+    private func removeStreamFailureObserver() {
+        if let observer = streamFailureObserver {
+            NotificationCenter.default.removeObserver(observer)
+            streamFailureObserver = nil
+        }
+    }
+
+    private func addStreamStatusObserver(for item: AVPlayerItem) {
+        removeStreamStatusObserver()
+        streamStatusObserver = item.observe(\.status, options: [.new]) { [weak self] observed, _ in
+            guard let self else { return }
+            if observed.status == .failed {
+                self.handleStreamingFailure(observed.error)
+            }
+        }
+    }
+
+    private func removeStreamStatusObserver() {
+        streamStatusObserver?.invalidate()
+        streamStatusObserver = nil
+    }
+
+    private func handlePlaybackFinished() {
+        let finishedTrack = currentTrack
+        stop(resetPosition: true)
+        playbackEndedHandler?(finishedTrack)
+    }
+
+    private func handleStreamingFailure(_ error: Error?) {
+        guard isStreaming else { return }
+        let failedTrack = currentTrack
+        if let error {
+            DiagnosticsLogger.shared.log(level: "error", message: "Streaming failed: \(error.localizedDescription)")
+        } else {
+            DiagnosticsLogger.shared.log(level: "error", message: "Streaming failed: unknown error")
+        }
+        stopStreaming()
+        state = .error
+        streamingFailedHandler?(failedTrack)
+    }
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        handlePlaybackFinished()
     }
 
     private func currentPlaybackTime() -> TimeInterval {

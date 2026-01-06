@@ -179,15 +179,16 @@ struct YtDlpClient {
     }
 
     func downloadAudio(url: URL, destinationURL: URL, progress: @escaping (Double?) -> Void) async throws {
-        var args = baseArgs(playerClients: "web") + [
+        var args = baseArgs(playerClients: "web,web_safari,android") + [
             "-x",
             "--audio-format", "m4a",
             "--audio-quality", "0",
+            "--postprocessor-args", "ffmpeg:-ac 2 -ar 44100 -b:a 320k",
             "--no-playlist",
             "--no-part",
             "--no-continue",
             "--newline",
-            "-f", "bestaudio/best",
+            "-f", "bestaudio[ext=m4a]/bestaudio[ext=mp4]/bestaudio/best",
             "-o", destinationURL.path,
             url.absoluteString
         ]
@@ -198,15 +199,23 @@ struct YtDlpClient {
     }
 
     func fetchStreamURL(url: URL) async throws -> URL {
-        do {
-            return try await fetchStreamURL(url: url, format: "bestaudio/best")
-        } catch {
-            return try await fetchStreamURL(url: url, format: nil)
+        let preferredFormats = [
+            "bestaudio[acodec^=mp4a][ext=m4a]",
+            "bestaudio[acodec^=mp4a][ext=mp4]",
+            "bestaudio[acodec^=mp4a][protocol^=https]"
+        ]
+        for format in preferredFormats {
+            do {
+                return try await fetchStreamURL(url: url, format: format)
+            } catch {
+                continue
+            }
         }
+        throw YtDlpError.invalidOutput
     }
 
     private func fetchStreamURL(url: URL, format: String?) async throws -> URL {
-        var args = baseArgs(playerClients: "web") + [
+        var args = baseArgs(playerClients: "web,web_safari,android") + [
             "-g",
             "--no-playlist",
             url.absoluteString
@@ -246,9 +255,7 @@ struct YtDlpClient {
         process.standardOutput = stdout
         process.standardError = stderr
 
-        return try await withTaskCancellationHandler {
-            process.terminate()
-        } operation: {
+        return try await withTaskCancellationHandler(operation: {
             do {
                 try process.run()
             } catch {
@@ -298,6 +305,9 @@ struct YtDlpClient {
                 }
             }
         }
+        , onCancel: {
+            process.terminate()
+        })
     }
 
     private func runSync(executableURL: URL, args: [String]) throws -> String {

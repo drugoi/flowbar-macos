@@ -29,12 +29,16 @@ targets:
       - name: Fetch yt-dlp
         script: scripts/fetch-yt-dlp.sh
         showEnvVars: false
+        inputFiles:
+          - scripts/fetch-yt-dlp.sh
         outputFiles:
           - Resources/bin/yt-dlp
           - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/bin/yt-dlp
       - name: Fetch ffmpeg
         script: scripts/fetch-ffmpeg.sh
         showEnvVars: false
+        inputFiles:
+          - scripts/fetch-ffmpeg.sh
         outputFiles:
           - Resources/bin/ffmpeg
           - Resources/bin/ffprobe
@@ -43,6 +47,8 @@ targets:
       - name: Fetch deno
         script: scripts/fetch-deno.sh
         showEnvVars: false
+        inputFiles:
+          - scripts/fetch-deno.sh
         outputFiles:
           - Resources/bin/deno
           - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/bin/deno
