@@ -25,6 +25,7 @@ final class PlaybackController: ObservableObject {
     private var streamPlayer: AVPlayer?
     private var streamObserver: Any?
     private var outputDeviceListener: AudioObjectPropertyListenerBlock?
+    private var nowPlayingInfo: [String: Any] = [:]
 
     init() {
         configureRemoteCommands()
@@ -51,6 +52,7 @@ final class PlaybackController: ObservableObject {
             state = .playing
             player.play()
             startPositionTimer()
+            updateNowPlayingInfo(elapsedOverride: player.currentTime)
         } catch {
             state = .error
             DiagnosticsLogger.shared.log(level: "error", message: "Playback failed: \(error)")
@@ -63,6 +65,7 @@ final class PlaybackController: ObservableObject {
         stopStreaming()
         let item = AVPlayerItem(url: streamURL)
         let player = AVPlayer(playerItem: item)
+        player.automaticallyWaitsToMinimizeStalling = true
         streamPlayer = player
         currentTrack = track
         isStreaming = true
@@ -72,6 +75,7 @@ final class PlaybackController: ObservableObject {
         }
         addStreamObserver()
         player.play()
+        updateNowPlayingInfo(elapsedOverride: startAt)
     }
 
     func pause() {
@@ -82,6 +86,7 @@ final class PlaybackController: ObservableObject {
         }
         state = .paused
         flushPositionUpdate()
+        updateNowPlayingInfo()
     }
 
     func resume() {
@@ -92,6 +97,7 @@ final class PlaybackController: ObservableObject {
             startPositionTimer()
         }
         state = .playing
+        updateNowPlayingInfo()
     }
 
     func stop(resetPosition: Bool = true) {
@@ -106,11 +112,14 @@ final class PlaybackController: ObservableObject {
         }
         state = .idle
         isStreaming = false
+        nowPlayingInfo.removeAll()
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 
     func swapToLocalIfStreaming(trackId: UUID, fileURL: URL) throws {
         guard isStreaming, let track = currentTrack, track.id == trackId else { return }
-        let resumeTime = currentTime
+        let resumeTime = currentPlaybackTime()
+        pause()
         stopStreaming()
         try loadAndPlay(track: track, fileURL: fileURL, startAt: resumeTime)
     }
@@ -121,6 +130,7 @@ final class PlaybackController: ObservableObject {
             guard let self, let player else { return }
             self.currentTime = player.currentTime
             self.positionUpdateHandler?(player.currentTime)
+            self.updateNowPlayingInfo(elapsedOverride: player.currentTime)
         }
     }
 
@@ -128,11 +138,13 @@ final class PlaybackController: ObservableObject {
         if isStreaming, let time = streamPlayer?.currentTime().seconds, time.isFinite {
             currentTime = time
             positionUpdateHandler?(time)
+            updateNowPlayingInfo(elapsedOverride: time)
             return
         }
         guard let player else { return }
         currentTime = player.currentTime
         positionUpdateHandler?(player.currentTime)
+        updateNowPlayingInfo(elapsedOverride: player.currentTime)
     }
 
     private func addStreamObserver() {
@@ -144,6 +156,7 @@ final class PlaybackController: ObservableObject {
             guard seconds.isFinite else { return }
             currentTime = seconds
             positionUpdateHandler?(seconds)
+            updateNowPlayingInfo(elapsedOverride: seconds)
             if let item = streamPlayer?.currentItem {
                 let duration = item.duration.seconds
                 if duration.isFinite, duration > 0 {
@@ -162,12 +175,17 @@ final class PlaybackController: ObservableObject {
 
     private func stopStreaming() {
         streamPlayer?.pause()
+        streamPlayer?.replaceCurrentItem(with: nil)
         removeStreamObserver()
         streamPlayer = nil
     }
 
     private func configureRemoteCommands() {
         let commandCenter = MPRemoteCommandCenter.shared()
+        commandCenter.playCommand.isEnabled = true
+        commandCenter.pauseCommand.isEnabled = true
+        commandCenter.togglePlayPauseCommand.isEnabled = true
+        commandCenter.stopCommand.isEnabled = true
         commandCenter.playCommand.addTarget { [weak self] _ in
             self?.resume()
             return .success
@@ -218,5 +236,26 @@ final class PlaybackController: ObservableObject {
         let systemObject = AudioObjectID(kAudioObjectSystemObject)
         AudioObjectRemovePropertyListenerBlock(systemObject, &address, DispatchQueue.main, block)
         outputDeviceListener = nil
+    }
+
+    private func currentPlaybackTime() -> TimeInterval {
+        if isStreaming, let time = streamPlayer?.currentTime().seconds, time.isFinite {
+            return time
+        }
+        return player?.currentTime ?? currentTime
+    }
+
+    private func updateNowPlayingInfo(elapsedOverride: TimeInterval? = nil) {
+        guard let track = currentTrack else { return }
+        var info = nowPlayingInfo
+        info[MPMediaItemPropertyTitle] = track.displayName
+        let playbackTime = elapsedOverride ?? currentPlaybackTime()
+        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = playbackTime
+        info[MPNowPlayingInfoPropertyPlaybackRate] = state == .playing ? 1.0 : 0.0
+        if duration > 0 {
+            info[MPMediaItemPropertyPlaybackDuration] = duration
+        }
+        nowPlayingInfo = info
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 }

@@ -254,9 +254,9 @@ struct MenuBarContentView: View {
                 .padding(.vertical, 4)
                 .padding(.horizontal, 8)
                 .background(UI.surface)
-                .cornerRadius(4)
+                .cornerRadius(UI.cornerRadius)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: UI.cornerRadius)
                         .stroke(UI.border, lineWidth: 1)
                 )
         }
@@ -273,11 +273,11 @@ struct MenuBarContentView: View {
                     Hoverable { hovering in
                         ZStack {
                             if isSelected {
-                                RoundedRectangle(cornerRadius: 10)
+                                RoundedRectangle(cornerRadius: UI.cornerRadius)
                                     .fill(UI.accent)
                                     .matchedGeometryEffect(id: "tab-pill", in: tabNamespace)
                             } else if hovering {
-                                RoundedRectangle(cornerRadius: 10)
+                                RoundedRectangle(cornerRadius: UI.cornerRadius)
                                     .fill(UI.surfaceAlt)
                             }
                             HStack(spacing: 6) {
@@ -300,9 +300,9 @@ struct MenuBarContentView: View {
         }
         .padding(4)
         .background(UI.surface)
-        .cornerRadius(4)
+        .cornerRadius(UI.cornerRadius)
         .overlay(
-            RoundedRectangle(cornerRadius: 4)
+            RoundedRectangle(cornerRadius: UI.cornerRadius)
                 .stroke(UI.border, lineWidth: 1)
         )
         .frame(height: 36)
@@ -477,9 +477,9 @@ struct MenuBarContentView: View {
                     }
                     .padding(8)
                     .background(UI.surface)
-                    .cornerRadius(4)
+                    .cornerRadius(UI.cornerRadius)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: UI.cornerRadius)
                             .stroke(UI.border, lineWidth: 1)
                     )
                 }
@@ -820,19 +820,8 @@ private struct TrackRow: View {
     var body: some View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(track.displayName)
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
-                    if track.downloadState == .downloaded {
-                        StatusPill(label: "Offline", color: UI.success)
-                    } else if track.downloadState == .resolving {
-                        StatusPill(label: "Preparing", color: UI.warning)
-                    } else if track.downloadState == .downloading {
-                        StatusPill(label: "Downloading", color: UI.accent)
-                    } else if track.downloadState == .failed {
-                        StatusPill(label: "Issue", color: UI.danger)
-                    }
-                }
+                Text(track.displayName)
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
                 if let resolvedTitle = track.resolvedTitle, resolvedTitle != track.displayName {
                     Text(resolvedTitle)
                         .font(.system(size: 11, weight: .regular, design: .monospaced))
@@ -845,6 +834,7 @@ private struct TrackRow: View {
                 }
             }
             Spacer(minLength: 6)
+            statusPillView
             HStack(spacing: 6) {
                 if track.downloadState == .downloaded {
                     TrackActionButton(icon: "play.fill", label: "Play", action: onPlay)
@@ -866,9 +856,9 @@ private struct TrackRow: View {
         }
         .padding(6)
         .background(isHovering ? UI.surfaceAlt : UI.surface)
-        .cornerRadius(4)
+        .cornerRadius(UI.cornerRadius)
         .overlay(
-            RoundedRectangle(cornerRadius: 4)
+            RoundedRectangle(cornerRadius: UI.cornerRadius)
                 .stroke(UI.border, lineWidth: 1)
         )
         .animation(.easeInOut(duration: 0.12), value: isHovering)
@@ -908,6 +898,41 @@ private struct TrackRow: View {
             }
         }
     }
+
+    private var statusPillView: some View {
+        StatusPill(label: statusPillLabel, color: statusPillColor)
+            .frame(width: 92, alignment: .leading)
+    }
+
+    private var statusPillLabel: String {
+        switch track.downloadState {
+        case .notDownloaded:
+            return "Online"
+        case .downloaded:
+            return "Offline"
+        case .resolving:
+            return "Preparing"
+        case .downloading:
+            return "Downloading"
+        case .failed:
+            return "Issue"
+        }
+    }
+
+    private var statusPillColor: Color {
+        switch track.downloadState {
+        case .notDownloaded:
+            return UI.border
+        case .downloaded:
+            return UI.success
+        case .resolving:
+            return UI.warning
+        case .downloading:
+            return UI.accent
+        case .failed:
+            return UI.danger
+        }
+    }
 }
 
 private struct SectionCard<Content: View>: View {
@@ -923,7 +948,7 @@ private struct SectionCard<Content: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(UI.surface)
             .overlay(
-                RoundedRectangle(cornerRadius: 4)
+                RoundedRectangle(cornerRadius: UI.cornerRadius)
                     .stroke(UI.border, lineWidth: 1.2)
             )
     }
@@ -964,9 +989,9 @@ private struct PrimaryButtonStyle: ButtonStyle {
                 .padding(.horizontal, 12)
                 .background(hovering ? UI.accentHover : UI.accent)
                 .foregroundColor(UI.ink)
-                .cornerRadius(4)
+                .cornerRadius(UI.cornerRadius)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: UI.cornerRadius)
                         .stroke(UI.border, lineWidth: 1)
                 )
                 .scaleEffect(configuration.isPressed ? 0.98 : 1)
@@ -984,9 +1009,9 @@ private struct SecondaryButtonStyle: ButtonStyle {
                 .padding(.horizontal, 12)
                 .background(hovering ? UI.surfaceAlt : UI.surface)
                 .foregroundColor(UI.ink)
-                .cornerRadius(4)
+                .cornerRadius(UI.cornerRadius)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: UI.cornerRadius)
                         .stroke(UI.border, lineWidth: 1)
                 )
                 .scaleEffect(configuration.isPressed ? 0.98 : 1)
@@ -1011,6 +1036,7 @@ private enum UI {
     static let success = Color(red: 0.12, green: 0.8, blue: 0.45)
     static let warning = Color(red: 1.0, green: 0.76, blue: 0.2)
     static let danger = Color(red: 0.95, green: 0.25, blue: 0.35)
+    static let cornerRadius: CGFloat = 6
 }
 
 private struct StatusPill: View {
@@ -1024,9 +1050,9 @@ private struct StatusPill: View {
             .padding(.horizontal, 8)
             .background(UI.surface)
             .foregroundColor(UI.ink)
-            .cornerRadius(4)
+            .cornerRadius(UI.cornerRadius)
             .overlay(
-                RoundedRectangle(cornerRadius: 4)
+                RoundedRectangle(cornerRadius: UI.cornerRadius)
                     .stroke(color, lineWidth: 1)
             )
     }
@@ -1037,10 +1063,10 @@ private struct ArtworkBadge: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 4)
+            RoundedRectangle(cornerRadius: UI.cornerRadius)
                 .fill(UI.surface)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
+                    RoundedRectangle(cornerRadius: UI.cornerRadius)
                         .stroke(UI.border, lineWidth: 1)
                 )
             Image(systemName: "music.note")
@@ -1095,9 +1121,9 @@ private struct LabeledTextField: View {
         .padding(.vertical, 8)
         .padding(.horizontal, 10)
         .background(isHovering ? UI.surfaceAlt : UI.surface)
-        .cornerRadius(4)
+        .cornerRadius(UI.cornerRadius)
         .overlay(
-            RoundedRectangle(cornerRadius: 4)
+            RoundedRectangle(cornerRadius: UI.cornerRadius)
                 .stroke(isFocused ? UI.accent : UI.border, lineWidth: isFocused ? 2 : 1)
         )
         .accessibilityLabel(placeholder)
@@ -1207,11 +1233,11 @@ private struct DialogCard<Actions: View>: View {
         .padding(14)
         .frame(width: 280)
         .background(
-            RoundedRectangle(cornerRadius: 4)
+            RoundedRectangle(cornerRadius: UI.cornerRadius)
                 .fill(UI.surface)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 4)
+            RoundedRectangle(cornerRadius: UI.cornerRadius)
                 .stroke(UI.border, lineWidth: 1)
         )
     }
@@ -1228,9 +1254,9 @@ private struct DialogTextField: View {
             .padding(.vertical, 8)
             .padding(.horizontal, 10)
             .background(isHovering ? UI.surfaceAlt : UI.surface)
-            .cornerRadius(4)
+            .cornerRadius(UI.cornerRadius)
             .overlay(
-                RoundedRectangle(cornerRadius: 4)
+                RoundedRectangle(cornerRadius: UI.cornerRadius)
                     .stroke(UI.border, lineWidth: 1)
             )
             .onHover { hovering in
@@ -1254,9 +1280,9 @@ private struct EmptyStateView: View {
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(UI.surface)
-        .cornerRadius(4)
+        .cornerRadius(UI.cornerRadius)
         .overlay(
-            RoundedRectangle(cornerRadius: 4)
+            RoundedRectangle(cornerRadius: UI.cornerRadius)
                 .stroke(UI.border, lineWidth: 1)
         )
     }
