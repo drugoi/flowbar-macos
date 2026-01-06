@@ -4,7 +4,6 @@ enum URLValidationError: LocalizedError {
     case invalidURL
     case unsupportedHost
     case missingVideoId
-    case unsupportedPlaylist
     case unsupportedScheme
 
     var errorDescription: String? {
@@ -15,8 +14,6 @@ enum URLValidationError: LocalizedError {
             return "Only youtube.com and youtu.be URLs are supported."
         case .missingVideoId:
             return "Missing or invalid YouTube video ID."
-        case .unsupportedPlaylist:
-            return "Playlists are not supported. Use a single video URL."
         case .unsupportedScheme:
             return "URL must start with http:// or https://."
         }
@@ -60,9 +57,6 @@ enum URLValidator {
             return .success(ValidatedURL(canonicalURL: canonicalWatchURL(videoId: pathId), videoId: pathId))
         }
         let queryItems = components.queryItems ?? []
-        if queryItems.contains(where: { $0.name == "list" }) {
-            return .failure(.unsupportedPlaylist)
-        }
         let videoId = queryItems.first(where: { $0.name == "v" })?.value ?? ""
         guard isValidVideoId(videoId) else { return .failure(.missingVideoId) }
 

@@ -13,6 +13,7 @@
 		2EC490F0E77B40DDD2D56FBD /* DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 568F5146C0ADF6CC8CECC574 /* DownloadManager.swift */; };
 		33A6116EC4D71C704644D741 /* MenuBarLabelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 475F726D5E95E321629190C2 /* MenuBarLabelView.swift */; };
 		5B34B748F1438A7DF9461DE9 /* LongPlayApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF45F3D95CAE89A623DD1A8 /* LongPlayApp.swift */; };
+		674228E5B9E8E472ED0E4CDC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 70EF097B34AC70D214AD8206 /* Assets.xcassets */; };
 		6D4FE929433891F68D396353 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = B008A05ADD3FF001551C3648 /* Track.swift */; };
 		773828250ED003F5C11999AA /* PlaybackController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038971798A3D5B3BB0197C31 /* PlaybackController.swift */; };
 		7FDD7C8749C63ADDF4566626 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 751363014FB175AEC734B11C /* NotificationManager.swift */; };
@@ -43,6 +44,7 @@
 		475F726D5E95E321629190C2 /* MenuBarLabelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabelView.swift; sourceTree = "<group>"; };
 		568F5146C0ADF6CC8CECC574 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
 		619BBD6C2746326C84E77B80 /* LongPlay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LongPlay.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		70EF097B34AC70D214AD8206 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		751363014FB175AEC734B11C /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		945700A6E76399ADBF4EAB4D /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
 		99132F07D2CEBE82DA612836 /* Library.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Library.swift; sourceTree = "<group>"; };
@@ -123,6 +125,7 @@
 		F35A06325C2F39012DBCB017 /* LongPlay */ = {
 			isa = PBXGroup;
 			children = (
+				70EF097B34AC70D214AD8206 /* Assets.xcassets */,
 				58AC9DF8DD76EE8E4DF51DBF /* Models */,
 				E8124A5A3E488E65381F2AEC /* Services */,
 				B15A9772CCF819BD73274523 /* UI */,
@@ -158,7 +161,9 @@
 			buildPhases = (
 				B21081955FAAD44DC56A76F8 /* Fetch yt-dlp */,
 				65E6BB8200F06E80480FAB4E /* Fetch ffmpeg */,
+				E945FF5812CC9A0DBD6A1C5C /* Fetch deno */,
 				F0F64C2955DCB14DEA0BC15A /* Sources */,
+				D35CF6E695E0FAA3C655C52E /* Resources */,
 			);
 			buildRules = (
 			);
@@ -211,6 +216,17 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		D35CF6E695E0FAA3C655C52E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				674228E5B9E8E472ED0E4CDC /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXShellScriptBuildPhase section */
 		65E6BB8200F06E80480FAB4E /* Fetch ffmpeg */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -254,6 +270,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "scripts/fetch-yt-dlp.sh";
+			showEnvVarsInLog = 0;
+		};
+		E945FF5812CC9A0DBD6A1C5C /* Fetch deno */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Fetch deno";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				Resources/bin/deno,
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/bin/deno",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "scripts/fetch-deno.sh";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

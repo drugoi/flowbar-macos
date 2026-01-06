@@ -40,6 +40,12 @@ targets:
           - Resources/bin/ffprobe
           - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/bin/ffmpeg
           - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/bin/ffprobe
+      - name: Fetch deno
+        script: scripts/fetch-deno.sh
+        showEnvVars: false
+        outputFiles:
+          - Resources/bin/deno
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/bin/deno
     info:
       path: Config/Info.plist
     settings:

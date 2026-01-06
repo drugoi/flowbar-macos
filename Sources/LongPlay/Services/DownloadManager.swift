@@ -12,7 +12,8 @@ enum DownloadError: LocalizedError {
     }
 }
 
-final class DownloadManager: ObservableObject {
+@MainActor
+final class DownloadManager: ObservableObject, @unchecked Sendable {
     @Published private(set) var activeTrackId: UUID?
     @Published private(set) var progress: Double?
 
@@ -28,7 +29,7 @@ final class DownloadManager: ObservableObject {
 
         let task = Task { () throws -> URL in
             try await client.downloadAudio(url: track.sourceURL, destinationURL: destination) { [weak self] value in
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self?.progress = value
                 }
             }

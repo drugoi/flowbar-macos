@@ -13,8 +13,8 @@ struct LongPlayApp: App {
                 playbackController: playbackController,
                 downloadManager: downloadManager
             )
-            .frame(width: 380)
-            .frame(minHeight: 480, maxHeight: 820)
+            .frame(width: 420)
+            .frame(maxHeight: 720)
         } label: {
             MenuBarLabelView(
                 libraryStore: libraryStore,

@@ -33,6 +33,7 @@ playground.xcworkspace
 Resources/bin/yt-dlp
 Resources/bin/ffmpeg
 Resources/bin/ffprobe
+Resources/bin/deno
 
 # CocoaPods
 #

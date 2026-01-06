@@ -67,6 +67,15 @@ final class LibraryStore: ObservableObject {
         save()
     }
 
+    func updateDisplayNameIfDefault(trackId: UUID, defaultName: String, newName: String) {
+        guard let track = trackById(trackId) else { return }
+        guard track.displayName == defaultName else { return }
+        var updated = track
+        updated.displayName = newName
+        guard replace(track: updated) else { return }
+        save()
+    }
+
     func removeTrack(_ track: Track) {
         library.userLibrary.removeAll { $0.id == track.id }
         save()
@@ -168,6 +177,10 @@ final class LibraryStore: ObservableObject {
             return track
         }
         return nil
+    }
+
+    func track(withId id: UUID) -> Track? {
+        trackById(id)
     }
 
     private func replace(track: Track) -> Bool {

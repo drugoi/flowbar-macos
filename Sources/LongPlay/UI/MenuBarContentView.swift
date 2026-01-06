@@ -2,7 +2,6 @@ import SwiftUI
 import AppKit
 
 private enum FocusField {
-    case search
     case url
 }
 
@@ -16,7 +15,6 @@ struct MenuBarContentView: View {
 
     @StateObject private var networkMonitor = NetworkMonitor()
 
-    @State private var searchText = ""
     @State private var newURL = ""
     @State private var newDisplayName = ""
     @State private var validationError: String?
@@ -33,6 +31,7 @@ struct MenuBarContentView: View {
     @State private var selectedTab: Tab = .listen
     @Namespace private var tabNamespace
     @State private var suggestedTrack: Track?
+    private let tabContentMinHeight: CGFloat = 420
 
     private enum Tab: String, CaseIterable, Identifiable {
         case listen = "Listen"
@@ -51,6 +50,17 @@ struct MenuBarContentView: View {
                 return "gearshape"
             }
         }
+
+        var shortcutKey: KeyEquivalent {
+            switch self {
+            case .listen:
+                return "1"
+            case .add:
+                return "2"
+            case .utilities:
+                return "3"
+            }
+        }
     }
 
     var body: some View {
@@ -61,95 +71,93 @@ struct MenuBarContentView: View {
                 endPoint: .bottomTrailing
             )
             .overlay(GridBackground().opacity(0.12))
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
                 headerRow
                 tabBar
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        if !networkMonitor.isOnline {
-                            NoticeCard(
-                                title: "You're offline",
-                                message: "Check your connection to download audio.",
-                                actionTitle: "Copy Diagnostics",
-                                action: { copyDiagnostics() }
-                            )
-                        }
-                        if ytdlpMissing {
-                            NoticeCard(
-                                title: "yt-dlp not found",
-                                message: "Bundled binary missing. Reinstall or update LongPlay.",
-                                actionTitle: "Copy Diagnostics",
-                                action: { copyDiagnostics() }
-                            )
-                        }
-                        if ffmpegMissing {
-                            NoticeCard(
-                                title: "ffmpeg missing",
-                                message: "Audio conversion requires ffmpeg. Reinstall or update LongPlay.",
-                                actionTitle: "Copy Diagnostics",
-                                action: { copyDiagnostics() }
-                            )
-                        }
-                        if let ytdlpWarning {
-                            NoticeCard(
-                                title: "yt-dlp update recommended",
-                                message: ytdlpWarning,
-                                actionTitle: "Copy Diagnostics",
-                                action: { copyDiagnostics() }
-                            )
-                        }
-                        if let globalErrorMessage {
-                            SectionCard {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(failedTrack == nil ? "Input issue" : "Download issue")
-                                        .font(sectionTitleFont)
-                                    Text(globalErrorMessage)
-                                        .font(.system(size: 12, weight: .regular, design: .monospaced))
-                                        .foregroundColor(UI.ink.opacity(0.7))
-                                    HStack(spacing: 8) {
-                                        if let failedTrack, shouldOfferDownloadAnyway(failedTrack) {
-                                            Button("Download Anyway") {
-                                                Task {
-                                                    await downloadOnly(failedTrack)
-                                                }
+                VStack(alignment: .leading, spacing: 14) {
+                    if !networkMonitor.isOnline {
+                        NoticeCard(
+                            title: "You're offline",
+                            message: "Check your connection to download audio.",
+                            actionTitle: "Copy Diagnostics",
+                            action: { copyDiagnostics() }
+                        )
+                    }
+                    if ytdlpMissing {
+                        NoticeCard(
+                            title: "yt-dlp not found",
+                            message: "Bundled binary missing. Reinstall or update LongPlay.",
+                            actionTitle: "Copy Diagnostics",
+                            action: { copyDiagnostics() }
+                        )
+                    }
+                    if ffmpegMissing {
+                        NoticeCard(
+                            title: "ffmpeg missing",
+                            message: "Audio conversion requires ffmpeg. Reinstall or update LongPlay.",
+                            actionTitle: "Copy Diagnostics",
+                            action: { copyDiagnostics() }
+                        )
+                    }
+                    if let ytdlpWarning {
+                        NoticeCard(
+                            title: "yt-dlp update recommended",
+                            message: ytdlpWarning,
+                            actionTitle: "Copy Diagnostics",
+                            action: { copyDiagnostics() }
+                        )
+                    }
+                    if let globalErrorMessage {
+                        SectionCard {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(failedTrack == nil ? "Input issue" : "Download issue")
+                                    .font(sectionTitleFont)
+                                Text(globalErrorMessage)
+                                    .font(.system(size: 12, weight: .regular, design: .monospaced))
+                                    .foregroundColor(UI.ink.opacity(0.7))
+                                HStack(spacing: 8) {
+                                    if let failedTrack, shouldOfferDownloadAnyway(failedTrack) {
+                                        Button("Download Anyway") {
+                                            Task {
+                                                await downloadOnly(failedTrack)
                                             }
-                                            .buttonStyle(PrimaryButtonStyle())
                                         }
-                                        if let failedTrack {
-                                            Button("Retry") {
-                                                resolveAndDownload(failedTrack)
-                                            }
-                                            .buttonStyle(PrimaryButtonStyle())
-                                        }
-                                        Button("Logs") {
-                                            copyDiagnostics()
-                                        }
-                                        .buttonStyle(SecondaryButtonStyle())
-                                        Button("Dismiss") {
-                                            self.globalErrorMessage = nil
-                                            self.failedTrack = nil
-                                        }
-                                        .buttonStyle(SecondaryButtonStyle())
+                                        .buttonStyle(PrimaryButtonStyle())
                                     }
+                                    if let failedTrack {
+                                        Button("Retry") {
+                                            resolveAndDownload(failedTrack)
+                                        }
+                                        .buttonStyle(PrimaryButtonStyle())
+                                    }
+                                    Button("Logs") {
+                                        copyDiagnostics()
+                                    }
+                                    .buttonStyle(SecondaryButtonStyle())
+                                    Button("Dismiss") {
+                                        self.globalErrorMessage = nil
+                                        self.failedTrack = nil
+                                    }
+                                    .buttonStyle(SecondaryButtonStyle())
                                 }
                             }
                         }
-                        switch selectedTab {
-                        case .listen:
-                            nowPlayingSection
-                            searchSection
-                            trackListSection
-                        case .add:
-                            addNewSection
-                        case .utilities:
-                            utilitiesSection
-                        }
                     }
-                    .padding(.bottom, 4)
+                    switch selectedTab {
+                    case .listen:
+                        nowPlayingSection
+                        trackListSection
+                    case .add:
+                        addNewSection
+                    case .utilities:
+                        utilitiesSection
+                    }
                 }
+                .padding(.bottom, 4)
+                .frame(minHeight: tabContentMinHeight, alignment: .topLeading)
             }
-            .padding(14)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
 
             if let deleteCandidate {
                 DialogOverlay(onBackgroundTap: { self.deleteCandidate = nil }) {
@@ -205,16 +213,18 @@ struct MenuBarContentView: View {
                 let available = client.isAvailable()
                 let version = client.fetchVersion()
                 let ffmpegAvailable = client.isFfmpegAvailable()
-                var warning: String?
+                let warningValue: String?
                 if available, let version, client.isVersionOutdated(version) {
-                    warning = "Bundled yt-dlp version \(version) is older than \(YtDlpClient.minimumSupportedVersion)."
+                    warningValue = "Bundled yt-dlp version \(version) is older than \(YtDlpClient.minimumSupportedVersion)."
                 } else if available, version == nil {
-                    warning = "Unable to read yt-dlp version. Downloads may fail."
+                    warningValue = "Unable to read yt-dlp version. Downloads may fail."
+                } else {
+                    warningValue = nil
                 }
                 await MainActor.run {
                     ytdlpMissing = !available
                     ytdlpVersion = version
-                    ytdlpWarning = warning
+                    ytdlpWarning = warningValue
                     ffmpegMissing = !ffmpegAvailable
                 }
             }
@@ -259,25 +269,33 @@ struct MenuBarContentView: View {
                     selectedTab = tab
                     focusedField = tab == .add ? .url : nil
                 } label: {
-                    ZStack {
-                        if tab == selectedTab {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(UI.accent)
-                                .matchedGeometryEffect(id: "tab-pill", in: tabNamespace)
+                    let isSelected = tab == selectedTab
+                    Hoverable { hovering in
+                        ZStack {
+                            if isSelected {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(UI.accent)
+                                    .matchedGeometryEffect(id: "tab-pill", in: tabNamespace)
+                            } else if hovering {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(UI.surfaceAlt)
+                            }
+                            HStack(spacing: 6) {
+                                Image(systemName: tab.systemImage)
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text(tab.rawValue)
+                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            }
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                            .frame(maxWidth: .infinity)
+                            .foregroundColor(isSelected ? UI.ink : UI.ink.opacity(0.8))
                         }
-                        HStack(spacing: 6) {
-                            Image(systemName: tab.systemImage)
-                                .font(.system(size: 11, weight: .semibold))
-                            Text(tab.rawValue)
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        }
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .frame(maxWidth: .infinity)
-                        .foregroundColor(tab == selectedTab ? UI.ink : UI.ink.opacity(0.8))
+                        .contentShape(Rectangle())
                     }
                 }
                 .buttonStyle(.plain)
+                .keyboardShortcut(tab.shortcutKey, modifiers: [.command])
             }
         }
         .padding(4)
@@ -288,7 +306,6 @@ struct MenuBarContentView: View {
                 .stroke(UI.border, lineWidth: 1)
         )
         .frame(height: 36)
-        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: selectedTab)
     }
 
     private var nowPlayingSection: some View {
@@ -329,7 +346,7 @@ struct MenuBarContentView: View {
     }
 
     private var statusLine: String {
-        if let activeId = downloadManager.activeTrackId {
+        if downloadManager.activeTrackId != nil {
             let percentage = Int((downloadManager.progress ?? 0) * 100)
             return "Downloading \(percentage)%"
         }
@@ -342,33 +359,6 @@ struct MenuBarContentView: View {
             return "Paused"
         case .error:
             return "Error"
-        }
-    }
-
-    private var searchSection: some View {
-        SectionCard {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Search")
-                    .font(sectionTitleFont)
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(UI.ink.opacity(0.7))
-                    TextField("Search tracks", text: $searchText)
-                        .textFieldStyle(.plain)
-                        .focused($focusedField, equals: .search)
-                        .accessibilityLabel("Search tracks")
-                        .accessibilityIdentifier("SearchField")
-                }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 10)
-                .background(UI.surface)
-                .cornerRadius(4)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(UI.border, lineWidth: 1)
-                )
-            }
         }
     }
 
@@ -408,14 +398,14 @@ struct MenuBarContentView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 240)
+                .frame(maxHeight: .infinity, alignment: .top)
             }
         }
     }
 
     private var addNewSection: some View {
         SectionCard {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 10) {
                 Text("Add New")
                     .font(sectionTitleFont)
                 LabeledTextField(
@@ -446,6 +436,7 @@ struct MenuBarContentView: View {
                 .accessibilityLabel("Add track")
                 .accessibilityIdentifier("AddTrackButton")
                 .buttonStyle(PrimaryButtonStyle())
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -537,16 +528,33 @@ struct MenuBarContentView: View {
             newDisplayName = ""
             selectedTab = .listen
             focusedField = nil
-            resolveAndDownload(track)
+            if name.isEmpty {
+                Task {
+                    if let title = await fetchTitleForTrack(track.sourceURL) {
+                        await MainActor.run {
+                            libraryStore.updateDisplayNameIfDefault(
+                                trackId: track.id,
+                                defaultName: track.videoId,
+                                newName: title
+                            )
+                        }
+                    }
+                }
+            }
+            streamAndDownload(track)
         }
     }
 
     private var filteredLibrary: [Track] {
-        filter(tracks: libraryStore.library.userLibrary)
+        libraryStore.library.userLibrary
     }
 
+
     private var nowPlayingTrack: Track? {
-        playbackController.currentTrack ?? suggestedTrack
+        if let current = playbackController.currentTrack {
+            return libraryStore.track(withId: current.id) ?? current
+        }
+        return suggestedTrack
     }
 
     private var nowPlayingTitle: String {
@@ -594,17 +602,12 @@ struct MenuBarContentView: View {
             playbackController.resume()
             return
         }
-        guard let fallback = nowPlayingTrack, fallback.downloadState == .downloaded else { return }
-        play(fallback)
-    }
-
-    private func filter(tracks: [Track]) -> [Track] {
-        guard !searchText.isEmpty else { return tracks }
-        let needle = searchText.lowercased()
-        return tracks.filter { track in
-            track.displayName.lowercased().contains(needle)
-                || (track.resolvedTitle?.lowercased().contains(needle) ?? false)
+        guard let fallback = nowPlayingTrack else { return }
+        if fallback.downloadState == .downloaded {
+            play(fallback)
+            return
         }
+        streamAndDownload(fallback)
     }
 
     private func resolveAndDownload(_ track: Track) {
@@ -623,61 +626,104 @@ struct MenuBarContentView: View {
                 DiagnosticsLogger.shared.log(level: "warning", message: "Download already in progress.")
                 return
             }
-            do {
-                globalErrorMessage = nil
-                failedTrack = nil
-                DiagnosticsLogger.shared.log(level: "info", message: "Starting download for \(track.videoId)")
+            globalErrorMessage = nil
+            failedTrack = nil
+            DiagnosticsLogger.shared.log(level: "info", message: "Starting download for \(track.videoId)")
 
-                await downloadOnly(track)
-            } catch {
+            await downloadOnly(track)
+        }
+    }
+
+    private func fetchTitleForTrack(_ url: URL) async -> String? {
+        let client = YtDlpClient()
+        do {
+            let metadata = try await client.resolveMetadata(url: url)
+            return metadata.title
+        } catch {
+            DiagnosticsLogger.shared.log(level: "warning", message: "Title fetch failed: \(error.localizedDescription)")
+            let fallback = await client.fetchTitleFallback(url: url)
+            if fallback == nil {
+                DiagnosticsLogger.shared.log(level: "warning", message: "Title fallback failed for \(url.absoluteString)")
+            }
+            return fallback
+        }
+    }
+
+    private func streamAndDownload(_ track: Track) {
+        Task {
+            guard networkMonitor.isOnline else {
                 var failed = track
                 failed.downloadState = .failed
-                failed.lastError = error.localizedDescription
+                failed.lastError = "No internet connection."
                 libraryStore.updateTrack(failed)
-                DiagnosticsLogger.shared.log(level: "error", message: "Download failed: \(error.localizedDescription)")
-                globalErrorMessage = error.localizedDescription
+                globalErrorMessage = "No internet connection."
                 failedTrack = failed
+                DiagnosticsLogger.shared.log(level: "warning", message: "Streaming blocked: offline")
+                return
             }
+            if track.downloadState != .resolving {
+                var updated = libraryStore.track(withId: track.id) ?? track
+                updated.downloadState = .resolving
+                updated.lastError = nil
+                libraryStore.updateTrack(updated)
+            }
+            do {
+                let streamURL = try await YtDlpClient().fetchStreamURL(url: track.sourceURL)
+                await MainActor.run {
+                    playbackController.streamAndPlay(
+                        track: track,
+                        streamURL: streamURL,
+                        startAt: track.playbackPositionSeconds
+                    )
+                }
+            } catch {
+                DiagnosticsLogger.shared.log(level: "warning", message: "Streaming failed: \(error.localizedDescription)")
+            }
+            await downloadOnly(track)
         }
     }
 
     private func downloadOnly(_ track: Track) async {
-            guard networkMonitor.isOnline else {
-                globalErrorMessage = "No internet connection."
-                failedTrack = track
-                return
-            }
-            if let activeId = downloadManager.activeTrackId, activeId != track.id {
-                DiagnosticsLogger.shared.log(level: "warning", message: "Download already in progress.")
-                return
-            }
-            do {
-                globalErrorMessage = nil
-                failedTrack = nil
-                var updated = track
-                updated.downloadState = .downloading
-                updated.lastError = nil
-                libraryStore.updateTrack(updated)
-                let fileURL = try await downloadManager.startDownload(for: updated)
-                updated.downloadState = .downloaded
-                updated.downloadProgress = 1.0
-                updated.localFilePath = fileURL.path
-                if let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
-                   let fileSize = attributes[.size] as? NSNumber {
-                updated.fileSizeBytes = fileSize.int64Value
-            }
+        guard networkMonitor.isOnline else {
+            globalErrorMessage = "No internet connection."
+            failedTrack = track
+            return
+        }
+        if let activeId = downloadManager.activeTrackId, activeId != track.id {
+            DiagnosticsLogger.shared.log(level: "warning", message: "Download already in progress.")
+            return
+        }
+        do {
+            globalErrorMessage = nil
+            failedTrack = nil
+            var updated = libraryStore.track(withId: track.id) ?? track
+            updated.downloadState = .downloading
+            updated.lastError = nil
             libraryStore.updateTrack(updated)
+            let fileURL = try await downloadManager.startDownload(for: updated)
+            var completed = libraryStore.track(withId: updated.id) ?? updated
+            completed.downloadState = .downloaded
+            completed.downloadProgress = 1.0
+            completed.localFilePath = fileURL.path
+            if let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
+               let fileSize = attributes[.size] as? NSNumber {
+                completed.fileSizeBytes = fileSize.int64Value
+            }
+            libraryStore.updateTrack(completed)
             libraryStore.refreshCacheSize()
-            NotificationManager.shared.notifyDownloadComplete(track: updated)
+            if let localURL = completed.localFilePath {
+                try? playbackController.swapToLocalIfStreaming(trackId: completed.id, fileURL: URL(fileURLWithPath: localURL))
+            }
+            NotificationManager.shared.notifyDownloadComplete(track: completed)
         } catch {
             var failed = track
             failed.downloadState = .failed
             failed.lastError = error.localizedDescription
-                libraryStore.updateTrack(failed)
-                globalErrorMessage = error.localizedDescription
-                failedTrack = failed
-                DiagnosticsLogger.shared.log(level: "error", message: "Download failed: \(error.localizedDescription)")
-            }
+            libraryStore.updateTrack(failed)
+            globalErrorMessage = error.localizedDescription
+            failedTrack = failed
+            DiagnosticsLogger.shared.log(level: "error", message: "Download failed: \(error.localizedDescription)")
+        }
     }
 
     private func play(_ track: Track) {
@@ -746,6 +792,9 @@ struct MenuBarContentView: View {
             let percentage = Int((downloadManager.progress ?? 0) * 100)
             return "Downloading \(percentage)%"
         }
+        if track.downloadState == .resolving {
+            return "Preparing download…"
+        }
         if track.downloadState == .failed, let error = track.lastError {
             return error
         }
@@ -770,13 +819,14 @@ private struct TrackRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            ArtworkBadge(color: track.stateColor)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(track.displayName)
                         .font(.system(size: 13, weight: .bold, design: .monospaced))
                     if track.downloadState == .downloaded {
                         StatusPill(label: "Offline", color: UI.success)
+                    } else if track.downloadState == .resolving {
+                        StatusPill(label: "Preparing", color: UI.warning)
                     } else if track.downloadState == .downloading {
                         StatusPill(label: "Downloading", color: UI.accent)
                     } else if track.downloadState == .failed {
@@ -798,7 +848,11 @@ private struct TrackRow: View {
             HStack(spacing: 6) {
                 if track.downloadState == .downloaded {
                     TrackActionButton(icon: "play.fill", label: "Play", action: onPlay)
-                    TrackActionButton(icon: "trash", label: "Remove", action: onRemoveDownload)
+                    if isUserTrack, let onDelete {
+                        TrackActionButton(icon: "trash", label: "Delete", action: onDelete)
+                    } else {
+                        TrackActionButton(icon: "trash", label: "Remove Download", action: onRemoveDownload)
+                    }
                 } else if track.downloadState == .downloading {
                     TrackActionButton(icon: "xmark.circle", label: "Cancel", action: onCancel)
                 } else if track.downloadState == .failed {
@@ -903,37 +957,41 @@ private struct NoticeCard: View {
 
 private struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 12, weight: .bold, design: .monospaced))
-            .padding(.vertical, 6)
-            .padding(.horizontal, 12)
-            .background(UI.accent)
-            .foregroundColor(UI.ink)
-            .cornerRadius(4)
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(UI.border, lineWidth: 1)
-            )
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .opacity(configuration.isPressed ? 0.9 : 1)
+        Hoverable { hovering in
+            configuration.label
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .background(hovering ? UI.accentHover : UI.accent)
+                .foregroundColor(UI.ink)
+                .cornerRadius(4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(UI.border, lineWidth: 1)
+                )
+                .scaleEffect(configuration.isPressed ? 0.98 : 1)
+                .opacity(configuration.isPressed ? 0.9 : 1)
+        }
     }
 }
 
 private struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 12, weight: .medium, design: .monospaced))
-            .padding(.vertical, 6)
-            .padding(.horizontal, 12)
-            .background(UI.surface)
-            .foregroundColor(UI.ink)
-            .cornerRadius(4)
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(UI.border, lineWidth: 1)
-            )
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .opacity(configuration.isPressed ? 0.9 : 1)
+        Hoverable { hovering in
+            configuration.label
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .background(hovering ? UI.surfaceAlt : UI.surface)
+                .foregroundColor(UI.ink)
+                .cornerRadius(4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(UI.border, lineWidth: 1)
+                )
+                .scaleEffect(configuration.isPressed ? 0.98 : 1)
+                .opacity(configuration.isPressed ? 0.9 : 1)
+        }
     }
 }
 
@@ -949,6 +1007,7 @@ private enum UI {
     static let ink = Color(red: 0.1, green: 0.1, blue: 0.1)
     static let border = Color.black.opacity(0.8)
     static let accent = Color(red: 0.15, green: 0.95, blue: 0.6)
+    static let accentHover = Color(red: 0.1, green: 0.9, blue: 0.55)
     static let success = Color(red: 0.12, green: 0.8, blue: 0.45)
     static let warning = Color(red: 1.0, green: 0.76, blue: 0.2)
     static let danger = Color(red: 0.95, green: 0.25, blue: 0.35)
@@ -1020,8 +1079,10 @@ private struct LabeledTextField: View {
     var focusedField: FocusState<FocusField?>.Binding
     let field: FocusField?
     let onSubmit: () -> Void
+    @State private var isHovering = false
 
     var body: some View {
+        let isFocused = focusedField.wrappedValue == field
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .semibold))
@@ -1033,13 +1094,16 @@ private struct LabeledTextField: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 10)
-        .background(UI.surface)
+        .background(isHovering ? UI.surfaceAlt : UI.surface)
         .cornerRadius(4)
         .overlay(
             RoundedRectangle(cornerRadius: 4)
-                .stroke(UI.border, lineWidth: 1)
+                .stroke(isFocused ? UI.accent : UI.border, lineWidth: isFocused ? 2 : 1)
         )
         .accessibilityLabel(placeholder)
+        .onHover { hovering in
+            isHovering = hovering
+        }
     }
 }
 
@@ -1156,18 +1220,22 @@ private struct DialogCard<Actions: View>: View {
 private struct DialogTextField: View {
     let placeholder: String
     @Binding var text: String
+    @State private var isHovering = false
 
     var body: some View {
         TextField(placeholder, text: $text)
             .textFieldStyle(.plain)
             .padding(.vertical, 8)
             .padding(.horizontal, 10)
-            .background(UI.surface)
+            .background(isHovering ? UI.surfaceAlt : UI.surface)
             .cornerRadius(4)
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
                     .stroke(UI.border, lineWidth: 1)
             )
+            .onHover { hovering in
+                isHovering = hovering
+            }
     }
 }
 
@@ -1191,6 +1259,18 @@ private struct EmptyStateView: View {
             RoundedRectangle(cornerRadius: 4)
                 .stroke(UI.border, lineWidth: 1)
         )
+    }
+}
+
+private struct Hoverable<Content: View>: View {
+    let content: (Bool) -> Content
+    @State private var isHovering = false
+
+    var body: some View {
+        content(isHovering)
+            .onHover { hovering in
+                isHovering = hovering
+            }
     }
 }
 

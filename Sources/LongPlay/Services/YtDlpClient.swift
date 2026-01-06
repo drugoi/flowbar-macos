@@ -65,6 +65,10 @@ struct YtDlpClient {
             .map { $0.deletingLastPathComponent() }
     }
 
+    private var bundledDenoURL: URL? {
+        Bundle.main.url(forResource: "deno", withExtension: nil, subdirectory: "bin")
+    }
+
     func isAvailable() -> Bool {
         if let bundled = bundledExecutableURL {
             return (try? runSync(executableURL: bundled, args: ["--version"])) != nil
@@ -122,33 +126,68 @@ struct YtDlpClient {
     }
 
     func resolveMetadata(url: URL) async throws -> YtDlpMetadata {
-        let args = baseArgs() + [
-            "--dump-json",
+        let args = baseArgs(playerClients: "web") + [
+            "--print", "%(title)s",
+            "--skip-download",
+            "--quiet",
             "--no-playlist",
-            "--socket-timeout", "10",
+            "--socket-timeout", "8",
             "--retries", "1",
             "--no-warnings",
             url.absoluteString
         ]
         let output = try await run(args)
-        guard let data = output.data(using: .utf8) else {
+        let trimmed = output
+            .split(separator: "\n")
+            .map(String.init)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first(where: { line in
+                guard !line.isEmpty else { return false }
+                if line.hasPrefix("WARNING:") || line.hasPrefix("[") || line.hasPrefix("ERROR:") {
+                    return false
+                }
+                return true
+            })
+        guard let title = trimmed, !title.isEmpty else {
             throw YtDlpError.invalidOutput
         }
-        let decoded = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        guard let title = decoded?["title"] as? String else {
-            throw YtDlpError.invalidOutput
+        return YtDlpMetadata(title: title, durationSeconds: nil)
+    }
+
+    func fetchTitleFallback(url: URL) async -> String? {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "www.youtube.com"
+        components.path = "/oembed"
+        components.queryItems = [
+            URLQueryItem(name: "url", value: url.absoluteString),
+            URLQueryItem(name: "format", value: "json")
+        ]
+        guard let oembedURL = components.url else { return nil }
+        do {
+            let (data, response) = try await URLSession.shared.data(from: oembedURL)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                return nil
+            }
+            struct OEmbedResponse: Decodable { let title: String }
+            let decoded = try JSONDecoder().decode(OEmbedResponse.self, from: data)
+            let trimmed = decoded.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        } catch {
+            return nil
         }
-        let durationSeconds = decoded?["duration"] as? Double
-        return YtDlpMetadata(title: title, durationSeconds: durationSeconds)
     }
 
     func downloadAudio(url: URL, destinationURL: URL, progress: @escaping (Double?) -> Void) async throws {
-        var args = baseArgs() + [
+        var args = baseArgs(playerClients: "web") + [
             "-x",
             "--audio-format", "m4a",
             "--audio-quality", "0",
             "--no-playlist",
+            "--no-part",
+            "--no-continue",
             "--newline",
+            "-f", "bestaudio/best",
             "-o", destinationURL.path,
             url.absoluteString
         ]
@@ -158,10 +197,38 @@ struct YtDlpClient {
         _ = try await run(args, progress: progress)
     }
 
-    private func baseArgs() -> [String] {
-        [
-            "--extractor-args", "youtube:player_client=android"
+    func fetchStreamURL(url: URL) async throws -> URL {
+        do {
+            return try await fetchStreamURL(url: url, format: "bestaudio/best")
+        } catch {
+            return try await fetchStreamURL(url: url, format: nil)
+        }
+    }
+
+    private func fetchStreamURL(url: URL, format: String?) async throws -> URL {
+        var args = baseArgs(playerClients: "web") + [
+            "-g",
+            "--no-playlist",
+            url.absoluteString
         ]
+        if let format {
+            args.insert(contentsOf: ["-f", format], at: 0)
+        }
+        let output = try await run(args)
+        let lines = output.split(separator: "\n").map(String.init)
+        guard let line = lines.first(where: { $0.hasPrefix("http") || $0.hasPrefix("https") }),
+              let streamURL = URL(string: line.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            throw YtDlpError.invalidOutput
+        }
+        return streamURL
+    }
+
+    private func baseArgs(playerClients: String) -> [String] {
+        var args = ["--extractor-args", "youtube:player_client=\(playerClients)"]
+        if let denoURL = bundledDenoURL {
+            args.append(contentsOf: ["--js-runtimes", "deno:\(denoURL.path)"])
+        }
+        return args
     }
 
     private func run(_ args: [String], progress: ((Double?) -> Void)? = nil) async throws -> String {
