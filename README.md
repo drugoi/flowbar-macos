@@ -9,6 +9,9 @@ LongPlay is a lightweight macOS menu bar app for long-form YouTube audio. It dow
 - Simple library with search
 - Low resource usage
 
+## Screenshot
+![LongPlay app screenshot](docs/assets/app-screenshot.png)
+
 ## Install
 Download the latest release from [GitHub Releases](https://github.com/drugoi/longplay-macos/releases) and drag `LongPlay.app` into your Applications folder.
 

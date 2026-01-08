@@ -151,6 +151,21 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
+.screenshot {
+  margin-top: 32px;
+  display: flex;
+  justify-content: center;
+}
+
+.screenshot img {
+  width: min(520px, 90%);
+  height: auto;
+  border: 2px solid var(--stroke);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  background: #fff;
+}
+
 .card {
   padding: 18px;
   border: 2px solid var(--stroke);
