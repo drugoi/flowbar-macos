@@ -20,6 +20,7 @@
 
 ## GitHub Releases
 - `TAG=v0.1.0 scripts/release-github.sh` builds a signed release and notarizes by default (`NOTARIZE=1`).
+- The app version is taken from `TAG` (leading `v` stripped) and passed to Xcode as `MARKETING_VERSION`.
 
 ## Homebrew Cask
 - Provide a signed, notarized `.zip` or `.dmg` hosted over HTTPS.

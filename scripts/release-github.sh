@@ -5,13 +5,28 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TAG="${TAG:-}"
 NOTES_FILE="${NOTES_FILE:-}"
 OUTPUT_DIR="${OUTPUT_DIR:-$ROOT_DIR/dist}"
+BUILD_NUMBER="${BUILD_NUMBER:-}"
 
 if [[ -z "$TAG" ]]; then
   echo "Set TAG (e.g. TAG=v0.1.0) before running." >&2
   exit 1
 fi
 
-NOTARIZE="${NOTARIZE:-1}" "$ROOT_DIR/scripts/build-release.sh"
+APP_VERSION="$TAG"
+if [[ "$APP_VERSION" == v* ]]; then
+  APP_VERSION="${APP_VERSION#v}"
+fi
+
+if [[ -z "$APP_VERSION" ]]; then
+  echo "Invalid TAG: $TAG" >&2
+  exit 1
+fi
+
+if [[ -z "$BUILD_NUMBER" ]]; then
+  BUILD_NUMBER=$(git rev-list --count HEAD 2>/dev/null || echo "1")
+fi
+
+APP_VERSION="$APP_VERSION" BUILD_NUMBER="$BUILD_NUMBER" NOTARIZE="${NOTARIZE:-1}" "$ROOT_DIR/scripts/build-release.sh"
 
 ZIP_PATH=$(ls -t "$OUTPUT_DIR"/LongPlay-*.zip | head -n 1 || true)
 if [[ -z "$ZIP_PATH" ]]; then

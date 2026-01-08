@@ -22,3 +22,6 @@
 - [ ] Create `.zip` or `.dmg` artifact.
 - [ ] Update Homebrew cask URL + SHA.
 - [ ] Publish release notes.
+
+## Versioning
+- [ ] Ensure the Git tag (`TAG=vX.Y.Z`) matches the intended app version.
