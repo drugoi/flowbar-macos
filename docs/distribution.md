@@ -5,6 +5,7 @@
 2. Ensure `DEVELOPMENT_TEAM` matches your Team ID.
 3. Build and re-sign (embedded binaries + timestamped signature):
    - `scripts/build-release.sh`
+4. If yt-dlp fails to load Python at runtime, ensure `Config/EmbeddedTool.entitlements` is applied during signing.
 4. Output bundle and zip:
    - `build/Build/Products/Release/LongPlay.app`
    - `dist/LongPlay-<version>.zip`

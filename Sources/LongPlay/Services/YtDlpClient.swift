@@ -71,7 +71,25 @@ struct YtDlpClient {
 
     func isAvailable() -> Bool {
         if let bundled = bundledExecutableURL {
-            return (try? runSync(executableURL: bundled, args: ["--version"])) != nil
+            if !FileManager.default.fileExists(atPath: bundled.path) {
+                DiagnosticsLogger.shared.log(level: "error", message: "yt-dlp missing at \(bundled.path)")
+                return false
+            }
+            if !FileManager.default.isExecutableFile(atPath: bundled.path) {
+                DiagnosticsLogger.shared.log(level: "warning", message: "yt-dlp not executable, attempting to fix permissions.")
+                do {
+                    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: bundled.path)
+                } catch {
+                    DiagnosticsLogger.shared.log(level: "error", message: "Failed to chmod yt-dlp: \(error.localizedDescription)")
+                }
+            }
+            do {
+                _ = try runSync(executableURL: bundled, args: ["--version"])
+                return true
+            } catch {
+                DiagnosticsLogger.shared.log(level: "error", message: "yt-dlp execution failed: \(error.localizedDescription)")
+                return false
+            }
         }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
@@ -90,7 +108,13 @@ struct YtDlpClient {
 
     func fetchVersion() -> String? {
         if let bundled = bundledExecutableURL {
-            return try? runSync(executableURL: bundled, args: ["--version"]).trimmingCharacters(in: .whitespacesAndNewlines)
+            do {
+                return try runSync(executableURL: bundled, args: ["--version"])
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            } catch {
+                DiagnosticsLogger.shared.log(level: "error", message: "yt-dlp version check failed: \(error.localizedDescription)")
+                return nil
+            }
         }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
@@ -319,11 +343,12 @@ struct YtDlpClient {
         process.standardError = pipe
         try process.run()
         process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
-            throw YtDlpError.executionFailed("")
-        }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return String(data: data, encoding: .utf8) ?? ""
+        let output = String(data: data, encoding: .utf8) ?? ""
+        guard process.terminationStatus == 0 else {
+            throw YtDlpError.executionFailed(output)
+        }
+        return output
     }
 
     private static func parseVersionDate(_ value: String) -> Date? {
