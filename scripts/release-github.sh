@@ -24,6 +24,36 @@ if ! command -v gh >/dev/null 2>&1; then
   exit 1
 fi
 
+if [[ -z "$NOTES_FILE" ]]; then
+  mkdir -p "$OUTPUT_DIR"
+  NOTES_FILE="$OUTPUT_DIR/release-notes-$TAG.md"
+  TARGET_REF="HEAD"
+  if git rev-parse "$TAG" >/dev/null 2>&1; then
+    TARGET_REF="$TAG"
+  fi
+  PREV_TAG=$(git describe --tags --abbrev=0 "${TARGET_REF}^" 2>/dev/null || true)
+  if [[ -n "$PREV_TAG" ]]; then
+    RANGE="$PREV_TAG..$TARGET_REF"
+  else
+    RANGE="$TARGET_REF"
+  fi
+  CHANGES=$(git log --no-merges --pretty=format:'- %s (%h)' "$RANGE" || true)
+  if [[ -z "$CHANGES" ]]; then
+    CHANGES="- No changes."
+  fi
+  {
+    echo "## What's Changed"
+    echo "$CHANGES"
+    if [[ -n "$PREV_TAG" ]]; then
+      REMOTE_URL=$(git config --get remote.origin.url || true)
+      if [[ "$REMOTE_URL" =~ github\.com[:/]{1}([^/]+/[^/.]+)(\.git)?$ ]]; then
+        echo
+        echo "Full Changelog: https://github.com/${BASH_REMATCH[1]}/compare/$PREV_TAG...$TAG"
+      fi
+    fi
+  } > "$NOTES_FILE"
+fi
+
 ARGS=(release create "$TAG" "$ZIP_PATH" --title "LongPlay $TAG")
 if [[ -n "$NOTES_FILE" ]]; then
   ARGS+=(--notes-file "$NOTES_FILE")
