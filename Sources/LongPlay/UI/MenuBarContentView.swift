@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import ServiceManagement
 
 private enum FocusField {
     case url
@@ -25,12 +26,16 @@ struct MenuBarContentView: View {
     @State private var failedTrack: Track?
     @State private var renameCandidate: Track?
     @State private var renameText: String = ""
+    @State private var didLogAppearance = false
     @State private var ytdlpVersion: String?
     @State private var ytdlpWarning: String?
     @State private var ffmpegMissing = false
     @State private var selectedTab: Tab = .listen
     @Namespace private var tabNamespace
     @State private var suggestedTrack: Track?
+    @State private var startAtLoginEnabled = false
+    @State private var startAtLoginBusy = false
+    @State private var startAtLoginError: String?
     private let tabContentMinHeight: CGFloat = 420
 
     private enum Tab: String, CaseIterable, Identifiable {
@@ -163,10 +168,12 @@ struct MenuBarContentView: View {
                     DialogCard(title: "Delete track?", message: "This removes the track and any downloaded audio.") {
                         HStack(spacing: 8) {
                             Button("Cancel") {
+                                logUserAction("Delete track cancelled")
                                 self.deleteCandidate = nil
                             }
                             .buttonStyle(SecondaryButtonStyle())
                             Button("Delete") {
+                                logUserAction("Delete track confirmed: \(deleteCandidate.videoId)")
                                 libraryStore.removeTrack(deleteCandidate)
                                 self.deleteCandidate = nil
                             }
@@ -182,6 +189,7 @@ struct MenuBarContentView: View {
                         DialogTextField(placeholder: "Display name", text: $renameText)
                         HStack(spacing: 8) {
                             Button("Cancel") {
+                                logUserAction("Rename track cancelled")
                                 self.renameCandidate = nil
                             }
                             .buttonStyle(SecondaryButtonStyle())
@@ -191,6 +199,7 @@ struct MenuBarContentView: View {
                                 guard !trimmed.isEmpty else { return }
                                 updated.displayName = trimmed
                                 libraryStore.updateTrack(updated)
+                                logUserAction("Rename track saved: \(renameCandidate.videoId)")
                                 self.renameCandidate = nil
                             }
                             .buttonStyle(PrimaryButtonStyle())
@@ -201,6 +210,10 @@ struct MenuBarContentView: View {
         }
         .onAppear {
             libraryStore.load()
+            if !didLogAppearance {
+                logUserAction("Menu opened")
+                didLogAppearance = true
+            }
             playbackController.positionUpdateHandler = { [weak libraryStore, weak playbackController] time in
                 guard let trackId = playbackController?.currentTrack?.id else { return }
                 DispatchQueue.main.async {
@@ -243,6 +256,7 @@ struct MenuBarContentView: View {
                 focusedField = selectedTab == .add ? .url : nil
             }
             updateSuggestedTrack()
+            refreshStartAtLoginState()
         }
         .onChange(of: libraryStore.library) { _ in
             updateSuggestedTrack()
@@ -279,6 +293,7 @@ struct MenuBarContentView: View {
                 Button {
                     selectedTab = tab
                     focusedField = tab == .add ? .url : nil
+                    logUserAction("Switched tab: \(tab.rawValue)")
                 } label: {
                     let isSelected = tab == selectedTab
                     Hoverable { hovering in
@@ -331,12 +346,14 @@ struct MenuBarContentView: View {
                     StatusPill(label: nowPlayingStatus, color: nowPlayingStatusColor)
                     Spacer()
                     Button(playbackController.state == .playing ? "Pause" : "Play") {
+                        logUserAction("Primary play/pause tapped")
                         handlePrimaryPlay()
                     }
                     .keyboardShortcut(.space, modifiers: [])
                     .accessibilityLabel(playbackController.state == .playing ? "Pause playback" : "Resume playback")
                     .buttonStyle(PrimaryButtonStyle())
                     Button("Stop") {
+                        logUserAction("Stop playback tapped")
                         playbackController.stop()
                         if let trackId = playbackController.currentTrack?.id {
                             libraryStore.resetPlaybackPosition(trackId: trackId)
@@ -390,14 +407,38 @@ struct MenuBarContentView: View {
                                     progress: progressText(for: track),
                                     downloadDisabled: downloadManager.activeTrackId != nil && downloadManager.activeTrackId != track.id,
                                     isUserTrack: true,
-                                    onPlay: { play(track) },
-                                    onDownload: { resolveAndDownload(track) },
-                                    onRetry: { resolveAndDownload(track) },
-                                    onCancel: { cancelDownload(for: track) },
-                                    onRemoveDownload: { libraryStore.removeDownload(for: track) },
-                                    onDiagnostics: { copyDiagnostics() },
-                                    onDelete: { deleteCandidate = track },
-                                    onRename: { beginRename(track) }
+                                    onPlay: {
+                                        logUserAction("Play track tapped: \(track.videoId)")
+                                        play(track)
+                                    },
+                                    onDownload: {
+                                        logUserAction("Download track tapped: \(track.videoId)")
+                                        resolveAndDownload(track)
+                                    },
+                                    onRetry: {
+                                        logUserAction("Retry download tapped: \(track.videoId)")
+                                        resolveAndDownload(track)
+                                    },
+                                    onCancel: {
+                                        logUserAction("Cancel download tapped: \(track.videoId)")
+                                        cancelDownload(for: track)
+                                    },
+                                    onRemoveDownload: {
+                                        logUserAction("Remove download tapped: \(track.videoId)")
+                                        libraryStore.removeDownload(for: track)
+                                    },
+                                    onDiagnostics: {
+                                        logUserAction("Track diagnostics tapped: \(track.videoId)")
+                                        copyDiagnostics()
+                                    },
+                                    onDelete: {
+                                        logUserAction("Delete track tapped: \(track.videoId)")
+                                        deleteCandidate = track
+                                    },
+                                    onRename: {
+                                        logUserAction("Rename track tapped: \(track.videoId)")
+                                        beginRename(track)
+                                    }
                                 )
                             }
                         }
@@ -409,9 +450,12 @@ struct MenuBarContentView: View {
                         }
                     }
                 }
+                .accessibilityElement(children: .contain)
                 .frame(maxHeight: .infinity, alignment: .top)
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("LongPlayMainWindow")
     }
 
     private var addNewSection: some View {
@@ -441,6 +485,7 @@ struct MenuBarContentView: View {
                         .foregroundColor(UI.danger)
                 }
                 Button("Add") {
+                    logUserAction("Add track tapped")
                     addNewTrack()
                 }
                 .keyboardShortcut(.return, modifiers: [])
@@ -455,12 +500,26 @@ struct MenuBarContentView: View {
     private var utilitiesSection: some View {
         SectionCard {
             VStack(alignment: .leading, spacing: 6) {
+                Toggle(isOn: startAtLoginBinding) {
+                    Text("Start at Login")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(UI.ink)
+                }
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .disabled(startAtLoginBusy)
+                if let startAtLoginError {
+                    Text(startAtLoginError)
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(UI.danger)
+                }
                 if let lastError = libraryStore.lastError {
                     Text(lastError)
                         .font(.system(size: 11, weight: .regular))
                         .foregroundColor(UI.danger)
                 }
                 Button {
+                    logUserAction("Clear downloads tapped")
                     showClearDownloadsConfirm = true
                 } label: {
                     Label("Clear Downloads", systemImage: "trash")
@@ -474,11 +533,13 @@ struct MenuBarContentView: View {
                             .foregroundColor(UI.inkMuted)
                         HStack(spacing: 8) {
                             Button("Clear") {
+                                logUserAction("Clear downloads confirmed")
                                 libraryStore.clearDownloads()
                                 showClearDownloadsConfirm = false
                             }
                             .buttonStyle(PrimaryButtonStyle())
                             Button("Cancel") {
+                                logUserAction("Clear downloads cancelled")
                                 showClearDownloadsConfirm = false
                             }
                             .buttonStyle(SecondaryButtonStyle())
@@ -496,6 +557,7 @@ struct MenuBarContentView: View {
                     .font(.system(size: 11, weight: .regular))
                     .foregroundColor(UI.inkMuted)
                 Button {
+                    logUserAction("Copy diagnostics tapped")
                     copyDiagnostics()
                 } label: {
                     Label("Copy Diagnostics", systemImage: "doc.on.doc")
@@ -504,6 +566,7 @@ struct MenuBarContentView: View {
                 .buttonStyle(SecondaryButtonStyle())
                 Divider()
                 Button {
+                    logUserAction("Quit tapped")
                     NSApplication.shared.terminate(nil)
                 } label: {
                     Label("Quit", systemImage: "power")
@@ -515,6 +578,7 @@ struct MenuBarContentView: View {
     }
 
     private func addNewTrack() {
+        logUserAction("Add track submitted")
         validationError = nil
         switch URLValidator.validate(newURL) {
         case .failure(let error):
@@ -602,7 +666,50 @@ struct MenuBarContentView: View {
         suggestedTrack = allTracks.randomElement()
     }
 
+    private var startAtLoginBinding: Binding<Bool> {
+        Binding(
+            get: { startAtLoginEnabled },
+            set: { newValue in
+                startAtLoginEnabled = newValue
+                setStartAtLogin(newValue)
+            }
+        )
+    }
+
+    private func refreshStartAtLoginState() {
+        guard #available(macOS 13.0, *) else {
+            startAtLoginEnabled = false
+            return
+        }
+        startAtLoginEnabled = SMAppService.mainApp.status == .enabled
+    }
+
+    private func setStartAtLogin(_ enabled: Bool) {
+        guard #available(macOS 13.0, *) else { return }
+        logUserAction("Start at Login toggled: \(enabled ? "on" : "off")")
+        startAtLoginBusy = true
+        startAtLoginError = nil
+        Task {
+            do {
+                if enabled {
+                    try await SMAppService.mainApp.register()
+                } else {
+                    try await SMAppService.mainApp.unregister()
+                }
+            } catch {
+                await MainActor.run {
+                    startAtLoginError = error.localizedDescription
+                }
+            }
+            await MainActor.run {
+                startAtLoginBusy = false
+                refreshStartAtLoginState()
+            }
+        }
+    }
+
     private func handlePrimaryPlay() {
+        logUserAction("Primary playback toggled")
         if playbackController.state == .playing {
             playbackController.pause()
             return
@@ -620,6 +727,7 @@ struct MenuBarContentView: View {
     }
 
     private func resolveAndDownload(_ track: Track) {
+        logUserAction("Resolve download for \(track.videoId)")
         Task {
             guard networkMonitor.isOnline else {
                 var failed = track
@@ -659,6 +767,7 @@ struct MenuBarContentView: View {
     }
 
     private func streamAndDownload(_ track: Track) {
+        logUserAction("Stream then download for \(track.videoId)")
         Task {
             guard networkMonitor.isOnline else {
                 var failed = track
@@ -693,6 +802,7 @@ struct MenuBarContentView: View {
     }
 
     private func downloadOnly(_ track: Track) async {
+        logUserAction("Download started for \(track.videoId)")
         guard networkMonitor.isOnline else {
             globalErrorMessage = "No internet connection."
             failedTrack = track
@@ -740,6 +850,7 @@ struct MenuBarContentView: View {
     }
 
     private func play(_ track: Track) {
+        logUserAction("Play track \(track.videoId)")
         guard let path = track.localFilePath else { return }
         guard FileManager.default.fileExists(atPath: path) else {
             var failed = track
@@ -766,6 +877,7 @@ struct MenuBarContentView: View {
     }
 
     private func handlePlaybackEnded(_ finished: Track?) {
+        logUserAction("Playback ended")
         let tracks = libraryStore.library.userLibrary
         guard !tracks.isEmpty else { return }
         let nextTrack: Track
@@ -783,6 +895,7 @@ struct MenuBarContentView: View {
     }
 
     private func cancelDownload(for track: Track) {
+        logUserAction("Download cancelled for \(track.videoId)")
         guard downloadManager.activeTrackId == track.id else { return }
         downloadManager.cancelDownload()
         var updated = track
@@ -794,6 +907,7 @@ struct MenuBarContentView: View {
     }
 
     private func beginRename(_ track: Track) {
+        logUserAction("Begin rename for \(track.videoId)")
         renameCandidate = track
         renameText = track.displayName
     }
@@ -804,10 +918,14 @@ struct MenuBarContentView: View {
     }
 
     private func copyDiagnostics() {
+        DiagnosticsLogger.shared.log(level: "info", message: "Diagnostics copied to clipboard")
         let diagnostics = DiagnosticsLogger.shared.formattedDiagnostics()
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(diagnostics, forType: .string)
-        DiagnosticsLogger.shared.log(level: "info", message: "Diagnostics copied to clipboard")
+    }
+
+    private func logUserAction(_ message: String) {
+        DiagnosticsLogger.shared.log(level: "info", message: "UI: \(message)")
     }
 
     private func formattedBytes(_ bytes: Int64) -> String {
@@ -852,6 +970,7 @@ private struct TrackRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(track.displayName)
                     .font(.system(size: 13, weight: .semibold))
+                    .accessibilityIdentifier("TrackTitle_\(track.videoId)")
                 if let resolvedTitle = track.resolvedTitle, resolvedTitle != track.displayName {
                     Text(resolvedTitle)
                         .font(.system(size: 11, weight: .regular))
@@ -884,6 +1003,8 @@ private struct TrackRow: View {
             isHovering = hovering
         }
         .contentShape(Rectangle())
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("TrackRow_\(track.videoId)")
         .onTapGesture {
             switch track.downloadState {
             case .downloaded:

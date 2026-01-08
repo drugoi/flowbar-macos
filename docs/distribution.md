@@ -1,19 +1,20 @@
 # Distribution Guide
 
 ## Code Signing
-1. Create an Apple Developer ID Application certificate.
-2. Set `DEVELOPMENT_TEAM` in `project.yml` or Xcode.
-3. Build release:
-   - `xcodebuild -scheme LongPlay -configuration Release -archivePath build/LongPlay.xcarchive archive`
-4. Export the app:
-   - `xcodebuild -exportArchive -archivePath build/LongPlay.xcarchive -exportOptionsPlist Config/ExportOptions.plist -exportPath build/export`
+1. Create a `Developer ID Application` certificate in Xcode or Keychain.
+2. Ensure `DEVELOPMENT_TEAM` matches your Team ID.
+3. Build and re-sign (embedded binaries + timestamped signature):
+   - `scripts/build-release.sh`
+4. Output bundle and zip:
+   - `build/Build/Products/Release/LongPlay.app`
+   - `dist/LongPlay-<version>.zip`
 
 ## Notarization
-1. Create an app-specific password and set an app store connect API key or use `notarytool`.
-2. Submit:
-   - `xcrun notarytool submit build/export/LongPlay.app --keychain-profile "AC_NOTARY" --wait`
-3. Staple:
-   - `xcrun stapler staple build/export/LongPlay.app`
+1. Create an app-specific password.
+2. Store credentials once:
+   - `xcrun notarytool store-credentials notarytool --apple-id "you@icloud.com" --team-id K6H76QJBE9 --password "app-specific-password"`
+3. Build + notarize:
+   - `NOTARIZE=1 scripts/build-release.sh`
 
 ## Homebrew Cask
 - Provide a signed, notarized `.zip` or `.dmg` hosted over HTTPS.

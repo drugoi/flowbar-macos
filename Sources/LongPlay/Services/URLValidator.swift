@@ -1,6 +1,6 @@
 import Foundation
 
-enum URLValidationError: LocalizedError {
+enum URLValidationError: LocalizedError, Equatable {
     case invalidURL
     case unsupportedHost
     case missingVideoId

@@ -34,6 +34,8 @@ Resources/bin/yt-dlp
 Resources/bin/ffmpeg
 Resources/bin/ffprobe
 Resources/bin/deno
+Resources/bin/ffmpeg-*
+Resources/bin/ffprobe-*
 
 # CocoaPods
 #
@@ -69,3 +71,6 @@ Resources/yt-dlp
 Resources/ffprobe
 Resources/ffmpeg
 .DS_Store
+/build-arm64
+/build-x86_64
+/dist

@@ -5,8 +5,21 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DEST_DIR="$ROOT_DIR/Resources/bin"
 FFMPEG_BIN="$DEST_DIR/ffmpeg"
 FFPROBE_BIN="$DEST_DIR/ffprobe"
+ARCH="${CURRENT_ARCH:-${ARCHS:-}}"
+ARCH="$(echo "$ARCH" | awk '{print $1}')"
+CUSTOM_FFMPEG_BIN=""
+CUSTOM_FFPROBE_BIN=""
+if [ -n "$ARCH" ]; then
+  CUSTOM_FFMPEG_BIN="$DEST_DIR/ffmpeg-$ARCH"
+  CUSTOM_FFPROBE_BIN="$DEST_DIR/ffprobe-$ARCH"
+fi
 FFMPEG_URL="https://evermeet.cx/ffmpeg/ffmpeg-7.0.1.zip"
 FFPROBE_URL="https://evermeet.cx/ffmpeg/ffprobe-7.0.1.zip"
+
+if [ -n "$CUSTOM_FFMPEG_BIN" ] && [ -f "$CUSTOM_FFMPEG_BIN" ] && [ -f "$CUSTOM_FFPROBE_BIN" ]; then
+  /bin/cp "$CUSTOM_FFMPEG_BIN" "$FFMPEG_BIN"
+  /bin/cp "$CUSTOM_FFPROBE_BIN" "$FFPROBE_BIN"
+fi
 
 if [ -f "$FFMPEG_BIN" ] && [ -f "$FFPROBE_BIN" ]; then
   if [ -n "$TARGET_BUILD_DIR" ] && [ -n "$UNLOCALIZED_RESOURCES_FOLDER_PATH" ]; then

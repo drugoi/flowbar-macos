@@ -61,12 +61,24 @@ targets:
     scheme:
       testTargets:
         - LongPlayUITests
+        - LongPlayTests
   LongPlayUITests:
     type: bundle.ui-testing
     platform: macOS
     deploymentTarget: "13.0"
     sources:
       - path: Tests/LongPlayUITests
+    dependencies:
+      - target: LongPlay
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+  LongPlayTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "13.0"
+    sources:
+      - path: Tests/LongPlayTests
     dependencies:
       - target: LongPlay
     settings:

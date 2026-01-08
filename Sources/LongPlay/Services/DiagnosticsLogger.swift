@@ -36,6 +36,9 @@ final class DiagnosticsLogger {
     func formattedDiagnostics(limit: Int = 200) -> String {
         let formatter = ISO8601DateFormatter()
         let items = recentEntries(limit: limit)
+        guard !items.isEmpty else {
+            return "No diagnostics yet."
+        }
         return items.map { "\(formatter.string(from: $0.timestamp)) [\($0.level)] \($0.message)" }
             .joined(separator: "\n")
     }
