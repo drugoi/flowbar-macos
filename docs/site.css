@@ -1,0 +1,234 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap");
+
+:root {
+  --bg: #f6f1e7;
+  --bg-alt: #f1f7f2;
+  --ink: #121212;
+  --muted: #4f4f4f;
+  --accent: #16db65;
+  --accent-dark: #0aa64a;
+  --shock: #0b58f4;
+  --warn: #ff6b1a;
+  --card: #ffffff;
+  --stroke: #111111;
+  --shadow: 8px 8px 0 #111111;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Space Grotesk", "Helvetica Neue", sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  background-image:
+    linear-gradient(135deg, rgba(22, 219, 101, 0.06), transparent 60%),
+    radial-gradient(circle at 10% 20%, rgba(11, 88, 244, 0.08), transparent 45%),
+    radial-gradient(circle at 80% 10%, rgba(255, 107, 26, 0.1), transparent 50%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.03),
+      rgba(0, 0, 0, 0.03) 1px,
+      transparent 1px,
+      transparent 10px
+    );
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 20px 80px;
+}
+
+.hero {
+  display: grid;
+  gap: 28px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-items: center;
+  padding: 28px;
+  background: var(--card);
+  border: 2px solid var(--stroke);
+  box-shadow: var(--shadow);
+  border-radius: 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 2px dashed rgba(17, 17, 17, 0.2);
+  border-radius: 14px;
+  pointer-events: none;
+}
+
+.logo {
+  width: 132px;
+  height: 132px;
+  border-radius: 28px;
+  border: 3px solid var(--stroke);
+  background: #fff;
+  box-shadow: 6px 6px 0 var(--stroke);
+  animation: pop 700ms ease-out;
+}
+
+.hero h1 {
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  margin: 0 0 8px;
+  letter-spacing: -0.03em;
+}
+
+.hero p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.badge {
+  padding: 6px 10px;
+  border: 2px solid var(--stroke);
+  border-radius: 999px;
+  background: var(--bg-alt);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.button {
+  padding: 10px 16px;
+  border: 2px solid var(--stroke);
+  background: var(--accent);
+  color: #111;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 4px 4px 0 var(--stroke);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.button.secondary {
+  background: #fff;
+}
+
+.button:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--stroke);
+}
+
+.grid {
+  margin-top: 32px;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.card {
+  padding: 18px;
+  border: 2px solid var(--stroke);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 6px 6px 0 var(--stroke);
+  min-height: 160px;
+  animation: float-in 600ms ease both;
+}
+
+.card h3 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+}
+
+.card p,
+.card li {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.card ul {
+  margin: 10px 0 0 18px;
+  padding: 0;
+}
+
+.callout {
+  margin-top: 32px;
+  padding: 18px;
+  border: 2px solid var(--stroke);
+  background: var(--shock);
+  color: #fff;
+  border-radius: 16px;
+  box-shadow: 8px 8px 0 var(--stroke);
+  font-weight: 600;
+}
+
+.footer {
+  margin-top: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85rem;
+}
+
+.footer a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.stamp {
+  margin-top: 26px;
+  display: inline-block;
+  padding: 6px 12px;
+  border: 2px solid var(--stroke);
+  background: var(--warn);
+  color: #111;
+  border-radius: 8px;
+  font-family: "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.7) rotate(-6deg);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
