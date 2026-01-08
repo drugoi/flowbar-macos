@@ -73,6 +73,12 @@ body {
   pointer-events: none;
 }
 
+.hero-media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .logo {
   width: 132px;
   height: 132px;
@@ -196,19 +202,6 @@ body {
 .footer a {
   color: inherit;
   text-decoration: underline;
-}
-
-.stamp {
-  margin-top: 26px;
-  display: inline-block;
-  padding: 6px 12px;
-  border: 2px solid var(--stroke);
-  background: var(--warn);
-  color: #111;
-  border-radius: 8px;
-  font-family: "IBM Plex Mono", monospace;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 @keyframes pop {
