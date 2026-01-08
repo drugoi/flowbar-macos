@@ -1187,21 +1187,76 @@ private var sectionTitleFont: Font {
 }
 
 private enum UI {
-    static let base = Color(red: 0.97, green: 0.97, blue: 0.95)
-    static let baseAlt = Color(red: 0.95, green: 0.95, blue: 0.93)
-    static let surface = Color.white
-    static let surfaceAlt = Color(red: 0.96, green: 0.96, blue: 0.94)
-    static let surfaceHover = Color(red: 0.94, green: 0.94, blue: 0.92)
-    static let ink = Color(red: 0.12, green: 0.12, blue: 0.12)
-    static let inkMuted = Color(red: 0.42, green: 0.42, blue: 0.42)
-    static let border = Color.black.opacity(0.06)
-    static let borderHover = Color.black.opacity(0.1)
-    static let accent = Color(red: 0.28, green: 0.55, blue: 0.9)
-    static let accentHover = Color(red: 0.24, green: 0.5, blue: 0.85)
-    static let success = Color(red: 0.22, green: 0.7, blue: 0.42)
-    static let warning = Color(red: 0.98, green: 0.72, blue: 0.2)
-    static let danger = Color(red: 0.92, green: 0.26, blue: 0.38)
-    static let shadow = Color.black.opacity(0.06)
+    private static func dynamicColor(light: NSColor, dark: NSColor) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+        })
+    }
+
+    static let base = dynamicColor(
+        light: NSColor(calibratedRed: 0.97, green: 0.97, blue: 0.95, alpha: 1),
+        dark: NSColor(calibratedRed: 0.10, green: 0.10, blue: 0.11, alpha: 1)
+    )
+    static let baseAlt = dynamicColor(
+        light: NSColor(calibratedRed: 0.95, green: 0.95, blue: 0.93, alpha: 1),
+        dark: NSColor(calibratedRed: 0.12, green: 0.12, blue: 0.13, alpha: 1)
+    )
+    static let surface = dynamicColor(
+        light: NSColor(calibratedWhite: 1.0, alpha: 1),
+        dark: NSColor(calibratedWhite: 0.17, alpha: 1)
+    )
+    static let surfaceAlt = dynamicColor(
+        light: NSColor(calibratedWhite: 0.96, alpha: 1),
+        dark: NSColor(calibratedWhite: 0.22, alpha: 1)
+    )
+    static let surfaceHover = dynamicColor(
+        light: NSColor(calibratedWhite: 0.94, alpha: 1),
+        dark: NSColor(calibratedWhite: 0.26, alpha: 1)
+    )
+    static let ink = dynamicColor(
+        light: NSColor(calibratedWhite: 0.12, alpha: 1),
+        dark: NSColor(calibratedWhite: 0.92, alpha: 1)
+    )
+    static let inkMuted = dynamicColor(
+        light: NSColor(calibratedWhite: 0.42, alpha: 1),
+        dark: NSColor(calibratedWhite: 0.70, alpha: 1)
+    )
+    static let border = dynamicColor(
+        light: NSColor(calibratedWhite: 0.0, alpha: 0.06),
+        dark: NSColor(calibratedWhite: 1.0, alpha: 0.14)
+    )
+    static let borderHover = dynamicColor(
+        light: NSColor(calibratedWhite: 0.0, alpha: 0.10),
+        dark: NSColor(calibratedWhite: 1.0, alpha: 0.20)
+    )
+    static let accent = dynamicColor(
+        light: NSColor(calibratedRed: 0.28, green: 0.55, blue: 0.9, alpha: 1),
+        dark: NSColor(calibratedRed: 0.35, green: 0.65, blue: 0.98, alpha: 1)
+    )
+    static let accentHover = dynamicColor(
+        light: NSColor(calibratedRed: 0.24, green: 0.50, blue: 0.85, alpha: 1),
+        dark: NSColor(calibratedRed: 0.30, green: 0.60, blue: 0.95, alpha: 1)
+    )
+    static let success = dynamicColor(
+        light: NSColor(calibratedRed: 0.22, green: 0.70, blue: 0.42, alpha: 1),
+        dark: NSColor(calibratedRed: 0.28, green: 0.80, blue: 0.50, alpha: 1)
+    )
+    static let warning = dynamicColor(
+        light: NSColor(calibratedRed: 0.98, green: 0.72, blue: 0.20, alpha: 1),
+        dark: NSColor(calibratedRed: 1.0, green: 0.78, blue: 0.30, alpha: 1)
+    )
+    static let danger = dynamicColor(
+        light: NSColor(calibratedRed: 0.92, green: 0.26, blue: 0.38, alpha: 1),
+        dark: NSColor(calibratedRed: 0.98, green: 0.35, blue: 0.45, alpha: 1)
+    )
+    static let shadow = dynamicColor(
+        light: NSColor(calibratedWhite: 0.0, alpha: 0.06),
+        dark: NSColor(calibratedWhite: 0.0, alpha: 0.35)
+    )
+    static let overlayScrim = dynamicColor(
+        light: NSColor(calibratedWhite: 0.0, alpha: 0.18),
+        dark: NSColor(calibratedWhite: 0.0, alpha: 0.55)
+    )
     static let cornerRadius: CGFloat = 10
     static let smallRadius: CGFloat = 8
 }
@@ -1367,7 +1422,7 @@ private struct DialogOverlay<Content: View>: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.18)
+            UI.overlayScrim
                 .ignoresSafeArea()
                 .onTapGesture {
                     onBackgroundTap?()
