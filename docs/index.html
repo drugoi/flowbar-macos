@@ -4,12 +4,59 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>LongPlay — Menu Bar Player</title>
+    <meta
+      name="description"
+      content="LongPlay is a no-nonsense macOS menu bar player for YouTube audio. Stream instantly and cache tracks for offline focus."
+    />
+    <link rel="canonical" href="https://longplay.drugoi.dev/" />
+    <meta property="og:title" content="LongPlay — Menu Bar Player" />
+    <meta
+      property="og:description"
+      content="A macOS menu bar player for YouTube audio. Stream instantly, then cache tracks for offline focus."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://longplay.drugoi.dev/" />
+    <meta property="og:image" content="https://longplay.drugoi.dev/assets/social-card.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="LongPlay — Menu Bar Player" />
+    <meta
+      name="twitter:description"
+      content="A macOS menu bar player for YouTube audio. Stream instantly, then cache tracks for offline focus."
+    />
+    <meta name="twitter:image" content="https://longplay.drugoi.dev/assets/social-card.png" />
+    <link rel="icon" href="./assets/longplay-icon.png" />
+    <meta name="theme-color" content="#f6f1e7" />
     <link rel="stylesheet" href="./site.css" />
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-W6BYB953HZ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-W6BYB953HZ");
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "LongPlay",
+        "operatingSystem": "macOS 13+",
+        "applicationCategory": "MultimediaApplication",
+        "description": "A macOS menu bar player for YouTube audio. Stream instantly, then cache tracks for offline focus.",
+        "url": "https://longplay.drugoi.dev/",
+        "downloadUrl": "https://github.com/drugoi/longplay-macos/releases",
+        "author": {
+          "@type": "Person",
+          "name": "drugoi"
+        }
+      }
+    </script>
   </head>
   <body>
     <main class="page">
       <section class="hero">
-        <div>
+        <div class="hero-media">
           <img class="logo" src="./assets/longplay-icon.png" alt="LongPlay logo" />
         </div>
         <div>
@@ -28,7 +75,6 @@
             <a class="button" href="https://github.com/drugoi/longplay-macos/releases">Download latest</a>
             <a class="button secondary" href="https://github.com/drugoi/longplay-macos">View on GitHub</a>
           </div>
-          <span class="stamp">Built in public</span>
         </div>
       </section>
 
@@ -63,13 +109,6 @@
             <li>Smarter metadata handling.</li>
             <li>More hotkeys.</li>
           </ul>
-        </article>
-        <article class="card" style="animation-delay: 0.3s">
-          <h3>Why brutal?</h3>
-          <p>
-            The UI is clean, loud, and opinionated. It gets out of the way and
-            still feels alive.
-          </p>
         </article>
       </section>
 
