@@ -32,12 +32,17 @@ APP_PATH="$APP_PATH" SIGN_IDENTITY="$SIGN_IDENTITY" ENTITLEMENTS="$ENTITLEMENTS"
 
 VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP_PATH/Contents/Info.plist" 2>/dev/null || echo "0.0.0")
 ZIP_NAME="${SCHEME}-${VERSION}.zip"
+ZIP_PATH="$OUTPUT_DIR/$ZIP_NAME"
 
 echo "Packaging ${ZIP_NAME}..."
-ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$OUTPUT_DIR/$ZIP_NAME"
+ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
 
 if [[ "$NOTARIZE" == "1" ]]; then
-  APP_PATH="$APP_PATH" ZIP_PATH="$OUTPUT_DIR/$ZIP_NAME" "$ROOT_DIR/scripts/notarize.sh"
+  APP_PATH="$APP_PATH" ZIP_PATH="$ZIP_PATH" "$ROOT_DIR/scripts/notarize.sh"
+
+  echo "Re-packaging ${ZIP_NAME} (with stapled ticket)..."
+  rm -f "$ZIP_PATH"
+  ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
 fi
 
-echo "Release artifact: $OUTPUT_DIR/$ZIP_NAME"
+echo "Release artifact: $ZIP_PATH"

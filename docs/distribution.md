@@ -16,6 +16,10 @@
    - `xcrun notarytool store-credentials notarytool --apple-id "you@icloud.com" --team-id K6H76QJBE9 --password "app-specific-password"`
 3. Build + notarize:
    - `NOTARIZE=1 scripts/build-release.sh`
+   - The script re-zips after stapling so the shipped `.zip` contains the notarization ticket.
+
+## GitHub Releases
+- `TAG=v0.1.0 scripts/release-github.sh` builds a signed release and notarizes by default (`NOTARIZE=1`).
 
 ## Homebrew Cask
 - Provide a signed, notarized `.zip` or `.dmg` hosted over HTTPS.

@@ -26,4 +26,11 @@ xcrun notarytool submit "$ZIP_PATH" --keychain-profile "$PROFILE" --wait
 echo "Stapling notarization ticket..."
 xcrun stapler staple "$APP_PATH"
 
+echo "Validating stapled ticket..."
+xcrun stapler validate "$APP_PATH"
+
+echo "Validating code signature..."
+codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+spctl -a -vvv --type exec "$APP_PATH"
+
 echo "Notarization complete."

@@ -11,13 +11,16 @@ if [[ -z "$TAG" ]]; then
   exit 1
 fi
 
-"$ROOT_DIR/scripts/build-release.sh"
+NOTARIZE="${NOTARIZE:-1}" "$ROOT_DIR/scripts/build-release.sh"
 
 ZIP_PATH=$(ls -t "$OUTPUT_DIR"/LongPlay-*.zip | head -n 1 || true)
 if [[ -z "$ZIP_PATH" ]]; then
   echo "No release zip found in $OUTPUT_DIR" >&2
   exit 1
 fi
+
+echo "Verifying release artifact..."
+"$ROOT_DIR/scripts/verify-zip.sh" "$ZIP_PATH"
 
 if ! command -v gh >/dev/null 2>&1; then
   echo "GitHub CLI (gh) is required for releases." >&2

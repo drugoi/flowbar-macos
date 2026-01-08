@@ -14,9 +14,9 @@
 - [ ] Verify `Resources/bin/ffmpeg` and `Resources/bin/ffprobe` are executable.
 
 ## Signing + Notarization
-- [ ] Archive Release build.
 - [ ] Sign with Developer ID Application.
-- [ ] Submit for notarization and staple.
+- [ ] Submit for notarization, staple, and validate.
+- [ ] Confirm `spctl` accepts the app (or run `scripts/verify-zip.sh dist/LongPlay-<version>.zip`).
 
 ## Distribution
 - [ ] Create `.zip` or `.dmg` artifact.
