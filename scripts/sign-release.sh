@@ -29,5 +29,27 @@ if [[ -d "$BIN_DIR" ]]; then
   done < <(find "$BIN_DIR" -type f -perm -111 -print0)
 fi
 
+SPARKLE_DIR="$APP_PATH/Contents/Frameworks/Sparkle.framework"
+if [[ -d "$SPARKLE_DIR" ]]; then
+  echo "Signing Sparkle framework components..."
+  while IFS= read -r -d '' bin; do
+    echo "Signing Sparkle nested binary: $bin"
+    codesign --force --sign "$SIGN_IDENTITY" --options runtime --timestamp "$bin"
+  done < <(find "$SPARKLE_DIR" \
+      -type f \
+      \( -path "*/XPCServices/*.xpc/Contents/MacOS/*" -o -path "*/Updater.app/Contents/MacOS/*" -o -path "*/Autoupdate" \) \
+      -print0)
+
+  while IFS= read -r -d '' bundle; do
+    echo "Signing Sparkle bundle: $bundle"
+    codesign --force --sign "$SIGN_IDENTITY" --options runtime --timestamp "$bundle"
+  done < <(find "$SPARKLE_DIR" \
+      -type d \
+      \( -path "*/XPCServices/*.xpc" -o -path "*/Updater.app" \) \
+      -print0)
+
+  codesign --force --sign "$SIGN_IDENTITY" --options runtime --timestamp "$SPARKLE_DIR"
+fi
+
 echo "Signing app bundle: $APP_PATH"
 codesign --force --sign "$SIGN_IDENTITY" --options runtime --timestamp --entitlements "$ENTITLEMENTS" "$APP_PATH"
