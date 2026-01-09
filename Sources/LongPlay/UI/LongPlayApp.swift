@@ -20,13 +20,15 @@ struct LongPlayApp: App {
     @StateObject private var libraryStore = LibraryStore()
     @StateObject private var playbackController = PlaybackController()
     @StateObject private var downloadManager = DownloadManager()
+    @StateObject private var updateManager = UpdateManager()
 
     var body: some Scene {
         MenuBarExtra {
             MenuBarContentView(
                 libraryStore: libraryStore,
                 playbackController: playbackController,
-                downloadManager: downloadManager
+                downloadManager: downloadManager,
+                updateManager: updateManager
             )
             .frame(width: 420)
             .frame(maxHeight: 720)
@@ -56,6 +58,7 @@ private final class UITestAppDelegate: NSObject, NSApplicationDelegate {
     private let libraryStore = LibraryStore()
     private let playbackController = PlaybackController()
     private let downloadManager = DownloadManager()
+    private let updateManager = UpdateManager(updatesEnabled: false)
     private var window: NSWindow?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
@@ -66,7 +69,8 @@ private final class UITestAppDelegate: NSObject, NSApplicationDelegate {
         let rootView = MenuBarContentView(
             libraryStore: libraryStore,
             playbackController: playbackController,
-            downloadManager: downloadManager
+            downloadManager: downloadManager,
+            updateManager: updateManager
         )
         .frame(width: 420)
         .frame(maxHeight: 720)

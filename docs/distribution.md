@@ -22,6 +22,20 @@
 - `TAG=v0.1.0 scripts/release-github.sh` builds a signed release and notarizes by default (`NOTARIZE=1`).
 - The app version is taken from `TAG` (leading `v` stripped) and passed to Xcode as `MARKETING_VERSION`.
 
+## Auto-Updates (Sparkle)
+- The app uses Sparkle and reads the appcast from `SUFeedURL` in `Config/Info.plist`.
+- `SUPublicEDKey` must be set in `Config/Info.plist` using the public key from `generate_keys`.
+- Appcast hosting:
+  - Host `appcast.xml` via GitHub Pages (branch `gh-pages`) at `https://<owner>.github.io/<repo>/appcast.xml`.
+- Keys:
+  - Generate a Sparkle EdDSA key once (see `scripts/fetch-sparkle-tools.sh` → `generate_keys`) and keep the private key secret.
+  - Export the private key for publishing via `SPARKLE_ED25519_PRIVATE_KEY` env var (required for `appcast.xml` signing).
+- Publishing:
+  - Build and publish a release asset: `TAG=v0.1.0 scripts/release-github.sh`
+  - Generate appcast locally: `TAG=v0.1.0 scripts/generate-appcast.sh`
+  - Publish appcast to GitHub Pages: `TAG=v0.1.0 scripts/publish-appcast.sh`
+  - Or do it in one step: `TAG=v0.1.0 PUBLISH_APPCAST=1 scripts/release-github.sh`
+
 ## Homebrew Cask
 - Provide a signed, notarized `.zip` or `.dmg` hosted over HTTPS.
 - Example cask snippet:

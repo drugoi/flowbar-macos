@@ -7,6 +7,13 @@ NOTES_FILE="${NOTES_FILE:-}"
 OUTPUT_DIR="${OUTPUT_DIR:-$ROOT_DIR/dist}"
 BUILD_NUMBER="${BUILD_NUMBER:-}"
 
+if [[ -f "$ROOT_DIR/.env" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$ROOT_DIR/.env"
+  set +a
+fi
+
 if [[ -z "$TAG" ]]; then
   echo "Set TAG (e.g. TAG=v0.1.0) before running." >&2
   exit 1
@@ -82,3 +89,8 @@ fi
 echo "Creating GitHub release $TAG..."
 gh "${ARGS[@]}"
 echo "Release published with asset: $ZIP_PATH"
+
+if [[ "${PUBLISH_APPCAST:-0}" == "1" ]]; then
+  echo "Publishing appcast to GitHub Pages..."
+  TAG="$TAG" "$ROOT_DIR/scripts/publish-appcast.sh"
+fi

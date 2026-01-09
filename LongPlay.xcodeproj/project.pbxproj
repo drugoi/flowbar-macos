@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -16,6 +16,7 @@
 		5B34B748F1438A7DF9461DE9 /* LongPlayApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF45F3D95CAE89A623DD1A8 /* LongPlayApp.swift */; };
 		674228E5B9E8E472ED0E4CDC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 70EF097B34AC70D214AD8206 /* Assets.xcassets */; };
 		6D4FE929433891F68D396353 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = B008A05ADD3FF001551C3648 /* Track.swift */; };
+		76D883D5779F94A64578DC91 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 01024F3510829E4B0F29253D /* Sparkle */; };
 		773828250ED003F5C11999AA /* PlaybackController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 038971798A3D5B3BB0197C31 /* PlaybackController.swift */; };
 		7FDD7C8749C63ADDF4566626 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 751363014FB175AEC734B11C /* NotificationManager.swift */; };
 		955C8D52938C670ACD78742D /* MenuBarContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 945700A6E76399ADBF4EAB4D /* MenuBarContentView.swift */; };
@@ -23,6 +24,7 @@
 		9C771FA676013AAAFA6A91E7 /* URLValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198DD2DDAD27AD36559790BE /* URLValidator.swift */; };
 		A8C6EAB981DD50252A793B7C /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBE63D78D68BFBD7E40BA17F /* NetworkMonitor.swift */; };
 		BCA0014FD4C8857A023444FD /* Library.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99132F07D2CEBE82DA612836 /* Library.swift */; };
+		C1B986CB8C8FAF852C6AA6B3 /* UpdateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7018F42501DD77CF8E4A7B81 /* UpdateManager.swift */; };
 		D890D1C7AD76FF618AB9D8B8 /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C873901169AFBA8D6073A8E0 /* LibraryStore.swift */; };
 		DE06CD85D3B86DE145970B9F /* MetadataResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFE10CBD3062ACB8F748396E /* MetadataResolver.swift */; };
 /* End PBXBuildFile section */
@@ -52,6 +54,7 @@
 		475F726D5E95E321629190C2 /* MenuBarLabelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabelView.swift; sourceTree = "<group>"; };
 		568F5146C0ADF6CC8CECC574 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
 		619BBD6C2746326C84E77B80 /* LongPlay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LongPlay.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7018F42501DD77CF8E4A7B81 /* UpdateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateManager.swift; sourceTree = "<group>"; };
 		70EF097B34AC70D214AD8206 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		751363014FB175AEC734B11C /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		945700A6E76399ADBF4EAB4D /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
@@ -67,6 +70,17 @@
 		F79AD5D69C726DA17FC29662 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		FFE10CBD3062ACB8F748396E /* MetadataResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataResolver.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A70657194CD915E2FEE725AA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				76D883D5779F94A64578DC91 /* Sparkle in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		3E50EED4635C99E5EAD1E276 = {
@@ -137,6 +151,7 @@
 				CBE63D78D68BFBD7E40BA17F /* NetworkMonitor.swift */,
 				751363014FB175AEC734B11C /* NotificationManager.swift */,
 				038971798A3D5B3BB0197C31 /* PlaybackController.swift */,
+				7018F42501DD77CF8E4A7B81 /* UpdateManager.swift */,
 				198DD2DDAD27AD36559790BE /* URLValidator.swift */,
 				104AC197F3E43D26B3B19C25 /* YtDlpClient.swift */,
 			);
@@ -185,6 +200,7 @@
 				E945FF5812CC9A0DBD6A1C5C /* Fetch deno */,
 				F0F64C2955DCB14DEA0BC15A /* Sources */,
 				D35CF6E695E0FAA3C655C52E /* Resources */,
+				A70657194CD915E2FEE725AA /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -192,6 +208,7 @@
 			);
 			name = LongPlay;
 			packageProductDependencies = (
+				01024F3510829E4B0F29253D /* Sparkle */,
 			);
 			productName = LongPlay;
 			productReference = 619BBD6C2746326C84E77B80 /* LongPlay.app */;
@@ -230,6 +247,7 @@
 						TestTargetID = 92734DCEB2EA188AD30B87F6;
 					};
 					92734DCEB2EA188AD30B87F6 = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					B13EB6D9E333C7F6324376BC = {
@@ -248,6 +266,10 @@
 			);
 			mainGroup = 3E50EED4635C99E5EAD1E276;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B55ED4B9B0CBBBBCA450E5F8 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -375,6 +397,7 @@
 				773828250ED003F5C11999AA /* PlaybackController.swift in Sources */,
 				6D4FE929433891F68D396353 /* Track.swift in Sources */,
 				9C771FA676013AAAFA6A91E7 /* URLValidator.swift in Sources */,
+				C1B986CB8C8FAF852C6AA6B3 /* UpdateManager.swift in Sources */,
 				1815FCE09B51762B38E5A73C /* YtDlpClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -400,16 +423,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = K6H76QJBE9;
 				INFOPLIST_FILE = Config/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = LongPlay;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.drugoi.longplay;
 				PRODUCT_NAME = LongPlay;
 				SDKROOT = macosx;
 			};
@@ -480,19 +499,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = Config/LongPlay.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = K6H76QJBE9;
-				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Config/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = LongPlay;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.drugoi.longplay;
 				PRODUCT_NAME = LongPlay;
 				SDKROOT = macosx;
 			};
@@ -674,6 +687,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B55ED4B9B0CBBBBCA450E5F8 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.8.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		01024F3510829E4B0F29253D /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B55ED4B9B0CBBBBCA450E5F8 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 0A3F4F96FCD3C2EFA825BA62 /* Project object */;
 }

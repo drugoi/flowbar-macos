@@ -10,6 +10,7 @@ struct MenuBarContentView: View {
     @ObservedObject var libraryStore: LibraryStore
     @ObservedObject var playbackController: PlaybackController
     @ObservedObject var downloadManager: DownloadManager
+    @ObservedObject var updateManager: UpdateManager
 
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: FocusField?
@@ -500,81 +501,112 @@ struct MenuBarContentView: View {
     private var utilitiesSection: some View {
         SectionCard {
             VStack(alignment: .leading, spacing: 6) {
-                Toggle(isOn: startAtLoginBinding) {
-                    Text("Start at Login")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(UI.ink)
-                }
-                .toggleStyle(.switch)
-                .controlSize(.small)
-                .disabled(startAtLoginBusy)
-                if let startAtLoginError {
-                    Text(startAtLoginError)
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(UI.danger)
-                }
-                if let lastError = libraryStore.lastError {
-                    Text(lastError)
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(UI.danger)
-                }
-                Button {
-                    logUserAction("Clear downloads tapped")
-                    showClearDownloadsConfirm = true
-                } label: {
-                    Label("Clear Downloads", systemImage: "trash")
-                }
-                .accessibilityLabel("Clear all downloads")
-                .buttonStyle(SecondaryButtonStyle())
-                if showClearDownloadsConfirm {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Remove all cached audio files?")
+                SettingsCard(title: "Updates") {
+                    settingsActionRow(
+                        title: "Check for Updates",
+                        subtitle: "Check the update feed now.",
+                        actionTitle: "Check"
+                    ) {
+                        logUserAction("Check for updates tapped")
+                        updateManager.checkForUpdates()
+                    }
+
+                    settingsToggle(
+                        title: "Check Automatically",
+                        subtitle: "Look for updates in the background.",
+                        isOn: updateAutoCheckBinding
+                    )
+                    if let errorMessage = updateManager.errorMessage {
+                        settingsErrorText(errorMessage)
+                    } else if let lastCheckedAt = updateManager.lastCheckedAt {
+                        Text("Last checked: \(relativeDateString(lastCheckedAt))")
                             .font(.system(size: 11, weight: .regular))
                             .foregroundColor(UI.inkMuted)
-                        HStack(spacing: 8) {
-                            Button("Clear") {
-                                logUserAction("Clear downloads confirmed")
-                                libraryStore.clearDownloads()
-                                showClearDownloadsConfirm = false
-                            }
-                            .buttonStyle(PrimaryButtonStyle())
-                            Button("Cancel") {
-                                logUserAction("Clear downloads cancelled")
-                                showClearDownloadsConfirm = false
-                            }
-                            .buttonStyle(SecondaryButtonStyle())
+                    }
+                }
+
+                SettingsCard(title: "System") {
+                    settingsToggle(
+                        title: "Start at Login",
+                        subtitle: "Launch LongPlay when you sign in.",
+                        isOn: startAtLoginBinding
+                    )
+                    .disabled(startAtLoginBusy)
+                    if let startAtLoginError {
+                        settingsErrorText(startAtLoginError)
+                    }
+
+                    settingsActionRow(
+                        title: "Copy Diagnostics",
+                        subtitle: "Copy logs to your clipboard.",
+                        actionTitle: "Copy"
+                    ) {
+                        logUserAction("Copy diagnostics tapped")
+                        copyDiagnostics()
+                    }
+                    if let lastError = libraryStore.lastError {
+                        settingsErrorText(lastError)
+                    }
+                }
+
+                SettingsCard(title: "Storage") {
+                    Button {
+                        logUserAction("Clear downloads tapped")
+                        showClearDownloadsConfirm = true
+                    } label: {
+                        settingsButtonLabel(title: "Clear Downloads", systemImage: "trash")
+                    }
+                    .accessibilityLabel("Clear all downloads")
+                    .buttonStyle(SecondaryButtonStyle())
+                    .confirmationDialog(
+                        "Remove all cached audio files?",
+                        isPresented: $showClearDownloadsConfirm,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Clear Downloads", role: .destructive) {
+                            logUserAction("Clear downloads confirmed")
+                            libraryStore.clearDownloads()
+                        }
+                        Button("Cancel", role: .cancel) {
+                            logUserAction("Clear downloads cancelled")
                         }
                     }
-                    .padding(8)
-                    .background(UI.surface)
-                    .cornerRadius(UI.cornerRadius)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: UI.cornerRadius)
-                            .stroke(UI.border, lineWidth: 1)
-                    )
+                    Text("Cache: \(formattedBytes(libraryStore.cacheSizeBytes)) • Manual cleanup")
+                        .font(.system(size: 10.5, weight: .regular))
+                        .foregroundColor(UI.inkMuted)
                 }
-                Text("Cache: \(formattedBytes(libraryStore.cacheSizeBytes)) • Manual cleanup")
-                    .font(.system(size: 11, weight: .regular))
-                    .foregroundColor(UI.inkMuted)
-                Button {
-                    logUserAction("Copy diagnostics tapped")
-                    copyDiagnostics()
-                } label: {
-                    Label("Copy Diagnostics", systemImage: "doc.on.doc")
-                }
-                .accessibilityLabel("Copy diagnostics")
-                .buttonStyle(SecondaryButtonStyle())
                 Divider()
                 Button {
                     logUserAction("Quit tapped")
                     NSApplication.shared.terminate(nil)
                 } label: {
-                    Label("Quit", systemImage: "power")
+                    settingsButtonLabel(title: "Quit", systemImage: "power")
                 }
                 .accessibilityLabel("Quit LongPlay")
                 .buttonStyle(SecondaryButtonStyle())
             }
         }
+    }
+
+    private var updateAutoCheckBinding: Binding<Bool> {
+        Binding(
+            get: { updateManager.automaticallyChecksForUpdates },
+            set: { updateManager.automaticallyChecksForUpdates = $0 }
+        )
+    }
+
+    private var updateAutoDownloadBinding: Binding<Bool> {
+        Binding(
+            get: { updateManager.automaticallyDownloadsUpdates },
+            set: { updateManager.automaticallyDownloadsUpdates = $0 }
+        )
+    }
+
+    private var updateNotifyBinding: Binding<Bool> {
+        Binding(
+            get: { updateManager.notifyWhenUpdateAvailable },
+            set: { updateManager.notifyWhenUpdateAvailable = $0 }
+        )
     }
 
     private func addNewTrack() {
@@ -933,6 +965,105 @@ struct MenuBarContentView: View {
         formatter.allowedUnits = [.useKB, .useMB, .useGB]
         formatter.countStyle = .file
         return formatter.string(fromByteCount: bytes)
+    }
+
+    private func relativeDateString(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    private func settingsToggle(title: String, subtitle: String? = nil, isOn: Binding<Bool>) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(UI.ink)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 10.5, weight: .regular))
+                        .foregroundColor(UI.inkMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer()
+            Toggle("", isOn: isOn)
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .labelsHidden()
+        }
+        .padding(.vertical, 1)
+    }
+
+    private func settingsActionRow(
+        title: String,
+        subtitle: String? = nil,
+        actionTitle: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(UI.ink)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 10.5, weight: .regular))
+                        .foregroundColor(UI.inkMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer()
+            Button(actionTitle, action: action)
+                .buttonStyle(SecondaryButtonStyle())
+        }
+        .padding(.vertical, 1)
+    }
+
+    private func settingsButtonLabel(title: String, systemImage: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.system(size: 12, weight: .semibold))
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+            Spacer()
+        }
+        .padding(.vertical, 3)
+        .padding(.horizontal, 4)
+    }
+
+    private func settingsErrorText(_ message: String) -> some View {
+        Text(message)
+            .font(.system(size: 11, weight: .regular))
+            .foregroundColor(UI.danger)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private struct SettingsCard<Content: View>: View {
+        let title: String
+        let content: Content
+
+        init(title: String, @ViewBuilder content: () -> Content) {
+            self.title = title
+            self.content = content()
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title)
+                    .font(sectionTitleFont)
+                    .foregroundColor(UI.ink)
+                content
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(UI.surfaceAlt)
+            .cornerRadius(UI.cornerRadius)
+            .overlay(
+                RoundedRectangle(cornerRadius: UI.cornerRadius)
+                    .stroke(UI.border, lineWidth: 1)
+            )
+        }
     }
 
     private func progressText(for track: Track) -> String? {

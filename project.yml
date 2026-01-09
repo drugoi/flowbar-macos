@@ -58,6 +58,9 @@ targets:
       base:
         PRODUCT_NAME: LongPlay
         INFOPLIST_FILE: Config/Info.plist
+    dependencies:
+      - package: Sparkle
+        product: Sparkle
     scheme:
       testTargets:
         - LongPlayUITests
@@ -84,3 +87,8 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.8.1
