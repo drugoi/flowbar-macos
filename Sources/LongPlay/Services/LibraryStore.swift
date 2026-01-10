@@ -37,6 +37,9 @@ final class LibraryStore: ObservableObject {
                 DiagnosticsLogger.shared.log(level: "info", message: "Upgrading library schema from \(decoded.schemaVersion) to \(Library.currentSchemaVersion).")
                 decoded.schemaVersion = Library.currentSchemaVersion
             }
+            if decoded.featured.isEmpty {
+                decoded.featured = Library.defaultFeaturedTracks()
+            }
             library = decoded
             lastError = nil
         } catch {
@@ -117,6 +120,15 @@ final class LibraryStore: ObservableObject {
                 updated.lastError = nil
                 return updated
             }
+            library.featured = library.featured.map { track in
+                var updated = track
+                updated.localFilePath = nil
+                updated.fileSizeBytes = nil
+                updated.downloadProgress = nil
+                updated.downloadState = .notDownloaded
+                updated.lastError = nil
+                return updated
+            }
             save()
             refreshCacheSize()
         } catch {
@@ -176,6 +188,9 @@ final class LibraryStore: ObservableObject {
         if let track = library.userLibrary.first(where: { $0.id == id }) {
             return track
         }
+        if let track = library.featured.first(where: { $0.id == id }) {
+            return track
+        }
         return nil
     }
 
@@ -186,6 +201,10 @@ final class LibraryStore: ObservableObject {
     private func replace(track: Track) -> Bool {
         if let index = library.userLibrary.firstIndex(where: { $0.id == track.id }) {
             library.userLibrary[index] = track
+            return true
+        }
+        if let index = library.featured.firstIndex(where: { $0.id == track.id }) {
+            library.featured[index] = track
             return true
         }
         return false

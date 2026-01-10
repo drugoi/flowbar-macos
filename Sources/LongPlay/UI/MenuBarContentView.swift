@@ -4,6 +4,7 @@ import ServiceManagement
 
 private enum FocusField {
     case url
+    case search
 }
 
 private struct BatchAddError: Identifiable {
@@ -25,6 +26,7 @@ struct MenuBarContentView: View {
 
     @State private var newURL = ""
     @State private var newDisplayName = ""
+    @State private var searchText = ""
     @State private var validationError: String?
     @State private var batchAddErrors: [BatchAddError] = []
     @State private var suppressBatchErrorClear = false
@@ -159,6 +161,7 @@ struct MenuBarContentView: View {
                     switch selectedTab {
                     case .listen:
                         nowPlayingSection
+                        searchSection
                         trackListSection
                     case .add:
                         addNewSection
@@ -382,6 +385,29 @@ struct MenuBarContentView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private var searchSection: some View {
+        SectionCard {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Search")
+                    .font(sectionTitleFont)
+                LabeledTextField(
+                    icon: "magnifyingglass",
+                    placeholder: "Search tracks",
+                    text: $searchText,
+                    focusedField: $focusedField,
+                    field: .search,
+                    onSubmit: {}
+                )
+                if !searchText.isEmpty {
+                    Button("Clear") {
+                        searchText = ""
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                }
+            }
+        }
+    }
+
     private var statusLine: String {
         if downloadManager.activeTrackId != nil {
             let percentage = Int((downloadManager.progress ?? 0) * 100)
@@ -406,6 +432,45 @@ struct MenuBarContentView: View {
                     .font(sectionTitleFont)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
+                        if !filteredFeatured.isEmpty {
+                            Text("Featured")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(UI.inkMuted)
+                            ForEach(filteredFeatured) { track in
+                                TrackRow(
+                                    track: track,
+                                    progress: progressText(for: track),
+                                    downloadDisabled: downloadManager.activeTrackId != nil && downloadManager.activeTrackId != track.id,
+                                    isUserTrack: false,
+                                    onPlay: {
+                                        logUserAction("Play featured track tapped: \(track.videoId)")
+                                        play(track)
+                                    },
+                                    onDownload: {
+                                        logUserAction("Download featured track tapped: \(track.videoId)")
+                                        resolveAndDownload(track)
+                                    },
+                                    onRetry: {
+                                        logUserAction("Retry featured download tapped: \(track.videoId)")
+                                        resolveAndDownload(track)
+                                    },
+                                    onCancel: {
+                                        logUserAction("Cancel featured download tapped: \(track.videoId)")
+                                        cancelDownload(for: track)
+                                    },
+                                    onRemoveDownload: {
+                                        logUserAction("Remove featured download tapped: \(track.videoId)")
+                                        libraryStore.removeDownload(for: track)
+                                    },
+                                    onDiagnostics: {
+                                        logUserAction("Featured track diagnostics tapped: \(track.videoId)")
+                                        copyDiagnostics()
+                                    },
+                                    onDelete: nil,
+                                    onRename: nil
+                                )
+                            }
+                        }
                         if !filteredLibrary.isEmpty {
                             Text("My Library")
                                 .font(.system(size: 12, weight: .semibold))
@@ -451,10 +516,12 @@ struct MenuBarContentView: View {
                                 )
                             }
                         }
-                        if filteredLibrary.isEmpty {
+                        if filteredFeatured.isEmpty && filteredLibrary.isEmpty {
                             EmptyStateView(
-                                title: "No tracks yet",
-                                message: "Add a YouTube URL to start listening offline."
+                                title: isFiltering ? "No matches" : "No tracks yet",
+                                message: isFiltering
+                                    ? "Try a different search term."
+                                    : "Add a YouTube URL to start listening offline."
                             )
                         }
                     }
@@ -742,7 +809,32 @@ struct MenuBarContentView: View {
     }
 
     private var filteredLibrary: [Track] {
-        libraryStore.library.userLibrary
+        libraryStore.library.userLibrary.filter(matchesSearch)
+    }
+
+    private var filteredFeatured: [Track] {
+        libraryStore.library.featured.filter(matchesSearch)
+    }
+
+    private var isFiltering: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func matchesSearch(_ track: Track) -> Bool {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return true }
+        if track.displayName.localizedCaseInsensitiveContains(query) {
+            return true
+        }
+        if let resolvedTitle = track.resolvedTitle,
+           resolvedTitle.localizedCaseInsensitiveContains(query) {
+            return true
+        }
+        return false
+    }
+
+    private var allTracks: [Track] {
+        libraryStore.library.featured + libraryStore.library.userLibrary
     }
 
 
@@ -779,14 +871,14 @@ struct MenuBarContentView: View {
     }
 
     private func updateSuggestedTrack() {
-        let allTracks = libraryStore.library.userLibrary
-        if let lastPlayed = allTracks
+        let availableTracks = allTracks
+        if let lastPlayed = availableTracks
             .filter({ $0.lastPlayedAt != nil })
             .max(by: { ($0.lastPlayedAt ?? .distantPast) < ($1.lastPlayedAt ?? .distantPast) }) {
             suggestedTrack = lastPlayed
             return
         }
-        suggestedTrack = allTracks.randomElement()
+        suggestedTrack = availableTracks.randomElement()
     }
 
     private var startAtLoginBinding: Binding<Bool> {
@@ -1001,7 +1093,7 @@ struct MenuBarContentView: View {
 
     private func handlePlaybackEnded(_ finished: Track?) {
         logUserAction("Playback ended")
-        let tracks = libraryStore.library.userLibrary
+        let tracks = allTracks
         guard !tracks.isEmpty else { return }
         let nextTrack: Track
         if let finished, let index = tracks.firstIndex(where: { $0.id == finished.id }) {
