@@ -633,19 +633,7 @@ struct MenuBarContentView: View {
             newDisplayName = ""
             selectedTab = .listen
             focusedField = nil
-            if name.isEmpty {
-                Task {
-                    if let title = await fetchTitleForTrack(track.sourceURL) {
-                        await MainActor.run {
-                            libraryStore.updateDisplayNameIfDefault(
-                                trackId: track.id,
-                                defaultName: track.videoId,
-                                newName: title
-                            )
-                        }
-                    }
-                }
-            }
+            resolveMetadata(for: track, updateDisplayName: name.isEmpty)
             streamAndDownload(track)
         }
     }
@@ -783,18 +771,51 @@ struct MenuBarContentView: View {
         }
     }
 
-    private func fetchTitleForTrack(_ url: URL) async -> String? {
-        let client = YtDlpClient()
-        do {
-            let metadata = try await client.resolveMetadata(url: url)
-            return metadata.title
-        } catch {
-            DiagnosticsLogger.shared.log(level: "warning", message: "Title fetch failed: \(error.localizedDescription)")
-            let fallback = await client.fetchTitleFallback(url: url)
-            if fallback == nil {
-                DiagnosticsLogger.shared.log(level: "warning", message: "Title fallback failed for \(url.absoluteString)")
+    private func resolveMetadata(for track: Track, updateDisplayName: Bool) {
+        Task {
+            do {
+                let metadata = try await MetadataResolver.resolve(for: track.sourceURL)
+                await MainActor.run {
+                    applyMetadata(metadata, to: track, updateDisplayName: updateDisplayName)
+                }
+            } catch {
+                DiagnosticsLogger.shared.log(level: "warning", message: "Metadata resolution failed: \(error.localizedDescription)")
+                let fallbackTitle = await YtDlpClient().fetchTitleFallback(url: track.sourceURL)
+                await MainActor.run {
+                    var updated = libraryStore.track(withId: track.id) ?? track
+                    if let fallbackTitle, !fallbackTitle.isEmpty {
+                        updated.resolvedTitle = fallbackTitle
+                        updated.durationSeconds = nil
+                        updated.metadataError = nil
+                        libraryStore.updateTrack(updated)
+                        if updateDisplayName {
+                            libraryStore.updateDisplayNameIfDefault(
+                                trackId: track.id,
+                                defaultName: track.videoId,
+                                newName: fallbackTitle
+                            )
+                        }
+                    } else {
+                        updated.metadataError = "Metadata unavailable."
+                        libraryStore.updateTrack(updated)
+                    }
+                }
             }
-            return fallback
+        }
+    }
+
+    private func applyMetadata(_ metadata: ResolvedMetadata, to track: Track, updateDisplayName: Bool) {
+        var updated = libraryStore.track(withId: track.id) ?? track
+        updated.resolvedTitle = metadata.title
+        updated.durationSeconds = metadata.durationSeconds
+        updated.metadataError = nil
+        libraryStore.updateTrack(updated)
+        if updateDisplayName {
+            libraryStore.updateDisplayNameIfDefault(
+                trackId: track.id,
+                defaultName: track.videoId,
+                newName: metadata.title
+            )
         }
     }
 
@@ -1107,6 +1128,15 @@ private struct TrackRow: View {
                         .font(.system(size: 11, weight: .regular))
                         .foregroundColor(UI.inkMuted)
                 }
+                if let durationText {
+                    Text(durationText)
+                        .font(.system(size: 10, weight: .regular))
+                        .foregroundColor(UI.inkMuted)
+                } else if track.metadataError != nil {
+                    Text("Metadata unavailable")
+                        .font(.system(size: 10, weight: .regular))
+                        .foregroundColor(UI.inkMuted)
+                }
                 if let progress {
                     Text(progress)
                         .font(.system(size: 10, weight: .regular))
@@ -1223,6 +1253,22 @@ private struct TrackRow: View {
         case .failed:
             return UI.danger
         }
+    }
+
+    private var durationText: String? {
+        guard let durationSeconds = track.durationSeconds,
+              durationSeconds.isFinite,
+              durationSeconds > 0 else {
+            return nil
+        }
+        let totalSeconds = Int(durationSeconds.rounded())
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        }
+        return String(format: "%d:%02d", minutes, seconds)
     }
 }
 
