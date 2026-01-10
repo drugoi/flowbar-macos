@@ -37,6 +37,9 @@ final class LibraryStore: ObservableObject {
                 DiagnosticsLogger.shared.log(level: "info", message: "Upgrading library schema from \(decoded.schemaVersion) to \(Library.currentSchemaVersion).")
                 decoded.schemaVersion = Library.currentSchemaVersion
             }
+            if decoded.featuredLibrary.isEmpty {
+                decoded.featuredLibrary = Self.makeFeaturedLibrary()
+            }
             library = decoded
             lastError = nil
         } catch {
@@ -108,15 +111,8 @@ final class LibraryStore: ObservableObject {
             for url in contents {
                 try FileManager.default.removeItem(at: url)
             }
-            library.userLibrary = library.userLibrary.map { track in
-                var updated = track
-                updated.localFilePath = nil
-                updated.fileSizeBytes = nil
-                updated.downloadProgress = nil
-                updated.downloadState = .notDownloaded
-                updated.lastError = nil
-                return updated
-            }
+            library.userLibrary = library.userLibrary.map(clearDownloadState)
+            library.featuredLibrary = library.featuredLibrary.map(clearDownloadState)
             save()
             refreshCacheSize()
         } catch {
@@ -176,7 +172,7 @@ final class LibraryStore: ObservableObject {
         if let track = library.userLibrary.first(where: { $0.id == id }) {
             return track
         }
-        return nil
+        return library.featuredLibrary.first(where: { $0.id == id })
     }
 
     func track(withId id: UUID) -> Track? {
@@ -188,10 +184,46 @@ final class LibraryStore: ObservableObject {
             library.userLibrary[index] = track
             return true
         }
+        if let index = library.featuredLibrary.firstIndex(where: { $0.id == track.id }) {
+            library.featuredLibrary[index] = track
+            return true
+        }
         return false
     }
 
     static func makeDefaultLibrary() -> Library {
-        return Library(userLibrary: [])
+        return Library(featuredLibrary: makeFeaturedLibrary(), userLibrary: [])
+    }
+
+    private func clearDownloadState(for track: Track) -> Track {
+        var updated = track
+        updated.localFilePath = nil
+        updated.fileSizeBytes = nil
+        updated.downloadProgress = nil
+        updated.downloadState = .notDownloaded
+        updated.lastError = nil
+        return updated
+    }
+
+    static func makeFeaturedLibrary() -> [Track] {
+        [
+            makeFeaturedTrack(
+                videoId: "DWcJFNfaw9c",
+                displayName: "Lofi hip hop radio"
+            ),
+            makeFeaturedTrack(
+                videoId: "lCOF9LN_Zxs",
+                displayName: "Ambient space music"
+            ),
+            makeFeaturedTrack(
+                videoId: "2OEL4P1Rz04",
+                displayName: "Classical focus mix"
+            )
+        ]
+    }
+
+    private static func makeFeaturedTrack(videoId: String, displayName: String) -> Track {
+        let url = URL(string: "https://www.youtube.com/watch?v=\(videoId)")!
+        return Track.makeNew(sourceURL: url, videoId: videoId, displayName: displayName)
     }
 }

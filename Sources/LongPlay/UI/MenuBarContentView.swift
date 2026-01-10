@@ -406,6 +406,45 @@ struct MenuBarContentView: View {
                     .font(sectionTitleFont)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
+                        if !featuredLibrary.isEmpty {
+                            Text("Featured")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(UI.inkMuted)
+                            ForEach(featuredLibrary) { track in
+                                TrackRow(
+                                    track: track,
+                                    progress: progressText(for: track),
+                                    downloadDisabled: downloadManager.activeTrackId != nil && downloadManager.activeTrackId != track.id,
+                                    isUserTrack: false,
+                                    onPlay: {
+                                        logUserAction("Play featured track tapped: \(track.videoId)")
+                                        play(track)
+                                    },
+                                    onDownload: {
+                                        logUserAction("Download featured track tapped: \(track.videoId)")
+                                        resolveAndDownload(track)
+                                    },
+                                    onRetry: {
+                                        logUserAction("Retry featured download tapped: \(track.videoId)")
+                                        resolveAndDownload(track)
+                                    },
+                                    onCancel: {
+                                        logUserAction("Cancel featured download tapped: \(track.videoId)")
+                                        cancelDownload(for: track)
+                                    },
+                                    onRemoveDownload: {
+                                        logUserAction("Remove featured download tapped: \(track.videoId)")
+                                        libraryStore.removeDownload(for: track)
+                                    },
+                                    onDiagnostics: {
+                                        logUserAction("Featured track diagnostics tapped: \(track.videoId)")
+                                        copyDiagnostics()
+                                    },
+                                    onDelete: nil,
+                                    onRename: nil
+                                )
+                            }
+                        }
                         if !filteredLibrary.isEmpty {
                             Text("My Library")
                                 .font(.system(size: 12, weight: .semibold))
@@ -451,7 +490,7 @@ struct MenuBarContentView: View {
                                 )
                             }
                         }
-                        if filteredLibrary.isEmpty {
+                        if filteredLibrary.isEmpty && featuredLibrary.isEmpty {
                             EmptyStateView(
                                 title: "No tracks yet",
                                 message: "Add a YouTube URL to start listening offline."
@@ -745,6 +784,10 @@ struct MenuBarContentView: View {
         libraryStore.library.userLibrary
     }
 
+    private var featuredLibrary: [Track] {
+        libraryStore.library.featuredLibrary
+    }
+
 
     private var nowPlayingTrack: Track? {
         if let current = playbackController.currentTrack {
@@ -779,7 +822,7 @@ struct MenuBarContentView: View {
     }
 
     private func updateSuggestedTrack() {
-        let allTracks = libraryStore.library.userLibrary
+        let allTracks = libraryStore.library.featuredLibrary + libraryStore.library.userLibrary
         if let lastPlayed = allTracks
             .filter({ $0.lastPlayedAt != nil })
             .max(by: { ($0.lastPlayedAt ?? .distantPast) < ($1.lastPlayedAt ?? .distantPast) }) {
