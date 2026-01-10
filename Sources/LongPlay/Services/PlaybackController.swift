@@ -20,10 +20,27 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     @Published private(set) var sleepTimerRemaining: TimeInterval?
     @Published private(set) var sleepTimerDuration: TimeInterval?
     @Published private(set) var sleepTimerIsActive: Bool = false
+    @Published var playbackSpeed: Double {
+        didSet {
+            let clamped = PlaybackController.availableSpeeds.contains(playbackSpeed) ? playbackSpeed : 1.0
+            if clamped != playbackSpeed {
+                playbackSpeed = clamped
+                return
+            }
+            UserDefaults.standard.set(playbackSpeed, forKey: DefaultsKey.playbackSpeed)
+            applyPlaybackRate()
+        }
+    }
 
     var positionUpdateHandler: ((TimeInterval) -> Void)?
     var playbackEndedHandler: ((Track?) -> Void)?
     var streamingFailedHandler: ((Track?) -> Void)?
+
+    private enum DefaultsKey {
+        static let playbackSpeed = "LongPlayPlaybackSpeed"
+    }
+
+    static let availableSpeeds: [Double] = [0.75, 1.0, 1.25, 1.5]
 
     private var player: AVAudioPlayer?
     private var positionTimer: Timer?
@@ -38,6 +55,11 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     private var sleepTimerEndDate: Date?
 
     override init() {
+        let defaults: [String: Any] = [
+            DefaultsKey.playbackSpeed: 1.0
+        ]
+        UserDefaults.standard.register(defaults: defaults)
+        playbackSpeed = UserDefaults.standard.double(forKey: DefaultsKey.playbackSpeed)
         super.init()
         configureRemoteCommands()
         setupOutputDeviceListener()
@@ -54,6 +76,8 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
             player?.stop()
             let player = try AVAudioPlayer(contentsOf: fileURL)
             player.delegate = self
+            player.enableRate = true
+            player.rate = Float(playbackSpeed)
             player.prepareToPlay()
             self.player = player
             currentTrack = track
@@ -65,6 +89,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
             currentTime = player.currentTime
             state = .playing
             player.play()
+            applyPlaybackRate()
             startPositionTimer()
             updateNowPlayingInfo(elapsedOverride: player.currentTime)
         } catch {
@@ -96,6 +121,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         addStreamFailureObserver(for: item)
         addStreamStatusObserver(for: item)
         player.play()
+        applyPlaybackRate()
         updateNowPlayingInfo(elapsedOverride: startAt)
     }
 
@@ -118,6 +144,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
             startPositionTimer()
         }
         state = .playing
+        applyPlaybackRate()
         updateNowPlayingInfo()
     }
 
@@ -418,7 +445,8 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         info[MPMediaItemPropertyTitle] = track.displayName
         let playbackTime = elapsedOverride ?? currentPlaybackTime()
         info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = playbackTime
-        info[MPNowPlayingInfoPropertyPlaybackRate] = state == .playing ? 1.0 : 0.0
+        info[MPNowPlayingInfoPropertyPlaybackRate] = state == .playing ? playbackSpeed : 0.0
+        info[MPNowPlayingInfoPropertyDefaultPlaybackRate] = playbackSpeed
         if duration > 0 {
             info[MPMediaItemPropertyPlaybackDuration] = duration
         }
@@ -444,5 +472,16 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         DiagnosticsLogger.shared.log(level: "info", message: "Sleep timer expired")
         stop()
         cancelSleepTimer()
+    }
+
+    private func applyPlaybackRate() {
+        let rate = Float(playbackSpeed)
+        if isStreaming {
+            streamPlayer?.rate = state == .playing ? rate : 0.0
+        } else {
+            player?.enableRate = true
+            player?.rate = rate
+        }
+        updateNowPlayingInfo()
     }
 }

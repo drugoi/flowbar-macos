@@ -463,6 +463,22 @@ struct MenuBarContentView: View {
                             .foregroundColor(UI.inkMuted)
                     }
                 }
+                HStack(spacing: 12) {
+                    Text("Speed")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(UI.ink)
+                    Spacer()
+                    Picker("Speed", selection: $playbackController.playbackSpeed) {
+                        ForEach(PlaybackController.availableSpeeds, id: \.self) { speed in
+                            Text(speedLabel(speed))
+                                .tag(speed)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .controlSize(.small)
+                    .frame(width: 220)
+                }
+                .disabled(!canControlPlayback)
                 HStack(alignment: .center, spacing: 8) {
                     Text("Sleep Timer")
                         .font(.system(size: 11, weight: .semibold))
@@ -1290,6 +1306,17 @@ struct MenuBarContentView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    private func speedLabel(_ speed: Double) -> String {
+        if speed == 1.0 {
+            return "1.0x"
+        }
+        var formatted = String(format: "%.2f", speed)
+        while formatted.contains(".") && (formatted.hasSuffix("0") || formatted.hasSuffix(".")) {
+            formatted.removeLast()
+        }
+        return "\(formatted)x"
     }
 
     private func settingsToggle(title: String, subtitle: String? = nil, isOn: Binding<Bool>) -> some View {
