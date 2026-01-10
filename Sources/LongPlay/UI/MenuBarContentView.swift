@@ -6,6 +6,12 @@ private enum FocusField {
     case url
 }
 
+private struct BatchAddError: Identifiable {
+    let id = UUID()
+    let input: String
+    let message: String
+}
+
 struct MenuBarContentView: View {
     @ObservedObject var libraryStore: LibraryStore
     @ObservedObject var playbackController: PlaybackController
@@ -20,6 +26,8 @@ struct MenuBarContentView: View {
     @State private var newURL = ""
     @State private var newDisplayName = ""
     @State private var validationError: String?
+    @State private var batchAddErrors: [BatchAddError] = []
+    @State private var suppressBatchErrorClear = false
     @State private var ytdlpMissing = false
     @State private var showClearDownloadsConfirm = false
     @State private var deleteCandidate: Track?
@@ -472,6 +480,18 @@ struct MenuBarContentView: View {
                     field: .url,
                     onSubmit: addNewTrack
                 )
+                .onChange(of: newURL) { _ in
+                    if suppressBatchErrorClear {
+                        suppressBatchErrorClear = false
+                        return
+                    }
+                    if validationError != nil {
+                        validationError = nil
+                    }
+                    if !batchAddErrors.isEmpty {
+                        batchAddErrors = []
+                    }
+                }
                 LabeledTextField(
                     icon: "pencil",
                     placeholder: "Display name (optional)",
@@ -484,6 +504,18 @@ struct MenuBarContentView: View {
                     Text(validationError)
                         .font(.system(size: 11, weight: .regular))
                         .foregroundColor(UI.danger)
+                }
+                if !batchAddErrors.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Some URLs need attention:")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(UI.danger)
+                        ForEach(batchAddErrors) { error in
+                            Text("• \(error.input) — \(error.message)")
+                                .font(.system(size: 11, weight: .regular))
+                                .foregroundColor(UI.danger)
+                        }
+                    }
                 }
                 Button("Add") {
                     logUserAction("Add track tapped")
@@ -612,29 +644,100 @@ struct MenuBarContentView: View {
     private func addNewTrack() {
         logUserAction("Add track submitted")
         validationError = nil
-        switch URLValidator.validate(newURL) {
-        case .failure(let error):
-            validationError = error.localizedDescription
-            globalErrorMessage = error.localizedDescription
-            failedTrack = nil
-            DiagnosticsLogger.shared.log(level: "warning", message: "URL validation failed: \(error.localizedDescription)")
-        case .success(let validated):
-            let name = newDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
-            let displayName = name.isEmpty ? validated.videoId : name
-            var track = Track.makeNew(
-                sourceURL: validated.canonicalURL,
-                videoId: validated.videoId,
-                displayName: displayName
-            )
-            track.downloadState = .resolving
-            libraryStore.addToLibrary(track)
-            DiagnosticsLogger.shared.log(level: "info", message: "Added track \(validated.videoId)")
+        batchAddErrors = []
+        globalErrorMessage = nil
+        failedTrack = nil
+        let entries = BatchURLParser.parse(newURL)
+        guard !entries.isEmpty else {
+            validationError = "Enter at least one YouTube URL."
+            return
+        }
+        let name = newDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let useCustomName = entries.count == 1 && !name.isEmpty
+        var addedTracks: [Track] = []
+
+        for entry in entries {
+            switch URLValidator.validate(entry) {
+            case .failure(let error):
+                batchAddErrors.append(BatchAddError(input: entry, message: error.localizedDescription))
+                DiagnosticsLogger.shared.log(level: "warning", message: "URL validation failed: \(entry) - \(error.localizedDescription)")
+            case .success(let validated):
+                let displayName = useCustomName ? name : validated.videoId
+                var track = Track.makeNew(
+                    sourceURL: validated.canonicalURL,
+                    videoId: validated.videoId,
+                    displayName: displayName
+                )
+                track.downloadState = .resolving
+                libraryStore.addToLibrary(track)
+                DiagnosticsLogger.shared.log(level: "info", message: "Added track \(validated.videoId)")
+                addedTracks.append(track)
+            }
+        }
+
+        guard !addedTracks.isEmpty else { return }
+        if batchAddErrors.isEmpty {
+            suppressBatchErrorClear = true
             newURL = ""
             newDisplayName = ""
             selectedTab = .listen
             focusedField = nil
-            resolveMetadata(for: track, updateDisplayName: name.isEmpty)
+        } else {
+            suppressBatchErrorClear = true
+            newURL = batchAddErrors.map(\.input).joined(separator: "\n")
+            newDisplayName = ""
+            selectedTab = .add
+            focusedField = .url
+        }
+        if entries.count == 1, let track = addedTracks.first {
+            if !useCustomName {
+                Task {
+                    if let title = await fetchTitleForTrack(track.sourceURL) {
+                        await MainActor.run {
+                            libraryStore.updateDisplayNameIfDefault(
+                                trackId: track.id,
+                                defaultName: track.videoId,
+                                newName: title
+                            )
+                        }
+                    }
+                }
+            }
             streamAndDownload(track)
+        } else {
+            fetchTitlesForBatch(addedTracks)
+            startBatchDownloads(addedTracks)
+        }
+    }
+
+    private func startBatchDownloads(_ tracks: [Track]) {
+        Task {
+            for track in tracks {
+                await waitForDownloadSlot()
+                await downloadOnly(track)
+            }
+        }
+    }
+
+    private func waitForDownloadSlot() async {
+        while downloadManager.activeTrackId != nil {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+    }
+
+    private func fetchTitlesForBatch(_ tracks: [Track]) {
+        Task {
+            for track in tracks {
+                if let title = await fetchTitleForTrack(track.sourceURL) {
+                    await MainActor.run {
+                        libraryStore.updateDisplayNameIfDefault(
+                            trackId: track.id,
+                            defaultName: track.videoId,
+                            newName: title
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -771,50 +874,18 @@ struct MenuBarContentView: View {
         }
     }
 
-    private func resolveMetadata(for track: Track, updateDisplayName: Bool) {
-        Task {
-            do {
-                let metadata = try await MetadataResolver.resolve(for: track.sourceURL)
-                await MainActor.run {
-                    applyMetadata(metadata, to: track, updateDisplayName: updateDisplayName)
-                }
-            } catch {
-                DiagnosticsLogger.shared.log(level: "warning", message: "Metadata resolution failed: \(error.localizedDescription)")
-                let fallbackTitle = await YtDlpClient().fetchTitleFallback(url: track.sourceURL)
-                await MainActor.run {
-                    var updated = libraryStore.track(withId: track.id) ?? track
-                    updated.metadataUnavailable = true
-                    if let fallbackTitle, !fallbackTitle.isEmpty {
-                        updated.resolvedTitle = fallbackTitle
-                        updated.durationSeconds = nil
-                        libraryStore.updateTrack(updated)
-                        if updateDisplayName {
-                            libraryStore.updateDisplayNameIfDefault(
-                                trackId: track.id,
-                                defaultName: track.videoId,
-                                newName: fallbackTitle
-                            )
-                        }
-                    } else {
-                        libraryStore.updateTrack(updated)
-                    }
-                }
+    private func fetchTitleForTrack(_ url: URL) async -> String? {
+        let client = YtDlpClient()
+        do {
+            let metadata = try await client.resolveMetadata(url: url)
+            return metadata.title
+        } catch {
+            DiagnosticsLogger.shared.log(level: "warning", message: "Title fetch failed: \(error.localizedDescription)")
+            let fallback = await client.fetchTitleFallback(url: url)
+            if fallback == nil {
+                DiagnosticsLogger.shared.log(level: "warning", message: "Title fallback failed for \(url.absoluteString)")
             }
-        }
-    }
-
-    private func applyMetadata(_ metadata: ResolvedMetadata, to track: Track, updateDisplayName: Bool) {
-        var updated = libraryStore.track(withId: track.id) ?? track
-        updated.resolvedTitle = metadata.title
-        updated.durationSeconds = metadata.durationSeconds
-        updated.metadataUnavailable = false
-        libraryStore.updateTrack(updated)
-        if updateDisplayName {
-            libraryStore.updateDisplayNameIfDefault(
-                trackId: track.id,
-                defaultName: track.videoId,
-                newName: metadata.title
-            )
+            return fallback
         }
     }
 
@@ -1127,15 +1198,6 @@ private struct TrackRow: View {
                         .font(.system(size: 11, weight: .regular))
                         .foregroundColor(UI.inkMuted)
                 }
-                if let durationText {
-                    Text(durationText)
-                        .font(.system(size: 10, weight: .regular))
-                        .foregroundColor(UI.inkMuted)
-                } else if track.metadataUnavailable == true {
-                    Text("Metadata unavailable")
-                        .font(.system(size: 10, weight: .regular))
-                        .foregroundColor(UI.inkMuted)
-                }
                 if let progress {
                     Text(progress)
                         .font(.system(size: 10, weight: .regular))
@@ -1252,22 +1314,6 @@ private struct TrackRow: View {
         case .failed:
             return UI.danger
         }
-    }
-
-    private var durationText: String? {
-        guard let durationSeconds = track.durationSeconds,
-              durationSeconds.isFinite,
-              durationSeconds > 0 else {
-            return nil
-        }
-        let totalSeconds = Int(durationSeconds.rounded())
-        let hours = totalSeconds / 3600
-        let minutes = (totalSeconds % 3600) / 60
-        let seconds = totalSeconds % 60
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
-        }
-        return String(format: "%d:%02d", minutes, seconds)
     }
 }
 
