@@ -783,10 +783,10 @@ struct MenuBarContentView: View {
                 let fallbackTitle = await YtDlpClient().fetchTitleFallback(url: track.sourceURL)
                 await MainActor.run {
                     var updated = libraryStore.track(withId: track.id) ?? track
+                    updated.metadataError = "Metadata unavailable."
                     if let fallbackTitle, !fallbackTitle.isEmpty {
                         updated.resolvedTitle = fallbackTitle
                         updated.durationSeconds = nil
-                        updated.metadataError = nil
                         libraryStore.updateTrack(updated)
                         if updateDisplayName {
                             libraryStore.updateDisplayNameIfDefault(
