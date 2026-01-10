@@ -3,6 +3,7 @@ import Foundation
 enum DownloadState: String, Codable {
     case notDownloaded
     case resolving
+    case queued
     case downloading
     case downloaded
     case failed

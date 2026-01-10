@@ -387,6 +387,9 @@ struct MenuBarContentView: View {
             let percentage = Int((downloadManager.progress ?? 0) * 100)
             return "Downloading \(percentage)%"
         }
+        if !downloadManager.queuedTrackIds.isEmpty {
+            return "Queued \(downloadManager.queuedTrackIds.count)"
+        }
         switch playbackController.state {
         case .idle:
             return "Idle"
@@ -414,7 +417,7 @@ struct MenuBarContentView: View {
                                 TrackRow(
                                     track: track,
                                     progress: progressText(for: track),
-                                    downloadDisabled: downloadManager.activeTrackId != nil && downloadManager.activeTrackId != track.id,
+                                    downloadDisabled: downloadManager.isQueued(trackId: track.id),
                                     isUserTrack: true,
                                     onPlay: {
                                         logUserAction("Play track tapped: \(track.videoId)")
@@ -862,10 +865,6 @@ struct MenuBarContentView: View {
                 DiagnosticsLogger.shared.log(level: "warning", message: "Download blocked: offline")
                 return
             }
-            if let activeId = downloadManager.activeTrackId, activeId != track.id {
-                DiagnosticsLogger.shared.log(level: "warning", message: "Download already in progress.")
-                return
-            }
             globalErrorMessage = nil
             failedTrack = nil
             DiagnosticsLogger.shared.log(level: "info", message: "Starting download for \(track.videoId)")
@@ -931,18 +930,24 @@ struct MenuBarContentView: View {
             failedTrack = track
             return
         }
-        if let activeId = downloadManager.activeTrackId, activeId != track.id {
-            DiagnosticsLogger.shared.log(level: "warning", message: "Download already in progress.")
+        if downloadManager.activeTrackId == track.id || downloadManager.isQueued(trackId: track.id) {
+            DiagnosticsLogger.shared.log(level: "warning", message: "Download already queued or active.")
             return
         }
         do {
             globalErrorMessage = nil
             failedTrack = nil
             var updated = libraryStore.track(withId: track.id) ?? track
-            updated.downloadState = .downloading
+            updated.downloadState = .queued
             updated.lastError = nil
             libraryStore.updateTrack(updated)
-            let fileURL = try await downloadManager.startDownload(for: updated)
+            let fileURL = try await downloadManager.enqueueDownload(for: updated) { [weak libraryStore] in
+                guard let libraryStore else { return }
+                var started = libraryStore.track(withId: updated.id) ?? updated
+                started.downloadState = .downloading
+                started.lastError = nil
+                libraryStore.updateTrack(started)
+            }
             var completed = libraryStore.track(withId: updated.id) ?? updated
             completed.downloadState = .downloaded
             completed.downloadProgress = 1.0
@@ -961,6 +966,22 @@ struct MenuBarContentView: View {
                 play(completed)
             }
             NotificationManager.shared.notifyDownloadComplete(track: completed)
+        } catch let error as DownloadError {
+            if case .cancelled = error {
+                var cancelled = libraryStore.track(withId: track.id) ?? track
+                cancelled.downloadState = .notDownloaded
+                cancelled.downloadProgress = nil
+                cancelled.lastError = "Download cancelled."
+                libraryStore.updateTrack(cancelled)
+                return
+            }
+            var failed = track
+            failed.downloadState = .failed
+            failed.lastError = error.localizedDescription
+            libraryStore.updateTrack(failed)
+            globalErrorMessage = error.localizedDescription
+            failedTrack = failed
+            DiagnosticsLogger.shared.log(level: "error", message: "Download failed: \(error.localizedDescription)")
         } catch {
             var failed = track
             failed.downloadState = .failed
@@ -1019,8 +1040,13 @@ struct MenuBarContentView: View {
 
     private func cancelDownload(for track: Track) {
         logUserAction("Download cancelled for \(track.videoId)")
-        guard downloadManager.activeTrackId == track.id else { return }
-        downloadManager.cancelDownload()
+        if downloadManager.activeTrackId == track.id {
+            downloadManager.cancelActiveDownload()
+        } else if downloadManager.isQueued(trackId: track.id) {
+            downloadManager.removeFromQueue(trackId: track.id)
+        } else {
+            return
+        }
         var updated = track
         updated.downloadState = .notDownloaded
         updated.downloadProgress = nil
@@ -1162,6 +1188,10 @@ struct MenuBarContentView: View {
             let percentage = Int((downloadManager.progress ?? 0) * 100)
             return "Downloading \(percentage)%"
         }
+        if let position = downloadManager.queuePosition(for: track.id) {
+            let total = downloadManager.queuedTrackIds.count
+            return "Queued \(position) of \(total)"
+        }
         if track.downloadState == .resolving {
             return "Preparing download…"
         }
@@ -1231,7 +1261,7 @@ private struct TrackRow: View {
             switch track.downloadState {
             case .downloaded:
                 onPlay()
-            case .downloading, .resolving:
+            case .downloading, .resolving, .queued:
                 break
             default:
                 onDownload()
@@ -1244,7 +1274,7 @@ private struct TrackRow: View {
             } else if track.downloadState == .failed {
                 Button("Retry Download", action: onRetry)
                 Button("Copy Diagnostics", action: onDiagnostics)
-            } else if track.downloadState == .downloading {
+            } else if track.downloadState == .downloading || track.downloadState == .queued {
                 Button("Cancel Download", action: onCancel)
             } else {
                 Button("Download", action: onDownload)
@@ -1274,7 +1304,7 @@ private struct TrackRow: View {
                 } else {
                     TrackActionButton(icon: "trash", label: "Remove Download", action: onRemoveDownload)
                 }
-            } else if track.downloadState == .downloading {
+            } else if track.downloadState == .downloading || track.downloadState == .queued {
                 TrackActionButton(icon: "xmark.circle", label: "Cancel", action: onCancel)
             } else if track.downloadState == .failed {
                 TrackActionButton(icon: "arrow.clockwise", label: "Retry", accent: true, action: onRetry)
@@ -1294,6 +1324,8 @@ private struct TrackRow: View {
             return "Offline"
         case .resolving:
             return "Preparing"
+        case .queued:
+            return "Queued"
         case .downloading:
             return "Downloading"
         case .failed:
@@ -1309,6 +1341,8 @@ private struct TrackRow: View {
             return UI.success
         case .resolving:
             return UI.warning
+        case .queued:
+            return UI.accent
         case .downloading:
             return UI.accent
         case .failed:
@@ -1784,7 +1818,7 @@ private extension Track {
         switch downloadState {
         case .downloaded:
             return UI.success
-        case .downloading, .resolving:
+        case .downloading, .resolving, .queued:
             return UI.accent
         case .failed:
             return UI.danger
