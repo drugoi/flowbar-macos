@@ -15,7 +15,7 @@ struct Track: Identifiable, Codable, Equatable {
     var displayName: String
     var resolvedTitle: String?
     var durationSeconds: Double?
-    var metadataError: String?
+    var metadataUnavailable: Bool?
     var addedAt: Date
     var lastPlayedAt: Date?
     var playbackPositionSeconds: Double
@@ -35,7 +35,7 @@ extension Track {
             displayName: displayName,
             resolvedTitle: nil,
             durationSeconds: nil,
-            metadataError: nil,
+            metadataUnavailable: false,
             addedAt: Date(),
             lastPlayedAt: nil,
             playbackPositionSeconds: 0,

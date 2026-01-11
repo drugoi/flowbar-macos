@@ -783,7 +783,7 @@ struct MenuBarContentView: View {
                 let fallbackTitle = await YtDlpClient().fetchTitleFallback(url: track.sourceURL)
                 await MainActor.run {
                     var updated = libraryStore.track(withId: track.id) ?? track
-                    updated.metadataError = "Metadata unavailable."
+                    updated.metadataUnavailable = true
                     if let fallbackTitle, !fallbackTitle.isEmpty {
                         updated.resolvedTitle = fallbackTitle
                         updated.durationSeconds = nil
@@ -796,7 +796,7 @@ struct MenuBarContentView: View {
                             )
                         }
                     } else {
-                        updated.metadataError = "Metadata unavailable."
+                        updated.metadataUnavailable = true
                         libraryStore.updateTrack(updated)
                     }
                 }
@@ -808,7 +808,7 @@ struct MenuBarContentView: View {
         var updated = libraryStore.track(withId: track.id) ?? track
         updated.resolvedTitle = metadata.title
         updated.durationSeconds = metadata.durationSeconds
-        updated.metadataError = nil
+        updated.metadataUnavailable = false
         libraryStore.updateTrack(updated)
         if updateDisplayName {
             libraryStore.updateDisplayNameIfDefault(
@@ -1132,7 +1132,7 @@ private struct TrackRow: View {
                     Text(durationText)
                         .font(.system(size: 10, weight: .regular))
                         .foregroundColor(UI.inkMuted)
-                } else if track.metadataError != nil {
+                } else if track.metadataUnavailable == true {
                     Text("Metadata unavailable")
                         .font(.system(size: 10, weight: .regular))
                         .foregroundColor(UI.inkMuted)
