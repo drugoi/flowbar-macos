@@ -173,16 +173,26 @@ struct YtDlpClient {
                 }
                 return true
             }
+        guard !parsedLines.isEmpty else {
+            throw YtDlpError.invalidOutput
+        }
+        guard parsedLines.count <= 2 else {
+            throw YtDlpError.invalidOutput
+        }
         guard let title = parsedLines.first, !title.isEmpty else {
             throw YtDlpError.invalidOutput
         }
         let durationLine = parsedLines.dropFirst().first
-        let durationValue = durationLine.flatMap { line in
-            let lowercased = line.lowercased()
-            guard !lowercased.isEmpty, lowercased != "na", lowercased != "none" else {
-                return nil
+        let durationValue: Double?
+        if let durationLine {
+            let lowercased = durationLine.lowercased()
+            if lowercased.isEmpty || lowercased == "na" || lowercased == "none" {
+                durationValue = nil
+            } else {
+                durationValue = Double(lowercased)
             }
-            return Double(lowercased)
+        } else {
+            durationValue = nil
         }
         return YtDlpMetadata(title: title, durationSeconds: durationValue)
     }

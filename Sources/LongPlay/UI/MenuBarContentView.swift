@@ -796,7 +796,6 @@ struct MenuBarContentView: View {
                             )
                         }
                     } else {
-                        updated.metadataUnavailable = true
                         libraryStore.updateTrack(updated)
                     }
                 }
