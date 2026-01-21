@@ -417,7 +417,8 @@ struct MenuBarContentView: View {
                                 TrackRow(
                                     track: track,
                                     progress: progressText(for: track),
-                                    downloadDisabled: downloadManager.isQueued(trackId: track.id),
+                                    downloadDisabled: downloadManager.isQueued(trackId: track.id)
+                                        || downloadManager.activeTrackId == track.id,
                                     isUserTrack: true,
                                     onPlay: {
                                         logUserAction("Play track tapped: \(track.videoId)")
@@ -971,11 +972,11 @@ struct MenuBarContentView: View {
                 var cancelled = libraryStore.track(withId: track.id) ?? track
                 cancelled.downloadState = .notDownloaded
                 cancelled.downloadProgress = nil
-                cancelled.lastError = "Download cancelled."
+                cancelled.lastError = nil
                 libraryStore.updateTrack(cancelled)
                 return
             }
-            var failed = track
+            var failed = libraryStore.track(withId: track.id) ?? track
             failed.downloadState = .failed
             failed.lastError = error.localizedDescription
             libraryStore.updateTrack(failed)
@@ -983,7 +984,7 @@ struct MenuBarContentView: View {
             failedTrack = failed
             DiagnosticsLogger.shared.log(level: "error", message: "Download failed: \(error.localizedDescription)")
         } catch {
-            var failed = track
+            var failed = libraryStore.track(withId: track.id) ?? track
             failed.downloadState = .failed
             failed.lastError = error.localizedDescription
             libraryStore.updateTrack(failed)

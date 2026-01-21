@@ -73,11 +73,17 @@ final class DownloadManager: ObservableObject, @unchecked Sendable {
         progress = 0
         request.onStart()
 
-        let destination = (try? AppPaths.cachesDirectory())
-            .map { $0.appendingPathComponent("\(request.track.videoId).m4a") }
-
-        guard let destination else {
-            finishActiveDownload(request, result: .failure(DownloadError.failed("Unable to access cache directory.")))
+        let destination: URL
+        do {
+            let cachesDirectory = try AppPaths.cachesDirectory()
+            destination = cachesDirectory.appendingPathComponent("\(request.track.videoId).m4a")
+        } catch {
+            finishActiveDownload(
+                request,
+                result: .failure(
+                    DownloadError.failed("Unable to access cache directory: \(error.localizedDescription)")
+                )
+            )
             return
         }
 
