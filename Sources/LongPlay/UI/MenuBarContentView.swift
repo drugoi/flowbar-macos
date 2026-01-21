@@ -741,6 +741,14 @@ struct MenuBarContentView: View {
         }
     }
 
+    private func startBatchDownloads(_ tracks: [Track]) {
+        Task {
+            for track in tracks {
+                await downloadOnly(track)
+            }
+        }
+    }
+
     private var filteredLibrary: [Track] {
         libraryStore.library.userLibrary
     }
