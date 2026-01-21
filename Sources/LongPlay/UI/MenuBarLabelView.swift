@@ -22,21 +22,23 @@ struct MenuBarLabelView: View {
     }
 
     private var statusState: MenuBarStatusState {
-        if playbackController.state == .error || hasFailedDownload {
-            return .error
-        }
-        if isDownloading {
-            return .downloading
-        }
-        if isResolving {
-            return .resolving
-        }
         switch playbackController.state {
         case .playing:
             return .playing
         case .paused:
             return .paused
-        case .idle, .error:
+        case .error:
+            return .error
+        case .idle:
+            if isDownloading {
+                return .downloading
+            }
+            if isResolving {
+                return .resolving
+            }
+            if hasFailedDownload {
+                return .error
+            }
             return .idle
         }
     }
