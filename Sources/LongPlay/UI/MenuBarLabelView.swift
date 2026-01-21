@@ -4,6 +4,7 @@ struct MenuBarLabelView: View {
     @ObservedObject var libraryStore: LibraryStore
     @ObservedObject var playbackController: PlaybackController
     @ObservedObject var downloadManager: DownloadManager
+    private let badgeOffset = CGSize(width: 7, height: 6)
 
     var body: some View {
         let status = statusState
@@ -14,7 +15,7 @@ struct MenuBarLabelView: View {
                 Image(systemName: badgeSymbol)
                     .font(.system(size: 7, weight: .bold))
                     .symbolRenderingMode(.hierarchical)
-                    .offset(x: 7, y: 6)
+                    .offset(x: badgeOffset.width, y: badgeOffset.height)
             }
         }
         .accessibilityLabel("LongPlay: \(status.label)")
@@ -22,6 +23,7 @@ struct MenuBarLabelView: View {
     }
 
     private var statusState: MenuBarStatusState {
+        let downloadStatus = libraryDownloadStatus
         switch playbackController.state {
         case .playing:
             return .playing
@@ -30,32 +32,49 @@ struct MenuBarLabelView: View {
         case .error:
             return .error
         case .idle:
-            if isDownloading {
+            if downloadManager.activeTrackId != nil || downloadStatus.hasDownloading {
                 return .downloading
             }
-            if isResolving {
+            if downloadStatus.hasResolving {
                 return .resolving
             }
-            if hasFailedDownload {
+            if downloadStatus.hasFailed {
                 return .error
             }
             return .idle
         }
     }
 
-    private var isDownloading: Bool {
-        if downloadManager.activeTrackId != nil {
-            return true
+    private struct LibraryDownloadStatus {
+        let hasDownloading: Bool
+        let hasResolving: Bool
+        let hasFailed: Bool
+    }
+
+    private var libraryDownloadStatus: LibraryDownloadStatus {
+        var hasDownloading = false
+        var hasResolving = false
+        var hasFailed = false
+        for track in libraryStore.library.userLibrary {
+            switch track.downloadState {
+            case .downloading:
+                hasDownloading = true
+            case .resolving:
+                hasResolving = true
+            case .failed:
+                hasFailed = true
+            default:
+                break
+            }
+            if hasDownloading && hasResolving && hasFailed {
+                break
+            }
         }
-        return libraryStore.library.userLibrary.contains { $0.downloadState == .downloading }
-    }
-
-    private var isResolving: Bool {
-        libraryStore.library.userLibrary.contains { $0.downloadState == .resolving }
-    }
-
-    private var hasFailedDownload: Bool {
-        libraryStore.library.userLibrary.contains { $0.downloadState == .failed }
+        return LibraryDownloadStatus(
+            hasDownloading: hasDownloading,
+            hasResolving: hasResolving,
+            hasFailed: hasFailed
+        )
     }
 }
 
