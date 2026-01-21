@@ -195,7 +195,7 @@ final class LibraryStore: ObservableObject {
         return Library(featuredLibrary: makeFeaturedLibrary(), userLibrary: [])
     }
 
-    private func clearDownloadState(for track: Track) -> Track {
+    private func clearDownloadState(_ track: Track) -> Track {
         var updated = track
         updated.localFilePath = nil
         updated.fileSizeBytes = nil
