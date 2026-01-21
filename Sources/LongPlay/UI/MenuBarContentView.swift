@@ -483,6 +483,7 @@ struct MenuBarContentView: View {
                     .buttonStyle(SecondaryButtonStyle())
                     .accessibilityLabel("Sleep timer selection")
                 }
+                .disabled(!canControlPlayback)
                 Text(sleepTimerStatus)
                     .font(.system(size: 11, weight: .regular))
                     .foregroundColor(UI.inkMuted)
@@ -1235,7 +1236,6 @@ struct MenuBarContentView: View {
         guard seconds.isFinite, seconds > 0 else { return "--:--" }
         return formattedTime(seconds)
     }
-
     private func formattedSleepTimer(_ remaining: TimeInterval) -> String {
         let clampedRemaining = max(0, remaining)
         let formatter = clampedRemaining >= 3600
