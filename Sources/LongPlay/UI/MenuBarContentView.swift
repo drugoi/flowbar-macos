@@ -406,24 +406,32 @@ struct MenuBarContentView: View {
                         value: Binding(
                             get: { scrubberDisplayTime },
                             set: { newValue in
-                                scrubberOverrideTime = newValue
-                                if !isScrubbing {
-                                    playbackController.seek(to: newValue)
-                                }
+                                let upperBound = max(scrubberDuration, 0)
+                                let clampedValue = min(max(newValue, 0), upperBound)
+                                scrubberOverrideTime = clampedValue
                             }
                         ),
-                        in: 0...max(scrubberDuration, 1),
+                        in: 0...max(scrubberDuration, 0),
                         onEditingChanged: { editing in
                             isScrubbing = editing
                             if !editing, let finalValue = scrubberOverrideTime {
-                                playbackController.seek(to: finalValue)
+                                if scrubberDuration > 0 {
+                                    playbackController.seek(to: finalValue)
+                                }
                                 scrubberOverrideTime = nil
                             }
                         }
                     )
                     .disabled(!canScrub)
                     .accessibilityLabel("Playback position")
-                    .accessibilityValue("\(formattedTime(scrubberDisplayTime)) of \(formattedTime(scrubberDuration))")
+                    .accessibilityValue({
+                        let current = formattedTime(scrubberDisplayTime)
+                        let total = formattedTime(scrubberDuration)
+                        if current == "--:--" && total == "--:--" {
+                            return "Position unavailable"
+                        }
+                        return "\(current) of \(total)"
+                    }())
                     HStack {
                         Text(formattedTime(scrubberDisplayTime))
                             .font(.system(size: 11, weight: .regular))
@@ -852,7 +860,10 @@ struct MenuBarContentView: View {
 
     private var scrubberCurrentTime: TimeInterval {
         if playbackController.currentTrack != nil {
-            return min(playbackController.currentTime, scrubberDuration > 0 ? scrubberDuration : playbackController.currentTime)
+            if scrubberDuration > 0 {
+                return min(playbackController.currentTime, scrubberDuration)
+            }
+            return playbackController.currentTime
         }
         return 0
     }

@@ -131,19 +131,29 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 
+    /// Seeks to a target time in seconds, clamped to the current track's duration bounds.
+    /// - Parameter time: The desired playback position in seconds.
     func seek(to time: TimeInterval) {
         guard currentTrack != nil else { return }
         let clamped = clampedTime(time)
         if isStreaming {
-            streamPlayer?.seek(to: CMTime(seconds: clamped, preferredTimescale: 600))
+            let targetTime = CMTime(seconds: clamped, preferredTimescale: 600)
+            streamPlayer?.seek(to: targetTime, completionHandler: { [weak self] finished in
+                guard let self, finished else { return }
+                self.currentTime = clamped
+                self.positionUpdateHandler?(clamped)
+                self.updateNowPlayingInfo(elapsedOverride: clamped)
+            })
         } else {
             player?.currentTime = clamped
+            currentTime = clamped
+            positionUpdateHandler?(clamped)
+            updateNowPlayingInfo(elapsedOverride: clamped)
         }
-        currentTime = clamped
-        positionUpdateHandler?(clamped)
-        updateNowPlayingInfo(elapsedOverride: clamped)
     }
 
+    /// Skips the current playback position by the provided interval in seconds.
+    /// - Parameter interval: The number of seconds to skip forward or backward.
     func skip(by interval: TimeInterval) {
         let target = currentPlaybackTime() + interval
         seek(to: target)
