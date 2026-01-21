@@ -45,6 +45,8 @@ struct MenuBarContentView: View {
     @State private var startAtLoginEnabled = false
     @State private var startAtLoginBusy = false
     @State private var startAtLoginError: String?
+    @State private var isScrubbing = false
+    @State private var scrubberOverrideTime: TimeInterval?
     private let tabContentMinHeight: CGFloat = 420
     private let skipInterval: TimeInterval = 15
 
@@ -271,6 +273,10 @@ struct MenuBarContentView: View {
         .onChange(of: libraryStore.library) { _ in
             updateSuggestedTrack()
         }
+        .onChange(of: playbackController.currentTrack?.id) { _ in
+            scrubberOverrideTime = nil
+            isScrubbing = false
+        }
         .onExitCommand {
             dismiss()
         }
@@ -364,6 +370,7 @@ struct MenuBarContentView: View {
                     }
                     .keyboardShortcut(.leftArrow, modifiers: [])
                     .accessibilityLabel("Skip back \(Int(skipInterval)) seconds")
+                    .disabled(!canSkip)
                     .buttonStyle(SecondaryButtonStyle())
                     Button(playbackController.state == .playing ? "Pause" : "Play") {
                         logUserAction("Primary play/pause tapped")
@@ -390,25 +397,35 @@ struct MenuBarContentView: View {
                     }
                     .keyboardShortcut(.rightArrow, modifiers: [])
                     .accessibilityLabel("Skip forward \(Int(skipInterval)) seconds")
+                    .disabled(!canSkip)
                     .buttonStyle(SecondaryButtonStyle())
                 }
                 .disabled(!canControlPlayback)
                 VStack(spacing: 6) {
                     Slider(
                         value: Binding(
-                            get: { scrubberCurrentTime },
+                            get: { scrubberDisplayTime },
                             set: { newValue in
-                                playbackController.seek(to: newValue)
+                                scrubberOverrideTime = newValue
+                                if !isScrubbing {
+                                    playbackController.seek(to: newValue)
+                                }
                             }
                         ),
                         in: 0...max(scrubberDuration, 1),
-                        onEditingChanged: { _ in }
+                        onEditingChanged: { editing in
+                            isScrubbing = editing
+                            if !editing, let finalValue = scrubberOverrideTime {
+                                playbackController.seek(to: finalValue)
+                                scrubberOverrideTime = nil
+                            }
+                        }
                     )
                     .disabled(!canScrub)
                     .accessibilityLabel("Playback position")
-                    .accessibilityValue("\(formattedTime(scrubberCurrentTime)) of \(formattedTime(scrubberDuration))")
+                    .accessibilityValue("\(formattedTime(scrubberDisplayTime)) of \(formattedTime(scrubberDuration))")
                     HStack {
-                        Text(formattedTime(scrubberCurrentTime))
+                        Text(formattedTime(scrubberDisplayTime))
                             .font(.system(size: 11, weight: .regular))
                             .foregroundColor(UI.inkMuted)
                         Spacer()
@@ -840,8 +857,16 @@ struct MenuBarContentView: View {
         return 0
     }
 
+    private var scrubberDisplayTime: TimeInterval {
+        scrubberOverrideTime ?? scrubberCurrentTime
+    }
+
     private var canScrub: Bool {
         canControlPlayback && playbackController.currentTrack != nil && scrubberDuration > 0
+    }
+
+    private var canSkip: Bool {
+        playbackController.currentTrack != nil
     }
 
     private func updateSuggestedTrack() {
