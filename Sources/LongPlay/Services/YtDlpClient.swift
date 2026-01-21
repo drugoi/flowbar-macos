@@ -152,6 +152,7 @@ struct YtDlpClient {
     func resolveMetadata(url: URL) async throws -> YtDlpMetadata {
         let args = baseArgs(playerClients: "web") + [
             "--print", "%(title)s",
+            "--print", "%(duration)s",
             "--skip-download",
             "--quiet",
             "--no-playlist",
@@ -161,21 +162,39 @@ struct YtDlpClient {
             url.absoluteString
         ]
         let output = try await run(args)
-        let trimmed = output
+        let parsedLines = output
             .split(separator: "\n")
             .map(String.init)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .first(where: { line in
+            .filter { line in
                 guard !line.isEmpty else { return false }
                 if line.hasPrefix("WARNING:") || line.hasPrefix("[") || line.hasPrefix("ERROR:") {
                     return false
                 }
                 return true
-            })
-        guard let title = trimmed, !title.isEmpty else {
+            }
+        guard !parsedLines.isEmpty else {
             throw YtDlpError.invalidOutput
         }
-        return YtDlpMetadata(title: title, durationSeconds: nil)
+        guard parsedLines.count <= 2 else {
+            throw YtDlpError.invalidOutput
+        }
+        guard let title = parsedLines.first, !title.isEmpty else {
+            throw YtDlpError.invalidOutput
+        }
+        let durationLine = parsedLines.dropFirst().first
+        let durationValue: Double?
+        if let durationLine {
+            let lowercased = durationLine.lowercased()
+            if lowercased.isEmpty || lowercased == "na" || lowercased == "none" {
+                durationValue = nil
+            } else {
+                durationValue = Double(lowercased)
+            }
+        } else {
+            durationValue = nil
+        }
+        return YtDlpMetadata(title: title, durationSeconds: durationValue)
     }
 
     func fetchTitleFallback(url: URL) async -> String? {
