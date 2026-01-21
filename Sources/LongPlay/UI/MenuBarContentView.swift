@@ -478,7 +478,6 @@ struct MenuBarContentView: View {
                     .controlSize(.small)
                     .frame(width: 220)
                 }
-                .disabled(!canControlPlayback)
                 HStack(alignment: .center, spacing: 8) {
                     Text("Sleep Timer")
                         .font(.system(size: 11, weight: .semibold))
