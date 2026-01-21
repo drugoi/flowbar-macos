@@ -775,7 +775,11 @@ struct MenuBarContentView: View {
                 return max(1, Int(value.rounded()))
             },
             set: { newValue in
-                let bytes = Int64(newValue) * bytesPerGB
+                let maxGB = Double(Int64.max) / Double(bytesPerGB)
+                let clampedGB = min(max(1, Double(newValue)), maxGB)
+                let bytesDouble = clampedGB * Double(bytesPerGB)
+                let safeBytesDouble = min(max(0, bytesDouble), Double(Int64.max))
+                let bytes = Int64(safeBytesDouble)
                 libraryStore.updateCacheLimit(
                     bytes: bytes,
                     excludingTrackId: playbackController.currentTrack?.id
