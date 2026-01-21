@@ -468,7 +468,7 @@ struct MenuBarContentView: View {
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(UI.ink)
                     Spacer()
-                    Picker("Speed", selection: $playbackController.playbackSpeed) {
+                    Picker("Speed", selection: playbackSpeedBinding) {
                         ForEach(PlaybackController.availableSpeeds, id: \.self) { speed in
                             Text(speedLabel(speed))
                                 .tag(speed)
@@ -477,6 +477,7 @@ struct MenuBarContentView: View {
                     .pickerStyle(.segmented)
                     .controlSize(.small)
                     .frame(width: 220)
+                    .accessibilityLabel("Playback speed")
                 }
                 HStack(alignment: .center, spacing: 8) {
                     Text("Sleep Timer")
@@ -1307,10 +1308,14 @@ struct MenuBarContentView: View {
         return formatter.localizedString(for: date, relativeTo: Date())
     }
 
+    private var playbackSpeedBinding: Binding<Double> {
+        Binding(
+            get: { playbackController.playbackSpeed },
+            set: { playbackController.playbackSpeed = $0 }
+        )
+    }
+
     private func speedLabel(_ speed: Double) -> String {
-        if speed == 1.0 {
-            return "1.0x"
-        }
         var formatted = String(format: "%.2f", speed)
         while formatted.contains(".") && (formatted.hasSuffix("0") || formatted.hasSuffix(".")) {
             formatted.removeLast()

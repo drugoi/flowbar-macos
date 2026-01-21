@@ -20,15 +20,20 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     @Published private(set) var sleepTimerRemaining: TimeInterval?
     @Published private(set) var sleepTimerDuration: TimeInterval?
     @Published private(set) var sleepTimerIsActive: Bool = false
-    @Published var playbackSpeed: Double {
+    @Published private var playbackSpeedValue: Double = 1.0 {
         didSet {
-            let clamped = PlaybackController.availableSpeeds.contains(playbackSpeed) ? playbackSpeed : 1.0
-            if clamped != playbackSpeed {
-                playbackSpeed = clamped
-                return
-            }
-            UserDefaults.standard.set(playbackSpeed, forKey: DefaultsKey.playbackSpeed)
+            UserDefaults.standard.set(playbackSpeedValue, forKey: DefaultsKey.playbackSpeed)
             applyPlaybackRate()
+            updateNowPlayingInfo()
+        }
+    }
+
+    var playbackSpeed: Double {
+        get { playbackSpeedValue }
+        set {
+            let clamped = PlaybackController.availableSpeeds.contains(newValue) ? newValue : 1.0
+            guard clamped != playbackSpeedValue else { return }
+            playbackSpeedValue = clamped
         }
     }
 
@@ -59,10 +64,10 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
             DefaultsKey.playbackSpeed: 1.0
         ]
         UserDefaults.standard.register(defaults: defaults)
-        playbackSpeed = UserDefaults.standard.double(forKey: DefaultsKey.playbackSpeed)
         super.init()
         configureRemoteCommands()
         setupOutputDeviceListener()
+        playbackSpeedValue = UserDefaults.standard.double(forKey: DefaultsKey.playbackSpeed)
     }
 
     deinit {
@@ -89,7 +94,6 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
             currentTime = player.currentTime
             state = .playing
             player.play()
-            applyPlaybackRate()
             startPositionTimer()
             updateNowPlayingInfo(elapsedOverride: player.currentTime)
         } catch {
@@ -475,13 +479,15 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     }
 
     private func applyPlaybackRate() {
-        let rate = Float(playbackSpeed)
+        let rate = Float(playbackSpeedValue)
         if isStreaming {
-            streamPlayer?.rate = state == .playing ? rate : 0.0
+            streamPlayer?.rate = rate
+            if state != .playing {
+                streamPlayer?.pause()
+            }
         } else {
             player?.enableRate = true
             player?.rate = rate
         }
-        updateNowPlayingInfo()
     }
 }
