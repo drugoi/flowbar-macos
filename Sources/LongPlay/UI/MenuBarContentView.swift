@@ -68,7 +68,7 @@ struct MenuBarContentView: View {
         formatter.zeroFormattingBehavior = .pad
         return formatter
     }()
-    private let bytesPerGB: Double = 1_073_741_824
+    private let bytesPerGB: Int64 = 1_073_741_824
 
     private enum Tab: String, CaseIterable, Identifiable {
         case listen = "Listen"
@@ -709,12 +709,8 @@ struct MenuBarContentView: View {
                                 .foregroundColor(UI.inkMuted)
                         }
                         Spacer()
-                        Stepper(
-                            value: cacheLimitGBBinding,
-                            in: 1...50,
-                            step: 1
-                        ) {
-                            Text("\(Int(cacheLimitGBBinding.wrappedValue)) GB")
+                        Stepper(value: cacheLimitGBBinding, in: 1...50, step: 1) {
+                            Text("\(cacheLimitGBBinding.wrappedValue) GB")
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(UI.ink)
                         }
@@ -772,11 +768,14 @@ struct MenuBarContentView: View {
         )
     }
 
-    private var cacheLimitGBBinding: Binding<Double> {
+    private var cacheLimitGBBinding: Binding<Int> {
         Binding(
-            get: { Double(libraryStore.cacheLimitBytes) / bytesPerGB },
+            get: {
+                let value = Double(libraryStore.cacheLimitBytes) / Double(bytesPerGB)
+                return max(1, Int(value.rounded()))
+            },
             set: { newValue in
-                let bytes = Int64(newValue * bytesPerGB)
+                let bytes = Int64(newValue) * bytesPerGB
                 libraryStore.updateCacheLimit(
                     bytes: bytes,
                     excludingTrackId: playbackController.currentTrack?.id
