@@ -401,6 +401,7 @@ struct MenuBarContentView: View {
                     Button("Stop") {
                         logUserAction("Stop playback tapped")
                         playbackController.stop()
+                        playbackController.cancelSleepTimer()
                         if let trackId = playbackController.currentTrack?.id {
                             libraryStore.resetPlaybackPosition(trackId: trackId)
                         }
