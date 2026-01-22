@@ -864,23 +864,10 @@ struct MenuBarContentView: View {
             selectedTab = .add
             focusedField = .url
         }
+        addedTracks.forEach { resolveMetadata(for: $0) }
         if entries.count == 1, let track = addedTracks.first {
-            if !useCustomName {
-                Task {
-                    if let title = await fetchTitleForTrack(track.sourceURL) {
-                        await MainActor.run {
-                            libraryStore.updateDisplayNameIfDefault(
-                                trackId: track.id,
-                                defaultName: track.videoId,
-                                newName: title
-                            )
-                        }
-                    }
-                }
-            }
             streamAndDownload(track)
         } else {
-            fetchTitlesForBatch(addedTracks)
             startBatchDownloads(addedTracks)
         }
     }
@@ -900,17 +887,38 @@ struct MenuBarContentView: View {
         }
     }
 
-    private func fetchTitlesForBatch(_ tracks: [Track]) {
+    private func resolveMetadata(for track: Track) {
         Task {
-            for track in tracks {
-                if let title = await fetchTitleForTrack(track.sourceURL) {
-                    await MainActor.run {
+            let url = track.sourceURL
+            do {
+                let metadata = try await MetadataResolver.resolve(for: url)
+                await MainActor.run {
+                    var updated = libraryStore.track(withId: track.id) ?? track
+                    updated.resolvedTitle = metadata.title
+                    updated.durationSeconds = metadata.durationSeconds
+                    updated.metadataUnavailable = false
+                    libraryStore.updateTrack(updated)
+                    libraryStore.updateDisplayNameIfDefault(
+                        trackId: updated.id,
+                        defaultName: updated.videoId,
+                        newName: metadata.title
+                    )
+                }
+            } catch {
+                DiagnosticsLogger.shared.log(level: "warning", message: "Metadata resolution failed: \(error.localizedDescription)")
+                let fallbackTitle = await YtDlpClient().fetchTitleFallback(url: url)
+                await MainActor.run {
+                    var updated = libraryStore.track(withId: track.id) ?? track
+                    if let fallbackTitle {
+                        updated.resolvedTitle = fallbackTitle
                         libraryStore.updateDisplayNameIfDefault(
-                            trackId: track.id,
-                            defaultName: track.videoId,
-                            newName: title
+                            trackId: updated.id,
+                            defaultName: updated.videoId,
+                            newName: fallbackTitle
                         )
                     }
+                    updated.metadataUnavailable = true
+                    libraryStore.updateTrack(updated)
                 }
             }
         }
@@ -1088,21 +1096,6 @@ struct MenuBarContentView: View {
             DiagnosticsLogger.shared.log(level: "info", message: "Starting download for \(track.videoId)")
 
             await downloadOnly(track)
-        }
-    }
-
-    private func fetchTitleForTrack(_ url: URL) async -> String? {
-        let client = YtDlpClient()
-        do {
-            let metadata = try await client.resolveMetadata(url: url)
-            return metadata.title
-        } catch {
-            DiagnosticsLogger.shared.log(level: "warning", message: "Title fetch failed: \(error.localizedDescription)")
-            let fallback = await client.fetchTitleFallback(url: url)
-            if fallback == nil {
-                DiagnosticsLogger.shared.log(level: "warning", message: "Title fallback failed for \(url.absoluteString)")
-            }
-            return fallback
         }
     }
 
@@ -1489,6 +1482,15 @@ private struct TrackRow: View {
                         .font(.system(size: 11, weight: .regular))
                         .foregroundColor(UI.inkMuted)
                 }
+                if let durationText = formattedTrackDuration(track.durationSeconds) {
+                    Text(durationText)
+                        .font(.system(size: 10, weight: .regular))
+                        .foregroundColor(UI.inkMuted)
+                } else if track.metadataUnavailable == true {
+                    Text("Metadata unavailable")
+                        .font(.system(size: 10, weight: .regular))
+                        .foregroundColor(UI.inkMuted)
+                }
                 if let progress {
                     Text(progress)
                         .font(.system(size: 10, weight: .regular))
@@ -1610,6 +1612,21 @@ private struct TrackRow: View {
             return UI.danger
         }
     }
+}
+
+private func formattedTrackDuration(_ seconds: Double?) -> String? {
+    guard let seconds, seconds.isFinite, seconds > 0 else { return nil }
+    let totalSeconds = Int(seconds)
+    let hours = totalSeconds / 3600
+    let minutes = (totalSeconds % 3600) / 60
+    let remainingSeconds = totalSeconds % 60
+    let formatted: String
+    if hours > 0 {
+        formatted = String(format: "%d:%02d:%02d", hours, minutes, remainingSeconds)
+    } else {
+        formatted = String(format: "%d:%02d", minutes, remainingSeconds)
+    }
+    return "Duration \(formatted)"
 }
 
 private struct SectionCard<Content: View>: View {
