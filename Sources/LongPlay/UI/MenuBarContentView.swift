@@ -1153,7 +1153,10 @@ struct MenuBarContentView: View {
             }
             libraryStore.updateTrack(completed)
             libraryStore.refreshCacheSize()
-            libraryStore.enforceCacheLimit(excludingTrackId: playbackController.currentTrack?.id)
+            let excludingId = playbackController.currentTrack?.id
+            DispatchQueue.global(qos: .background).async {
+                libraryStore.enforceCacheLimit(excludingTrackId: excludingId)
+            }
             if let localURL = completed.localFilePath {
                 try? playbackController.swapToLocalIfStreaming(trackId: completed.id, fileURL: URL(fileURLWithPath: localURL))
             }

@@ -25,7 +25,9 @@ final class LibraryStore: ObservableObject {
         load()
         cacheLimitBytes = library.cacheLimitBytes
         refreshCacheSize()
-        enforceCacheLimit(excludingTrackId: nil)
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            self?.enforceCacheLimit(excludingTrackId: nil)
+        }
     }
 
     func load() {
