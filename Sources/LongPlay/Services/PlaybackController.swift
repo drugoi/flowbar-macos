@@ -56,6 +56,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
             if startAt > 0 {
                 player.currentTime = min(startAt, player.duration)
             }
+            currentTime = player.currentTime
             state = .playing
             player.play()
             startPositionTimer()
@@ -77,9 +78,13 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         currentTrack = track
         isStreaming = true
         state = .playing
+        if let fallbackDuration = track.durationSeconds, fallbackDuration > 0 {
+            duration = fallbackDuration
+        }
         if startAt > 0 {
             player.seek(to: CMTime(seconds: startAt, preferredTimescale: 600))
         }
+        currentTime = startAt
         addStreamObserver()
         addStreamEndObserver(for: item)
         addStreamFailureObserver(for: item)
@@ -124,6 +129,34 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         isStreaming = false
         nowPlayingInfo.removeAll()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+    }
+
+    /// Seeks to a target time in seconds, clamped to the current track's duration bounds.
+    /// - Parameter time: The desired playback position in seconds.
+    func seek(to time: TimeInterval) {
+        guard currentTrack != nil else { return }
+        let clamped = clampedTime(time)
+        if isStreaming {
+            let targetTime = CMTime(seconds: clamped, preferredTimescale: 600)
+            streamPlayer?.seek(to: targetTime, completionHandler: { [weak self] finished in
+                guard let self, finished else { return }
+                self.currentTime = clamped
+                self.positionUpdateHandler?(clamped)
+                self.updateNowPlayingInfo(elapsedOverride: clamped)
+            })
+        } else {
+            player?.currentTime = clamped
+            currentTime = clamped
+            positionUpdateHandler?(clamped)
+            updateNowPlayingInfo(elapsedOverride: clamped)
+        }
+    }
+
+    /// Skips the current playback position by the provided interval in seconds.
+    /// - Parameter interval: The number of seconds to skip forward or backward.
+    func skip(by interval: TimeInterval) {
+        let target = currentPlaybackTime() + interval
+        seek(to: target)
     }
 
     func swapToLocalIfStreaming(trackId: UUID, fileURL: URL) throws {
@@ -331,6 +364,25 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
             return time
         }
         return player?.currentTime ?? currentTime
+    }
+
+    private func clampedTime(_ time: TimeInterval) -> TimeInterval {
+        let lowerBound = max(time, 0)
+        let maxDuration = effectiveDuration()
+        if maxDuration > 0 {
+            return min(lowerBound, maxDuration)
+        }
+        return lowerBound
+    }
+
+    private func effectiveDuration() -> TimeInterval {
+        if duration > 0 {
+            return duration
+        }
+        if let fallback = currentTrack?.durationSeconds, fallback > 0 {
+            return fallback
+        }
+        return 0
     }
 
     private func updateNowPlayingInfo(elapsedOverride: TimeInterval? = nil) {

@@ -45,7 +45,10 @@ struct MenuBarContentView: View {
     @State private var startAtLoginEnabled = false
     @State private var startAtLoginBusy = false
     @State private var startAtLoginError: String?
+    @State private var isScrubbing = false
+    @State private var scrubberOverrideTime: TimeInterval?
     private let tabContentMinHeight: CGFloat = 420
+    private let skipInterval: TimeInterval = 15
 
     private enum Tab: String, CaseIterable, Identifiable {
         case listen = "Listen"
@@ -270,6 +273,10 @@ struct MenuBarContentView: View {
         .onChange(of: libraryStore.library) { _ in
             updateSuggestedTrack()
         }
+        .onChange(of: playbackController.currentTrack?.id) { _ in
+            scrubberOverrideTime = nil
+            isScrubbing = false
+        }
         .onExitCommand {
             dismiss()
         }
@@ -354,6 +361,17 @@ struct MenuBarContentView: View {
                 HStack(spacing: 8) {
                     StatusPill(label: nowPlayingStatus, color: nowPlayingStatusColor)
                     Spacer()
+                    Button {
+                        logUserAction("Skip back tapped")
+                        playbackController.skip(by: -skipInterval)
+                    } label: {
+                        Label("Back", systemImage: "gobackward")
+                            .labelStyle(.iconOnly)
+                    }
+                    .keyboardShortcut(.leftArrow, modifiers: [])
+                    .accessibilityLabel("Skip back \(Int(skipInterval)) seconds")
+                    .disabled(!canSkip)
+                    .buttonStyle(SecondaryButtonStyle())
                     Button(playbackController.state == .playing ? "Pause" : "Play") {
                         logUserAction("Primary play/pause tapped")
                         handlePrimaryPlay()
@@ -370,8 +388,60 @@ struct MenuBarContentView: View {
                     }
                     .accessibilityLabel("Stop playback")
                     .buttonStyle(SecondaryButtonStyle())
+                    Button {
+                        logUserAction("Skip forward tapped")
+                        playbackController.skip(by: skipInterval)
+                    } label: {
+                        Label("Forward", systemImage: "goforward")
+                            .labelStyle(.iconOnly)
+                    }
+                    .keyboardShortcut(.rightArrow, modifiers: [])
+                    .accessibilityLabel("Skip forward \(Int(skipInterval)) seconds")
+                    .disabled(!canSkip)
+                    .buttonStyle(SecondaryButtonStyle())
                 }
                 .disabled(!canControlPlayback)
+                VStack(spacing: 6) {
+                    Slider(
+                        value: Binding(
+                            get: { scrubberDisplayTime },
+                            set: { newValue in
+                                let upperBound = max(scrubberDuration, 0)
+                                let clampedValue = min(max(newValue, 0), upperBound)
+                                scrubberOverrideTime = clampedValue
+                            }
+                        ),
+                        in: 0...max(scrubberDuration, 0),
+                        onEditingChanged: { editing in
+                            isScrubbing = editing
+                            if !editing, let finalValue = scrubberOverrideTime {
+                                if scrubberDuration > 0 {
+                                    playbackController.seek(to: finalValue)
+                                }
+                                scrubberOverrideTime = nil
+                            }
+                        }
+                    )
+                    .disabled(!canScrub)
+                    .accessibilityLabel("Playback position")
+                    .accessibilityValue({
+                        let current = formattedTime(scrubberDisplayTime)
+                        let total = formattedTime(scrubberDuration)
+                        if current == "--:--" && total == "--:--" {
+                            return "Position unavailable"
+                        }
+                        return "\(current) of \(total)"
+                    }())
+                    HStack {
+                        Text(formattedTime(scrubberDisplayTime))
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(UI.inkMuted)
+                        Spacer()
+                        Text(formattedDuration(scrubberDuration))
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(UI.inkMuted)
+                    }
+                }
                 if let activeId = downloadManager.activeTrackId,
                    activeId == playbackController.currentTrack?.id,
                    let progress = downloadManager.progress {
@@ -778,6 +848,38 @@ struct MenuBarContentView: View {
         return playbackController.stateColor
     }
 
+    private var scrubberDuration: TimeInterval {
+        if playbackController.duration > 0 {
+            return playbackController.duration
+        }
+        if let duration = nowPlayingTrack?.durationSeconds, duration > 0 {
+            return duration
+        }
+        return 0
+    }
+
+    private var scrubberCurrentTime: TimeInterval {
+        if playbackController.currentTrack != nil {
+            if scrubberDuration > 0 {
+                return min(playbackController.currentTime, scrubberDuration)
+            }
+            return playbackController.currentTime
+        }
+        return 0
+    }
+
+    private var scrubberDisplayTime: TimeInterval {
+        scrubberOverrideTime ?? scrubberCurrentTime
+    }
+
+    private var canScrub: Bool {
+        canControlPlayback && playbackController.currentTrack != nil && scrubberDuration > 0
+    }
+
+    private var canSkip: Bool {
+        playbackController.currentTrack != nil
+    }
+
     private func updateSuggestedTrack() {
         let allTracks = libraryStore.library.userLibrary
         if let lastPlayed = allTracks
@@ -1056,6 +1158,23 @@ struct MenuBarContentView: View {
         formatter.allowedUnits = [.useKB, .useMB, .useGB]
         formatter.countStyle = .file
         return formatter.string(fromByteCount: bytes)
+    }
+
+    private func formattedTime(_ seconds: TimeInterval) -> String {
+        guard seconds.isFinite, seconds >= 0 else { return "--:--" }
+        let totalSeconds = Int(seconds)
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let remainingSeconds = totalSeconds % 60
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, remainingSeconds)
+        }
+        return String(format: "%d:%02d", minutes, remainingSeconds)
+    }
+
+    private func formattedDuration(_ seconds: TimeInterval) -> String {
+        guard seconds.isFinite, seconds > 0 else { return "--:--" }
+        return formattedTime(seconds)
     }
 
     private func relativeDateString(_ date: Date) -> String {
