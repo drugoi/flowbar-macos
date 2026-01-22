@@ -75,3 +75,7 @@ Resources/ffmpeg
 /build-x86_64
 /dist
 .env
+/.codex/skills
+/.agents/ralph
+/.ralph
+/.agents
