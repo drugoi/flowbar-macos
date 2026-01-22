@@ -17,6 +17,9 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     @Published private(set) var currentTime: TimeInterval = 0
     @Published private(set) var duration: TimeInterval = 0
     @Published private(set) var isStreaming: Bool = false
+    @Published private(set) var sleepTimerRemaining: TimeInterval?
+    @Published private(set) var sleepTimerDuration: TimeInterval?
+    @Published private(set) var sleepTimerIsActive: Bool = false
 
     var positionUpdateHandler: ((TimeInterval) -> Void)?
     var playbackEndedHandler: ((Track?) -> Void)?
@@ -31,6 +34,8 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     private var streamStatusObserver: NSKeyValueObservation?
     private var outputDeviceListener: AudioObjectPropertyListenerBlock?
     private var nowPlayingInfo: [String: Any] = [:]
+    private var sleepTimer: Timer?
+    private var sleepTimerEndDate: Date?
 
     override init() {
         super.init()
@@ -39,6 +44,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     }
 
     deinit {
+        sleepTimer?.invalidate()
         removeOutputDeviceListener()
     }
 
@@ -157,6 +163,27 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     func skip(by interval: TimeInterval) {
         let target = currentPlaybackTime() + interval
         seek(to: target)
+    }
+
+    func startSleepTimer(duration: TimeInterval) {
+        sleepTimer?.invalidate()
+        sleepTimerDuration = duration
+        sleepTimerEndDate = Date().addingTimeInterval(duration)
+        updateSleepTimerRemaining()
+        DiagnosticsLogger.shared.log(level: "info", message: "Sleep timer started: \(duration) seconds")
+        sleepTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.updateSleepTimerRemaining()
+        }
+    }
+
+    func cancelSleepTimer() {
+        sleepTimer?.invalidate()
+        sleepTimer = nil
+        sleepTimerEndDate = nil
+        sleepTimerRemaining = nil
+        sleepTimerDuration = nil
+        sleepTimerIsActive = false
+        DiagnosticsLogger.shared.log(level: "info", message: "Sleep timer cancelled")
     }
 
     func swapToLocalIfStreaming(trackId: UUID, fileURL: URL) throws {
@@ -397,5 +424,25 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         }
         nowPlayingInfo = info
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    }
+
+    private func updateSleepTimerRemaining() {
+        guard let endDate = sleepTimerEndDate else {
+            sleepTimerRemaining = nil
+            sleepTimerIsActive = false
+            return
+        }
+        let remaining = max(0, endDate.timeIntervalSinceNow)
+        sleepTimerRemaining = remaining
+        sleepTimerIsActive = remaining > 0
+        if remaining <= 0 {
+            handleSleepTimerExpired()
+        }
+    }
+
+    private func handleSleepTimerExpired() {
+        DiagnosticsLogger.shared.log(level: "info", message: "Sleep timer expired")
+        stop()
+        cancelSleepTimer()
     }
 }

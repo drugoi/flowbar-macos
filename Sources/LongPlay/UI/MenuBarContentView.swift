@@ -49,6 +49,25 @@ struct MenuBarContentView: View {
     @State private var scrubberOverrideTime: TimeInterval?
     private let tabContentMinHeight: CGFloat = 420
     private let skipInterval: TimeInterval = 15
+    private let sleepTimerOptions: [(label: String, duration: TimeInterval)] = [
+        ("15 min", 15 * 60),
+        ("30 min", 30 * 60),
+        ("60 min", 60 * 60)
+    ]
+    private static let sleepTimerHourMinuteFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .positional
+        formatter.zeroFormattingBehavior = .pad
+        return formatter
+    }()
+    private static let sleepTimerMinuteSecondFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.minute, .second]
+        formatter.unitsStyle = .positional
+        formatter.zeroFormattingBehavior = .pad
+        return formatter
+    }()
 
     private enum Tab: String, CaseIterable, Identifiable {
         case listen = "Listen"
@@ -382,6 +401,7 @@ struct MenuBarContentView: View {
                     Button("Stop") {
                         logUserAction("Stop playback tapped")
                         playbackController.stop()
+                        playbackController.cancelSleepTimer()
                         if let trackId = playbackController.currentTrack?.id {
                             libraryStore.resetPlaybackPosition(trackId: trackId)
                         }
@@ -442,6 +462,32 @@ struct MenuBarContentView: View {
                             .foregroundColor(UI.inkMuted)
                     }
                 }
+                HStack(alignment: .center, spacing: 8) {
+                    Text("Sleep Timer")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(UI.inkMuted)
+                    Spacer()
+                    Menu {
+                        Button("Cancel Timer", action: playbackController.cancelSleepTimer)
+                            .disabled(!playbackController.sleepTimerIsActive)
+                        Divider()
+                        ForEach(sleepTimerOptions, id: \.duration) { option in
+                            Button(option.label) {
+                                playbackController.startSleepTimer(duration: option.duration)
+                            }
+                        }
+                    } label: {
+                        Text(sleepTimerMenuLabel)
+                    }
+                    .disabled(!canControlPlayback)
+                    .buttonStyle(SecondaryButtonStyle())
+                    .accessibilityLabel("Sleep timer selection")
+                }
+                .disabled(!canControlPlayback)
+                Text(sleepTimerStatus)
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundColor(UI.inkMuted)
+                    .accessibilityLabel("Sleep timer status")
                 if let activeId = downloadManager.activeTrackId,
                    activeId == playbackController.currentTrack?.id,
                    let progress = downloadManager.progress {
@@ -880,6 +926,20 @@ struct MenuBarContentView: View {
         playbackController.currentTrack != nil
     }
 
+    private var sleepTimerMenuLabel: String {
+        guard let remaining = playbackController.sleepTimerRemaining else {
+            return "Off"
+        }
+        return formattedSleepTimer(remaining)
+    }
+
+    private var sleepTimerStatus: String {
+        guard let remaining = playbackController.sleepTimerRemaining else {
+            return "Sleep timer: Off"
+        }
+        return "Sleep timer: \(formattedSleepTimer(remaining)) remaining"
+    }
+
     private func updateSuggestedTrack() {
         let allTracks = libraryStore.library.userLibrary
         if let lastPlayed = allTracks
@@ -1175,6 +1235,13 @@ struct MenuBarContentView: View {
     private func formattedDuration(_ seconds: TimeInterval) -> String {
         guard seconds.isFinite, seconds > 0 else { return "--:--" }
         return formattedTime(seconds)
+    }
+    private func formattedSleepTimer(_ remaining: TimeInterval) -> String {
+        let clampedRemaining = max(0, remaining)
+        let formatter = clampedRemaining >= 3600
+            ? Self.sleepTimerHourMinuteFormatter
+            : Self.sleepTimerMinuteSecondFormatter
+        return formatter.string(from: clampedRemaining) ?? "0:00"
     }
 
     private func relativeDateString(_ date: Date) -> String {
