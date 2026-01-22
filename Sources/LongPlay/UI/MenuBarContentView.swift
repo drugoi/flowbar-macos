@@ -68,6 +68,7 @@ struct MenuBarContentView: View {
         formatter.zeroFormattingBehavior = .pad
         return formatter
     }()
+    private let bytesPerGB: Int64 = 1_073_741_824
 
     private enum Tab: String, CaseIterable, Identifiable {
         case listen = "Listen"
@@ -698,6 +699,23 @@ struct MenuBarContentView: View {
                 }
 
                 SettingsCard(title: "Storage") {
+                    HStack(alignment: .center, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Cache limit")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(UI.ink)
+                            Text("Auto-evict least-recently-played downloads.")
+                                .font(.system(size: 10.5, weight: .regular))
+                                .foregroundColor(UI.inkMuted)
+                        }
+                        Spacer()
+                        Stepper(value: cacheLimitGBBinding, in: 1...50, step: 1) {
+                            Text("\(cacheLimitGBBinding.wrappedValue) GB")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(UI.ink)
+                        }
+                        .controlSize(.small)
+                    }
                     Button {
                         logUserAction("Clear downloads tapped")
                         showClearDownloadsConfirm = true
@@ -719,7 +737,7 @@ struct MenuBarContentView: View {
                             logUserAction("Clear downloads cancelled")
                         }
                     }
-                    Text("Cache: \(formattedBytes(libraryStore.cacheSizeBytes)) • Manual cleanup")
+                    Text("Cache: \(formattedBytes(libraryStore.cacheSizeBytes)) of \(formattedBytes(libraryStore.cacheLimitBytes))")
                         .font(.system(size: 10.5, weight: .regular))
                         .foregroundColor(UI.inkMuted)
                 }
@@ -747,6 +765,26 @@ struct MenuBarContentView: View {
         Binding(
             get: { updateManager.automaticallyDownloadsUpdates },
             set: { updateManager.automaticallyDownloadsUpdates = $0 }
+        )
+    }
+
+    private var cacheLimitGBBinding: Binding<Int> {
+        Binding(
+            get: {
+                let value = Double(libraryStore.cacheLimitBytes) / Double(bytesPerGB)
+                return max(1, Int(value.rounded()))
+            },
+            set: { newValue in
+                let maxGB = Double(Int64.max) / Double(bytesPerGB)
+                let clampedGB = min(max(1, Double(newValue)), maxGB)
+                let bytesDouble = clampedGB * Double(bytesPerGB)
+                let safeBytesDouble = min(max(0, bytesDouble), Double(Int64.max))
+                let bytes = Int64(safeBytesDouble)
+                libraryStore.updateCacheLimit(
+                    bytes: bytes,
+                    excludingTrackId: playbackController.currentTrack?.id
+                )
+            }
         )
     }
 
@@ -1115,6 +1153,10 @@ struct MenuBarContentView: View {
             }
             libraryStore.updateTrack(completed)
             libraryStore.refreshCacheSize()
+            let excludingId = playbackController.currentTrack?.id
+            DispatchQueue.global(qos: .background).async {
+                libraryStore.enforceCacheLimit(excludingTrackId: excludingId)
+            }
             if let localURL = completed.localFilePath {
                 try? playbackController.swapToLocalIfStreaming(trackId: completed.id, fileURL: URL(fileURLWithPath: localURL))
             }

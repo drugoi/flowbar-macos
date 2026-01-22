@@ -4,6 +4,7 @@ import Combine
 final class LibraryStore: ObservableObject {
     @Published private(set) var library: Library
     @Published private(set) var cacheSizeBytes: Int64 = 0
+    @Published private(set) var cacheLimitBytes: Int64 = Library.defaultCacheLimitBytes
     @Published private(set) var lastError: String?
 
     private let encoder: JSONEncoder
@@ -22,7 +23,11 @@ final class LibraryStore: ObservableObject {
 
         self.library = LibraryStore.makeDefaultLibrary()
         load()
+        cacheLimitBytes = library.cacheLimitBytes
         refreshCacheSize()
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            self?.enforceCacheLimit(excludingTrackId: nil)
+        }
     }
 
     func load() {
@@ -38,6 +43,7 @@ final class LibraryStore: ObservableObject {
                 decoded.schemaVersion = Library.currentSchemaVersion
             }
             library = decoded
+            cacheLimitBytes = decoded.cacheLimitBytes
             lastError = nil
         } catch {
             lastError = "Failed to load library."
@@ -85,12 +91,7 @@ final class LibraryStore: ObservableObject {
         guard let path = track.localFilePath else { return }
         do {
             try FileManager.default.removeItem(atPath: path)
-            var updated = track
-            updated.localFilePath = nil
-            updated.fileSizeBytes = nil
-            updated.downloadProgress = nil
-            updated.downloadState = .notDownloaded
-            updated.lastError = nil
+            let updated = resetDownloadState(for: track)
             if replace(track: updated) {
                 save()
             }
@@ -109,13 +110,7 @@ final class LibraryStore: ObservableObject {
                 try FileManager.default.removeItem(at: url)
             }
             library.userLibrary = library.userLibrary.map { track in
-                var updated = track
-                updated.localFilePath = nil
-                updated.fileSizeBytes = nil
-                updated.downloadProgress = nil
-                updated.downloadState = .notDownloaded
-                updated.lastError = nil
-                return updated
+                resetDownloadState(for: track)
             }
             save()
             refreshCacheSize()
@@ -143,6 +138,102 @@ final class LibraryStore: ObservableObject {
             total += Int64(values.fileSize ?? 0)
         }
         return total
+    }
+
+    func updateCacheLimit(bytes: Int64, excludingTrackId: UUID?) {
+        let updatedLimit = max(Library.minimumCacheLimitBytes, bytes)
+        cacheLimitBytes = updatedLimit
+        library.cacheLimitBytes = updatedLimit
+        save()
+        enforceCacheLimit(excludingTrackId: excludingTrackId)
+    }
+
+    func enforceCacheLimit(excludingTrackId: UUID?) {
+        let limit = cacheLimitBytes
+        let snapshot = library.userLibrary
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            guard let self else { return }
+            guard limit > 0 else { return }
+            do {
+                var currentSize = try Self.calculateCacheSize()
+                guard currentSize > limit else {
+                    DispatchQueue.main.async {
+                        self.cacheSizeBytes = currentSize
+                    }
+                    return
+                }
+
+                let candidates = snapshot
+                    .filter { $0.downloadState == .downloaded && $0.id != excludingTrackId }
+                    .sorted {
+                        let lhsDate = $0.lastPlayedAt ?? $0.addedAt
+                        let rhsDate = $1.lastPlayedAt ?? $1.addedAt
+                        return lhsDate < rhsDate
+                    }
+
+                var evictedTrackIds: [UUID] = []
+                for track in candidates {
+                    guard currentSize > limit else { break }
+                    guard let path = track.localFilePath else { continue }
+                    let fileExists = FileManager.default.fileExists(atPath: path)
+                    let fileSize: Int64
+                    if let storedSize = track.fileSizeBytes {
+                        fileSize = storedSize
+                    } else {
+                        let resolvedSize = Self.readFileSize(atPath: path)
+                        fileSize = resolvedSize
+                        if fileExists && resolvedSize == 0 {
+                            DiagnosticsLogger.shared.log(
+                                level: "warning",
+                                message: "Cache eviction size unavailable for \(track.videoId)."
+                            )
+                        }
+                    }
+
+                    var didDeleteFile = false
+                    if fileExists {
+                        do {
+                            try FileManager.default.removeItem(atPath: path)
+                            didDeleteFile = true
+                        } catch {
+                            DiagnosticsLogger.shared.log(level: "error", message: "Failed to evict download: \(error)")
+                            continue
+                        }
+                    }
+
+                    if didDeleteFile || !fileExists {
+                        evictedTrackIds.append(track.id)
+                    }
+
+                    if didDeleteFile {
+                        currentSize = max(0, currentSize - fileSize)
+                    }
+                }
+
+                DispatchQueue.main.async {
+                    if !evictedTrackIds.isEmpty {
+                        var updatedLibrary = self.library.userLibrary
+                        for evictedId in evictedTrackIds {
+                            guard let index = updatedLibrary.firstIndex(where: { $0.id == evictedId }) else { continue }
+                            let currentTrack = updatedLibrary[index]
+                            if let path = currentTrack.localFilePath,
+                               FileManager.default.fileExists(atPath: path) {
+                                continue
+                            }
+                            updatedLibrary[index] = self.resetDownloadState(for: currentTrack)
+                        }
+                        self.library.userLibrary = updatedLibrary
+                    }
+                    self.save()
+                    self.cacheSizeBytes = currentSize
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.lastError = "Failed to enforce cache limit."
+                }
+                DiagnosticsLogger.shared.log(level: "error", message: "Cache eviction failed: \(error)")
+            }
+        }
     }
 
     func updatePlaybackPosition(trackId: UUID, position: TimeInterval) {
@@ -193,5 +284,23 @@ final class LibraryStore: ObservableObject {
 
     static func makeDefaultLibrary() -> Library {
         return Library(userLibrary: [])
+    }
+
+    private func resetDownloadState(for track: Track) -> Track {
+        var updated = track
+        updated.localFilePath = nil
+        updated.fileSizeBytes = nil
+        updated.downloadProgress = nil
+        updated.downloadState = .notDownloaded
+        updated.lastError = nil
+        return updated
+    }
+
+    private static func readFileSize(atPath path: String) -> Int64 {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: path),
+              let size = attributes[.size] as? NSNumber else {
+            return 0
+        }
+        return size.int64Value
     }
 }
