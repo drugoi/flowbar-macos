@@ -169,7 +169,7 @@ final class LibraryStore: ObservableObject {
                         return lhsDate < rhsDate
                     }
 
-                var updatedLibrary = snapshot
+                var evictedTrackIds: [UUID] = []
                 for track in candidates {
                     guard currentSize > limit else { break }
                     guard let path = track.localFilePath else { continue }
@@ -199,9 +199,8 @@ final class LibraryStore: ObservableObject {
                         }
                     }
 
-                    if let index = updatedLibrary.firstIndex(where: { $0.id == track.id }),
-                       didDeleteFile || !fileExists {
-                        updatedLibrary[index] = self.resetDownloadState(for: track)
+                    if didDeleteFile || !fileExists {
+                        evictedTrackIds.append(track.id)
                     }
 
                     if didDeleteFile {
@@ -210,7 +209,19 @@ final class LibraryStore: ObservableObject {
                 }
 
                 DispatchQueue.main.async {
-                    self.library.userLibrary = updatedLibrary
+                    if !evictedTrackIds.isEmpty {
+                        var updatedLibrary = self.library.userLibrary
+                        for evictedId in evictedTrackIds {
+                            guard let index = updatedLibrary.firstIndex(where: { $0.id == evictedId }) else { continue }
+                            let currentTrack = updatedLibrary[index]
+                            if let path = currentTrack.localFilePath,
+                               FileManager.default.fileExists(atPath: path) {
+                                continue
+                            }
+                            updatedLibrary[index] = self.resetDownloadState(for: currentTrack)
+                        }
+                        self.library.userLibrary = updatedLibrary
+                    }
                     self.save()
                     self.cacheSizeBytes = currentSize
                 }
