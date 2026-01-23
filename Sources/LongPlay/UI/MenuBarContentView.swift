@@ -73,7 +73,7 @@ struct MenuBarContentView: View {
     private enum Tab: String, CaseIterable, Identifiable {
         case listen = "Listen"
         case add = "Add"
-        case utilities = "Utilities"
+        case utilities = "Settings"
 
         var id: String { rawValue }
 
@@ -310,7 +310,7 @@ struct MenuBarContentView: View {
                     .foregroundColor(UI.ink)
             }
             Spacer()
-            Text("v0.1")
+            Text(appVersionText)
                 .font(.system(size: 11, weight: .semibold))
                 .padding(.vertical, 4)
                 .padding(.horizontal, 8)
@@ -321,6 +321,15 @@ struct MenuBarContentView: View {
                         .stroke(UI.border, lineWidth: 1)
                 )
         }
+    }
+
+    private var appVersionText: String {
+        let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0"
+        let buildVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        if buildVersion.isEmpty || buildVersion == shortVersion {
+            return "v\(shortVersion)"
+        }
+        return "v\(shortVersion) (\(buildVersion))"
     }
 
     private var tabBar: some View {
@@ -372,7 +381,8 @@ struct MenuBarContentView: View {
 
     private var nowPlayingSection: some View {
         SectionCard {
-            VStack(alignment: .leading, spacing: 8) {
+            let showScrubber = playbackController.state == .playing || playbackController.state == .paused
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Now Playing")
                     .font(sectionTitleFont)
                 Text(nowPlayingTitle)
@@ -381,17 +391,6 @@ struct MenuBarContentView: View {
                 HStack(spacing: 8) {
                     StatusPill(label: nowPlayingStatus, color: nowPlayingStatusColor)
                     Spacer()
-                    Button {
-                        logUserAction("Skip back tapped")
-                        playbackController.skip(by: -skipInterval)
-                    } label: {
-                        Label("Back", systemImage: "gobackward")
-                            .labelStyle(.iconOnly)
-                    }
-                    .keyboardShortcut(.leftArrow, modifiers: [])
-                    .accessibilityLabel("Skip back \(Int(skipInterval)) seconds")
-                    .disabled(!canSkip)
-                    .buttonStyle(SecondaryButtonStyle())
                     Button(playbackController.state == .playing ? "Pause" : "Play") {
                         logUserAction("Primary play/pause tapped")
                         handlePrimaryPlay()
@@ -409,6 +408,63 @@ struct MenuBarContentView: View {
                     }
                     .accessibilityLabel("Stop playback")
                     .buttonStyle(SecondaryButtonStyle())
+                }
+                .disabled(!canControlPlayback)
+                if showScrubber {
+                    VStack(spacing: 6) {
+                        Slider(
+                            value: Binding(
+                                get: { scrubberDisplayTime },
+                                set: { newValue in
+                                    let upperBound = max(scrubberDuration, 0)
+                                    let clampedValue = min(max(newValue, 0), upperBound)
+                                    scrubberOverrideTime = clampedValue
+                                }
+                            ),
+                            in: 0...max(scrubberDuration, 0),
+                            onEditingChanged: { editing in
+                                isScrubbing = editing
+                                if !editing, let finalValue = scrubberOverrideTime {
+                                    if scrubberDuration > 0 {
+                                        playbackController.seek(to: finalValue)
+                                    }
+                                    scrubberOverrideTime = nil
+                                }
+                            }
+                        )
+                        .disabled(!canScrub)
+                        .accessibilityLabel("Playback position")
+                        .accessibilityValue({
+                            let current = formattedTime(scrubberDisplayTime)
+                            let total = formattedTime(scrubberDuration)
+                            if current == "--:--" && total == "--:--" {
+                                return "Position unavailable"
+                            }
+                            return "\(current) of \(total)"
+                        }())
+                        HStack {
+                            Text(formattedTime(scrubberDisplayTime))
+                                .font(.system(size: 11, weight: .regular))
+                                .foregroundColor(UI.inkMuted)
+                            Spacer()
+                            Text(formattedDuration(scrubberDuration))
+                                .font(.system(size: 11, weight: .regular))
+                                .foregroundColor(UI.inkMuted)
+                        }
+                    }
+                }
+                HStack(spacing: 8) {
+                    Button {
+                        logUserAction("Skip back tapped")
+                        playbackController.skip(by: -skipInterval)
+                    } label: {
+                        Label("Back", systemImage: "gobackward")
+                            .labelStyle(.iconOnly)
+                    }
+                    .keyboardShortcut(.leftArrow, modifiers: [])
+                    .accessibilityLabel("Skip back \(Int(skipInterval)) seconds")
+                    .disabled(!canSkip)
+                    .buttonStyle(SecondaryButtonStyle())
                     Button {
                         logUserAction("Skip forward tapped")
                         playbackController.skip(by: skipInterval)
@@ -420,71 +476,18 @@ struct MenuBarContentView: View {
                     .accessibilityLabel("Skip forward \(Int(skipInterval)) seconds")
                     .disabled(!canSkip)
                     .buttonStyle(SecondaryButtonStyle())
-                }
-                .disabled(!canControlPlayback)
-                VStack(spacing: 6) {
-                    Slider(
-                        value: Binding(
-                            get: { scrubberDisplayTime },
-                            set: { newValue in
-                                let upperBound = max(scrubberDuration, 0)
-                                let clampedValue = min(max(newValue, 0), upperBound)
-                                scrubberOverrideTime = clampedValue
-                            }
-                        ),
-                        in: 0...max(scrubberDuration, 0),
-                        onEditingChanged: { editing in
-                            isScrubbing = editing
-                            if !editing, let finalValue = scrubberOverrideTime {
-                                if scrubberDuration > 0 {
-                                    playbackController.seek(to: finalValue)
-                                }
-                                scrubberOverrideTime = nil
-                            }
-                        }
-                    )
-                    .disabled(!canScrub)
-                    .accessibilityLabel("Playback position")
-                    .accessibilityValue({
-                        let current = formattedTime(scrubberDisplayTime)
-                        let total = formattedTime(scrubberDuration)
-                        if current == "--:--" && total == "--:--" {
-                            return "Position unavailable"
-                        }
-                        return "\(current) of \(total)"
-                    }())
-                    HStack {
-                        Text(formattedTime(scrubberDisplayTime))
-                            .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(UI.inkMuted)
-                        Spacer()
-                        Text(formattedDuration(scrubberDuration))
-                            .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(UI.inkMuted)
-                    }
-                }
-                HStack(spacing: 12) {
-                    Text("Speed")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(UI.ink)
-                    Spacer()
-                    Picker("Speed", selection: playbackSpeedBinding) {
+                    Menu {
                         ForEach(PlaybackController.availableSpeeds, id: \.self) { speed in
-                            Text(speedLabel(speed))
-                                .tag(speed)
+                            Button(speedLabel(speed)) {
+                                playbackSpeedBinding.wrappedValue = speed
+                            }
                         }
+                    } label: {
+                        Label("Speed", systemImage: "speedometer")
+                            .labelStyle(.iconOnly)
                     }
-                    .pickerStyle(.segmented)
-                    .controlSize(.small)
-                    .frame(width: 220)
                     .accessibilityLabel("Playback speed")
-                }
-                .disabled(!canControlPlayback)
-                HStack(alignment: .center, spacing: 8) {
-                    Text("Sleep Timer")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(UI.inkMuted)
-                    Spacer()
+                    .buttonStyle(SecondaryButtonStyle())
                     Menu {
                         Button("Cancel Timer", action: playbackController.cancelSleepTimer)
                             .disabled(!playbackController.sleepTimerIsActive)
@@ -495,17 +498,21 @@ struct MenuBarContentView: View {
                             }
                         }
                     } label: {
-                        Text(sleepTimerMenuLabel)
+                        Label("Sleep timer", systemImage: "moon.zzz")
+                            .labelStyle(.iconOnly)
                     }
-                    .disabled(!canControlPlayback)
-                    .buttonStyle(SecondaryButtonStyle())
                     .accessibilityLabel("Sleep timer selection")
+                    .buttonStyle(SecondaryButtonStyle())
+                    Spacer()
                 }
+                .controlSize(.small)
                 .disabled(!canControlPlayback)
-                Text(sleepTimerStatus)
-                    .font(.system(size: 11, weight: .regular))
-                    .foregroundColor(UI.inkMuted)
-                    .accessibilityLabel("Sleep timer status")
+                if playbackController.sleepTimerRemaining != nil {
+                    Text(sleepTimerStatus)
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(UI.inkMuted)
+                        .accessibilityLabel("Sleep timer status")
+                }
                 if let activeId = downloadManager.activeTrackId,
                    activeId == playbackController.currentTrack?.id,
                    let progress = downloadManager.progress {
@@ -670,108 +677,112 @@ struct MenuBarContentView: View {
 
     private var utilitiesSection: some View {
         SectionCard {
-            VStack(alignment: .leading, spacing: 6) {
-                SettingsCard(title: "Updates") {
-                    settingsActionRow(
-                        title: "Check for Updates",
-                        subtitle: "Check the update feed now.",
-                        actionTitle: "Check"
-                    ) {
-                        logUserAction("Check for updates tapped")
-                        updateManager.checkForUpdates()
-                    }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 6) {
+                    SettingsCard(title: "Updates") {
+                        settingsActionRow(
+                            title: "Check for Updates",
+                            subtitle: "Check the update feed now.",
+                            actionTitle: "Check"
+                        ) {
+                            logUserAction("Check for updates tapped")
+                            updateManager.checkForUpdates()
+                        }
 
-                    settingsToggle(
-                        title: "Check Automatically",
-                        subtitle: "Look for updates in the background.",
-                        isOn: updateAutoCheckBinding
-                    )
-                    if let errorMessage = updateManager.errorMessage {
-                        settingsErrorText(errorMessage)
-                    } else if let lastCheckedAt = updateManager.lastCheckedAt {
-                        Text("Last checked: \(relativeDateString(lastCheckedAt))")
-                            .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(UI.inkMuted)
-                    }
-                }
-
-                SettingsCard(title: "System") {
-                    settingsToggle(
-                        title: "Start at Login",
-                        subtitle: "Launch LongPlay when you sign in.",
-                        isOn: startAtLoginBinding
-                    )
-                    .disabled(startAtLoginBusy)
-                    if let startAtLoginError {
-                        settingsErrorText(startAtLoginError)
-                    }
-
-                    settingsActionRow(
-                        title: "Copy Diagnostics",
-                        subtitle: "Copy logs to your clipboard.",
-                        actionTitle: "Copy"
-                    ) {
-                        logUserAction("Copy diagnostics tapped")
-                        copyDiagnostics()
-                    }
-                    if let lastError = libraryStore.lastError {
-                        settingsErrorText(lastError)
-                    }
-                }
-
-                SettingsCard(title: "Storage") {
-                    HStack(alignment: .center, spacing: 10) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Cache limit")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(UI.ink)
-                            Text("Auto-evict least-recently-played downloads.")
-                                .font(.system(size: 10.5, weight: .regular))
+                        settingsToggle(
+                            title: "Check Automatically",
+                            subtitle: "Look for updates in the background.",
+                            isOn: updateAutoCheckBinding
+                        )
+                        if let errorMessage = updateManager.errorMessage {
+                            settingsErrorText(errorMessage)
+                        } else if let lastCheckedAt = updateManager.lastCheckedAt {
+                            Text("Last checked: \(relativeDateString(lastCheckedAt))")
+                                .font(.system(size: 11, weight: .regular))
                                 .foregroundColor(UI.inkMuted)
                         }
-                        Spacer()
-                        Stepper(value: cacheLimitGBBinding, in: 1...50, step: 1) {
-                            Text("\(cacheLimitGBBinding.wrappedValue) GB")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(UI.ink)
-                        }
-                        .controlSize(.small)
                     }
-                    Button {
-                        logUserAction("Clear downloads tapped")
-                        showClearDownloadsConfirm = true
+
+                    SettingsCard(title: "System") {
+                        settingsToggle(
+                            title: "Start at Login",
+                            subtitle: "Launch LongPlay when you sign in.",
+                            isOn: startAtLoginBinding
+                        )
+                        .disabled(startAtLoginBusy)
+                        if let startAtLoginError {
+                            settingsErrorText(startAtLoginError)
+                        }
+
+                        settingsActionRow(
+                            title: "Copy Diagnostics",
+                            subtitle: "Copy logs to your clipboard.",
+                            actionTitle: "Copy"
+                        ) {
+                            logUserAction("Copy diagnostics tapped")
+                            copyDiagnostics()
+                        }
+                        if let lastError = libraryStore.lastError {
+                            settingsErrorText(lastError)
+                        }
+                    }
+
+                    SettingsCard(title: "Storage") {
+                        HStack(alignment: .center, spacing: 10) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Cache limit")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(UI.ink)
+                                Text("Auto-evict least-recently-played downloads.")
+                                    .font(.system(size: 10.5, weight: .regular))
+                                    .foregroundColor(UI.inkMuted)
+                            }
+                            Spacer()
+                            Stepper(value: cacheLimitGBBinding, in: 1...50, step: 1) {
+                                Text("\(cacheLimitGBBinding.wrappedValue) GB")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(UI.ink)
+                            }
+                            .controlSize(.small)
+                        }
+                        Button {
+                            logUserAction("Clear downloads tapped")
+                            showClearDownloadsConfirm = true
                     } label: {
                         settingsButtonLabel(title: "Clear Downloads", systemImage: "trash")
                     }
                     .accessibilityLabel("Clear all downloads")
-                    .buttonStyle(SecondaryButtonStyle())
+                    .buttonStyle(CompactSecondaryButtonStyle())
                     .confirmationDialog(
                         "Remove all cached audio files?",
                         isPresented: $showClearDownloadsConfirm,
                         titleVisibility: .visible
-                    ) {
-                        Button("Clear Downloads", role: .destructive) {
-                            logUserAction("Clear downloads confirmed")
-                            libraryStore.clearDownloads()
+                        ) {
+                            Button("Clear Downloads", role: .destructive) {
+                                logUserAction("Clear downloads confirmed")
+                                libraryStore.clearDownloads()
+                            }
+                            Button("Cancel", role: .cancel) {
+                                logUserAction("Clear downloads cancelled")
+                            }
                         }
-                        Button("Cancel", role: .cancel) {
-                            logUserAction("Clear downloads cancelled")
-                        }
+                        Text("Cache: \(formattedBytes(libraryStore.cacheSizeBytes)) of \(formattedBytes(libraryStore.cacheLimitBytes))")
+                            .font(.system(size: 10.5, weight: .regular))
+                            .foregroundColor(UI.inkMuted)
                     }
-                    Text("Cache: \(formattedBytes(libraryStore.cacheSizeBytes)) of \(formattedBytes(libraryStore.cacheLimitBytes))")
-                        .font(.system(size: 10.5, weight: .regular))
-                        .foregroundColor(UI.inkMuted)
+                    Divider()
+                    Button {
+                        logUserAction("Quit tapped")
+                        NSApplication.shared.terminate(nil)
+                    } label: {
+                        settingsButtonLabel(title: "Quit", systemImage: "power")
+                    }
+                    .accessibilityLabel("Quit LongPlay")
+                    .buttonStyle(SecondaryButtonStyle())
                 }
-                Divider()
-                Button {
-                    logUserAction("Quit tapped")
-                    NSApplication.shared.terminate(nil)
-                } label: {
-                    settingsButtonLabel(title: "Quit", systemImage: "power")
-                }
-                .accessibilityLabel("Quit LongPlay")
-                .buttonStyle(SecondaryButtonStyle())
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -1703,6 +1714,26 @@ private struct SecondaryButtonStyle: ButtonStyle {
                 .font(.system(size: 12, weight: .medium))
                 .padding(.vertical, 7)
                 .padding(.horizontal, 14)
+                .background(hovering ? UI.surfaceHover : UI.surface)
+                .foregroundColor(UI.ink)
+                .cornerRadius(UI.cornerRadius)
+                .overlay(
+                    RoundedRectangle(cornerRadius: UI.cornerRadius)
+                        .stroke(hovering ? UI.borderHover : UI.border, lineWidth: 1)
+                )
+                .scaleEffect(configuration.isPressed ? 0.98 : 1)
+                .opacity(configuration.isPressed ? 0.9 : 1)
+        }
+    }
+}
+
+private struct CompactSecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Hoverable { hovering in
+            configuration.label
+                .font(.system(size: 11, weight: .medium))
+                .padding(.vertical, 5)
+                .padding(.horizontal, 10)
                 .background(hovering ? UI.surfaceHover : UI.surface)
                 .foregroundColor(UI.ink)
                 .cornerRadius(UI.cornerRadius)
