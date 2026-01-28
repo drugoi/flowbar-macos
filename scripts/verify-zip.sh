@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ZIP_PATH="${1:-${ZIP_PATH:-}}"
 
 if [[ -z "$ZIP_PATH" ]]; then
-  ZIP_PATH=$(ls -t "$ROOT_DIR"/dist/LongPlay-*.zip 2>/dev/null | head -n 1 || true)
+  ZIP_PATH=$(ls -t "$ROOT_DIR"/dist/FlowBar-*.zip 2>/dev/null | head -n 1 || true)
 fi
 
 if [[ -z "$ZIP_PATH" || ! -f "$ZIP_PATH" ]]; then

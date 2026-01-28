@@ -1,4 +1,4 @@
-# LongPlay Implementation Plan
+# FlowBar Implementation Plan
 
 ## PRD Analysis (Condensed)
 - Product: macOS menu bar app (no Dock icon) with SwiftUI `MenuBarExtra` and a compact popover.
@@ -70,7 +70,7 @@
 - [x] Document cache policy (manual vs eviction) in UI or docs.
 
 ## Immediate Next Steps (This Sprint)
-- [x] Scaffold `Sources/LongPlay` with core models and persistence stubs.
+- [x] Scaffold `Sources/FlowBar` with core models and persistence stubs.
 - [x] Add URL validation, diagnostics logger, and JSON storage layout.
 - [x] Draft menu bar SwiftUI skeleton (no styling yet).
 - [x] Create Xcode project and set minimum macOS target.

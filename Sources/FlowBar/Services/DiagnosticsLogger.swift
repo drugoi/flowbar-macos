@@ -10,7 +10,7 @@ final class DiagnosticsLogger {
     static let shared = DiagnosticsLogger(maxEntries: 500)
 
     private let maxEntries: Int
-    private let queue = DispatchQueue(label: "longplay.diagnostics.logger")
+    private let queue = DispatchQueue(label: "flowbar.diagnostics.logger")
     private var entries: [LogEntry] = []
 
     init(maxEntries: Int) {

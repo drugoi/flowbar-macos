@@ -2,21 +2,21 @@ import AppKit
 import SwiftUI
 
 @main
-struct LongPlayMain {
+struct FlowBarMain {
     static func main() {
         let env = ProcessInfo.processInfo.environment
         let isUITestRun = env["XCTestConfigurationFilePath"] != nil
         if isUITestRun || env["UITESTING"] == "1" || ProcessInfo.processInfo.arguments.contains("-ui-testing") {
             NSApplication.shared.setActivationPolicy(.regular)
             NSRunningApplication.current.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
-            LongPlayUITestApp.main()
+            FlowBarUITestApp.main()
         } else {
-            LongPlayApp.main()
+            FlowBarApp.main()
         }
     }
 }
 
-struct LongPlayApp: App {
+struct FlowBarApp: App {
     @StateObject private var libraryStore = LibraryStore()
     @StateObject private var playbackController = PlaybackController()
     @StateObject private var downloadManager = DownloadManager()
@@ -43,7 +43,7 @@ struct LongPlayApp: App {
     }
 }
 
-struct LongPlayUITestApp: App {
+struct FlowBarUITestApp: App {
     @NSApplicationDelegateAdaptor(UITestAppDelegate.self) private var appDelegate
 
     var body: some Scene {
@@ -74,7 +74,7 @@ private final class UITestAppDelegate: NSObject, NSApplicationDelegate {
         )
         .frame(width: 420)
         .frame(maxHeight: 720)
-        .accessibilityIdentifier("LongPlayMainWindow")
+        .accessibilityIdentifier("FlowBarMainWindow")
 
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 420, height: 720),
@@ -82,7 +82,7 @@ private final class UITestAppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "LongPlay"
+        window.title = "FlowBar"
         window.contentView = NSHostingView(rootView: rootView)
         window.isReleasedWhenClosed = false
         window.makeKeyAndOrderFront(nil)

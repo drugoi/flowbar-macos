@@ -1,6 +1,6 @@
 # Updates (Sparkle)
 
-LongPlay uses Sparkle (stable feed) to support **Check for Updates** and automatic background update checks.
+FlowBar uses Sparkle (stable feed) to support **Check for Updates** and automatic background update checks.
 
 ## Feed
 - The app reads the appcast URL from `SUFeedURL` in `Config/Info.plist`.

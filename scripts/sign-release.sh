@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_PATH="${APP_PATH:-}"
 SIGN_IDENTITY="${SIGN_IDENTITY:-}"
-ENTITLEMENTS="${ENTITLEMENTS:-$ROOT_DIR/Config/LongPlay.entitlements}"
+ENTITLEMENTS="${ENTITLEMENTS:-$ROOT_DIR/Config/FlowBar.entitlements}"
 TOOL_ENTITLEMENTS="${TOOL_ENTITLEMENTS:-$ROOT_DIR/Config/EmbeddedTool.entitlements}"
 
 if [[ -z "$APP_PATH" || -z "$SIGN_IDENTITY" ]]; then

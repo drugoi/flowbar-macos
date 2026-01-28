@@ -1,5 +1,5 @@
 import XCTest
-@testable import LongPlay
+@testable import FlowBar
 
 final class LibraryStoreCacheEvictionTests: XCTestCase {
     private var tempRootURL: URL?
@@ -9,7 +9,7 @@ final class LibraryStoreCacheEvictionTests: XCTestCase {
     override func setUp() {
         super.setUp()
         let root = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("LongPlayTests-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("FlowBarTests-\(UUID().uuidString)", isDirectory: true)
         let support = root.appendingPathComponent("Support", isDirectory: true)
         let caches = root.appendingPathComponent("Caches", isDirectory: true)
         tempRootURL = root

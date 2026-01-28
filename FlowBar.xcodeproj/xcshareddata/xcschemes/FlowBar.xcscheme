@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "92734DCEB2EA188AD30B87F6"
-               BuildableName = "LongPlay.app"
-               BlueprintName = "LongPlay"
-               ReferencedContainer = "container:LongPlay.xcodeproj">
+               BuildableName = "FlowBar.app"
+               BlueprintName = "FlowBar"
+               ReferencedContainer = "container:FlowBar.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "92734DCEB2EA188AD30B87F6"
-            BuildableName = "LongPlay.app"
-            BlueprintName = "LongPlay"
-            ReferencedContainer = "container:LongPlay.xcodeproj">
+            BuildableName = "FlowBar.app"
+            BlueprintName = "FlowBar"
+            ReferencedContainer = "container:FlowBar.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -45,9 +45,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "201F1A60F9DA5AA5DE1AE59A"
-               BuildableName = "LongPlayUITests.xctest"
-               BlueprintName = "LongPlayUITests"
-               ReferencedContainer = "container:LongPlay.xcodeproj">
+               BuildableName = "FlowBarUITests.xctest"
+               BlueprintName = "FlowBarUITests"
+               ReferencedContainer = "container:FlowBar.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -56,9 +56,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "B13EB6D9E333C7F6324376BC"
-               BuildableName = "LongPlayTests.xctest"
-               BlueprintName = "LongPlayTests"
-               ReferencedContainer = "container:LongPlay.xcodeproj">
+               BuildableName = "FlowBarTests.xctest"
+               BlueprintName = "FlowBarTests"
+               ReferencedContainer = "container:FlowBar.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -80,9 +80,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "92734DCEB2EA188AD30B87F6"
-            BuildableName = "LongPlay.app"
-            BlueprintName = "LongPlay"
-            ReferencedContainer = "container:LongPlay.xcodeproj">
+            BuildableName = "FlowBar.app"
+            BlueprintName = "FlowBar"
+            ReferencedContainer = "container:FlowBar.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -99,9 +99,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "92734DCEB2EA188AD30B87F6"
-            BuildableName = "LongPlay.app"
-            BlueprintName = "LongPlay"
-            ReferencedContainer = "container:LongPlay.xcodeproj">
+            BuildableName = "FlowBar.app"
+            BlueprintName = "FlowBar"
+            ReferencedContainer = "container:FlowBar.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>

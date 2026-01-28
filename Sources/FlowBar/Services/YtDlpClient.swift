@@ -306,7 +306,7 @@ struct YtDlpClient {
             }
 
             var output = ""
-            let outputQueue = DispatchQueue(label: "longplay.ytdlp.output")
+            let outputQueue = DispatchQueue(label: "flowbar.ytdlp.output")
 
             let outputHandle = stdout.fileHandleForReading
             let errorHandle = stderr.fileHandleForReading

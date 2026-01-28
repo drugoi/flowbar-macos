@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$ROOT_DIR/build}"
 CONFIGURATION="${CONFIGURATION:-Release}"
-SCHEME="${SCHEME:-LongPlay}"
+SCHEME="${SCHEME:-FlowBar}"
 TEAM_ID="${TEAM_ID:-K6H76QJBE9}"
 SIGN_IDENTITY="${SIGN_IDENTITY:-Developer ID Application: Nikita Bayev (${TEAM_ID})}"
 OUTPUT_DIR="${OUTPUT_DIR:-$ROOT_DIR/dist}"
@@ -41,7 +41,7 @@ if [[ ! -d "$APP_PATH" ]]; then
   exit 1
 fi
 
-ENTITLEMENTS="${ENTITLEMENTS:-$ROOT_DIR/Config/LongPlay.entitlements}"
+ENTITLEMENTS="${ENTITLEMENTS:-$ROOT_DIR/Config/FlowBar.entitlements}"
 APP_PATH="$APP_PATH" SIGN_IDENTITY="$SIGN_IDENTITY" ENTITLEMENTS="$ENTITLEMENTS" "$ROOT_DIR/scripts/sign-release.sh"
 
 VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP_PATH/Contents/Info.plist" 2>/dev/null || echo "0.0.0")

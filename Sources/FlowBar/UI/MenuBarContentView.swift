@@ -122,7 +122,7 @@ struct MenuBarContentView: View {
                     if ytdlpMissing {
                         NoticeCard(
                             title: "yt-dlp not found",
-                            message: "Bundled binary missing. Reinstall or update LongPlay.",
+                            message: "Bundled binary missing. Reinstall or update FlowBar.",
                             actionTitle: "Copy Diagnostics",
                             action: { copyDiagnostics() }
                         )
@@ -130,7 +130,7 @@ struct MenuBarContentView: View {
                     if ffmpegMissing {
                         NoticeCard(
                             title: "ffmpeg missing",
-                            message: "Audio conversion requires ffmpeg. Reinstall or update LongPlay.",
+                            message: "Audio conversion requires ffmpeg. Reinstall or update FlowBar.",
                             actionTitle: "Copy Diagnostics",
                             action: { copyDiagnostics() }
                         )
@@ -305,7 +305,7 @@ struct MenuBarContentView: View {
     private var headerRow: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("LongPlay")
+                Text("FlowBar")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(UI.ink)
             }
@@ -609,7 +609,7 @@ struct MenuBarContentView: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("LongPlayMainWindow")
+        .accessibilityIdentifier("FlowBarMainWindow")
     }
 
     private var addNewSection: some View {
@@ -706,7 +706,7 @@ struct MenuBarContentView: View {
                     SettingsCard(title: "System") {
                         settingsToggle(
                             title: "Start at Login",
-                            subtitle: "Launch LongPlay when you sign in.",
+                            subtitle: "Launch FlowBar when you sign in.",
                             isOn: startAtLoginBinding
                         )
                         .disabled(startAtLoginBusy)
@@ -777,7 +777,7 @@ struct MenuBarContentView: View {
                     } label: {
                         settingsButtonLabel(title: "Quit", systemImage: "power")
                     }
-                    .accessibilityLabel("Quit LongPlay")
+                    .accessibilityLabel("Quit FlowBar")
                     .buttonStyle(SecondaryButtonStyle())
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

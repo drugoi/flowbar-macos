@@ -1,4 +1,4 @@
-# LongPlay — Product Requirements Document (PRD)
+# FlowBar — Product Requirements Document (PRD)
 
 **Author:** (rewrite by ChatGPT)  
 **Version:** 1.1 (MVP-focused)  
@@ -12,7 +12,7 @@
 Provide a simple, unobtrusive, resource-light macOS menu bar app that lets users play **long-form YouTube audio** (music mixes, ambient soundscapes, long podcasts) **without keeping a browser open**, optimized for “set it and forget it” listening.
 
 ### 1.2 Product overview
-**LongPlay** is a native macOS **menu bar** application (no Dock presence) with a compact **popover UI** for:
+**FlowBar** is a native macOS **menu bar** application (no Dock presence) with a compact **popover UI** for:
 - adding YouTube links to a personal library,
 - downloading audio for offline playback,
 - controlling playback,
@@ -29,7 +29,7 @@ Users listen to long-form audio on YouTube while working or studying. A browser-
 - fragile for long sessions (focus/media key reliability, occasional stalls),
 - non-persistent (hard to keep a curated personal library).
 
-LongPlay provides a small, native, persistent alternative.
+FlowBar provides a small, native, persistent alternative.
 
 ---
 
