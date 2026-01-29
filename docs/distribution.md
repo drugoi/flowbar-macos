@@ -7,8 +7,8 @@
    - `scripts/build-release.sh`
 4. If yt-dlp fails to load Python at runtime, ensure `Config/EmbeddedTool.entitlements` is applied during signing.
 4. Output bundle and zip:
-   - `build/Build/Products/Release/LongPlay.app`
-   - `dist/LongPlay-<version>.zip`
+   - `build/Build/Products/Release/FlowBar.app`
+   - `dist/FlowBar-<version>.zip`
 
 ## Notarization
 1. Create an app-specific password.
@@ -39,10 +39,10 @@
 ## Homebrew Cask
 - Provide a signed, notarized `.zip` or `.dmg` hosted over HTTPS.
 - Example cask snippet:
-  - `url "https://example.com/LongPlay-0.1.0.zip"`
+  - `url "https://example.com/FlowBar-0.1.0.zip"`
   - `sha256 "<sha256>"`
-  - `name "LongPlay"`
-  - `app "LongPlay.app"`
+  - `name "FlowBar"`
+  - `app "FlowBar.app"`
 
 ## Notes
 - This app uses `LSUIElement` to stay menu-bar only.

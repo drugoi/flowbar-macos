@@ -1,7 +1,7 @@
 # Release Checklist
 
 ## Build + Test
-- [ ] Run `xcodebuild -scheme LongPlay -destination 'platform=macOS' test`.
+- [ ] Run `xcodebuild -scheme FlowBar -destination 'platform=macOS' test`.
 - [ ] Smoke test menu bar behavior (open/close popover, play/pause, download).
 
 ## yt-dlp
@@ -16,7 +16,7 @@
 ## Signing + Notarization
 - [ ] Sign with Developer ID Application.
 - [ ] Submit for notarization, staple, and validate.
-- [ ] Confirm `spctl` accepts the app (or run `scripts/verify-zip.sh dist/LongPlay-<version>.zip`).
+- [ ] Confirm `spctl` accepts the app (or run `scripts/verify-zip.sh dist/FlowBar-<version>.zip`).
 
 ## Distribution
 - [ ] Create `.zip` or `.dmg` artifact.

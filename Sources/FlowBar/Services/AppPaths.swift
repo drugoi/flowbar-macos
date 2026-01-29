@@ -1,7 +1,7 @@
 import Foundation
 
 enum AppPaths {
-    static let appName = "LongPlay"
+    static let appName = "FlowBar"
     static var overrideApplicationSupportDirectory: URL?
     static var overrideCachesDirectory: URL?
 

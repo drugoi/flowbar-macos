@@ -18,8 +18,8 @@ struct MenuBarLabelView: View {
                     .offset(x: badgeOffset.width, y: badgeOffset.height)
             }
         }
-        .accessibilityLabel("LongPlay: \(status.label)")
-        .accessibilityIdentifier("LongPlayStatusItem")
+        .accessibilityLabel("FlowBar: \(status.label)")
+        .accessibilityIdentifier("FlowBarStatusItem")
     }
 
     private var statusState: MenuBarStatusState {

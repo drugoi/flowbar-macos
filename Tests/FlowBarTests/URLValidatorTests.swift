@@ -1,5 +1,5 @@
 import XCTest
-@testable import LongPlay
+@testable import FlowBar
 
 final class URLValidatorTests: XCTestCase {
     func testValidWatchURL() {

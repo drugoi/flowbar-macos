@@ -9,9 +9,9 @@ final class UpdateManager: NSObject, ObservableObject {
 
     private let updatesEnabled: Bool
     private enum DefaultsKey {
-        static let automaticallyChecks = "LongPlayAutomaticallyChecksForUpdates"
-        static let automaticallyDownloads = "LongPlayAutomaticallyDownloadsUpdates"
-        static let notifyWhenAvailable = "LongPlayNotifyWhenUpdateAvailable"
+        static let automaticallyChecks = "FlowBarAutomaticallyChecksForUpdates"
+        static let automaticallyDownloads = "FlowBarAutomaticallyDownloadsUpdates"
+        static let notifyWhenAvailable = "FlowBarNotifyWhenUpdateAvailable"
     }
 
     private lazy var updaterController: SPUStandardUpdaterController = {
@@ -96,12 +96,12 @@ final class UpdateManager: NSObject, ObservableObject {
 
         let content = UNMutableNotificationContent()
         content.title = "Update Available"
-        content.body = "A new version of LongPlay is ready to install."
+        content.body = "A new version of FlowBar is ready to install."
         content.sound = .default
         content.userInfo = ["action": "checkForUpdates"]
 
         let request = UNNotificationRequest(
-            identifier: "LongPlayUpdateAvailable",
+            identifier: "FlowBarUpdateAvailable",
             content: content,
             trigger: nil
         )

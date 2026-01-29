@@ -1,13 +1,13 @@
-name: LongPlay
+name: FlowBar
 options:
-  bundleIdPrefix: com.longplay
+  bundleIdPrefix: com.flowbar
   deploymentTarget:
     macOS: "13.0"
 settings:
   base:
     SWIFT_VERSION: 5.9
     MACOSX_DEPLOYMENT_TARGET: "13.0"
-    PRODUCT_BUNDLE_IDENTIFIER: com.longplay.macos
+    PRODUCT_BUNDLE_IDENTIFIER: com.flowbar.macos
     CODE_SIGN_STYLE: Automatic
     CURRENT_PROJECT_VERSION: 1
     MARKETING_VERSION: 0.1.0
@@ -19,12 +19,12 @@ settings:
       SWIFT_OPTIMIZATION_LEVEL: -O
 
 targets:
-  LongPlay:
+  FlowBar:
     type: application
     platform: macOS
     deploymentTarget: "13.0"
     sources:
-      - path: Sources/LongPlay
+      - path: Sources/FlowBar
     preBuildScripts:
       - name: Fetch yt-dlp
         script: scripts/fetch-yt-dlp.sh
@@ -56,34 +56,34 @@ targets:
       path: Config/Info.plist
     settings:
       base:
-        PRODUCT_NAME: LongPlay
+        PRODUCT_NAME: FlowBar
         INFOPLIST_FILE: Config/Info.plist
     dependencies:
       - package: Sparkle
         product: Sparkle
     scheme:
       testTargets:
-        - LongPlayUITests
-        - LongPlayTests
-  LongPlayUITests:
+        - FlowBarUITests
+        - FlowBarTests
+  FlowBarUITests:
     type: bundle.ui-testing
     platform: macOS
     deploymentTarget: "13.0"
     sources:
-      - path: Tests/LongPlayUITests
+      - path: Tests/FlowBarUITests
     dependencies:
-      - target: LongPlay
+      - target: FlowBar
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
-  LongPlayTests:
+  FlowBarTests:
     type: bundle.unit-test
     platform: macOS
     deploymentTarget: "13.0"
     sources:
-      - path: Tests/LongPlayTests
+      - path: Tests/FlowBarTests
     dependencies:
-      - target: LongPlay
+      - target: FlowBar
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

@@ -1,6 +1,6 @@
 import XCTest
 
-final class LongPlayUITests: XCTestCase {
+final class FlowBarUITests: XCTestCase {
     override func setUp() {
         super.setUp()
         continueAfterFailure = false
@@ -103,18 +103,18 @@ final class LongPlayUITests: XCTestCase {
         if app.buttons["Listen"].waitForExistence(timeout: 4) {
             return
         }
-        let mainWindow = app.windows["LongPlay"]
+        let mainWindow = app.windows["FlowBar"]
         if mainWindow.waitForExistence(timeout: 6) {
             return
         }
-        let mainWindowById = app.otherElements["LongPlayMainWindow"]
+        let mainWindowById = app.otherElements["FlowBarMainWindow"]
         if mainWindowById.waitForExistence(timeout: 6) {
             return
         }
         let system = XCUIApplication(bundleIdentifier: "com.apple.systemuiserver")
         let statusBar = system.statusBars.firstMatch
-        let statusItemById = statusBar.buttons["LongPlayStatusItem"]
-        let statusItemByLabel = statusBar.buttons["LongPlay"]
+        let statusItemById = statusBar.buttons["FlowBarStatusItem"]
+        let statusItemByLabel = statusBar.buttons["FlowBar"]
         if statusItemById.waitForExistence(timeout: 5) {
             statusItemById.click()
         } else if statusItemByLabel.waitForExistence(timeout: 2) {

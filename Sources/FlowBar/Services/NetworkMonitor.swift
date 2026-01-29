@@ -5,7 +5,7 @@ final class NetworkMonitor: ObservableObject {
     @Published private(set) var isOnline: Bool = true
 
     private let monitor: NWPathMonitor
-    private let queue = DispatchQueue(label: "longplay.network.monitor")
+    private let queue = DispatchQueue(label: "flowbar.network.monitor")
 
     init() {
         monitor = NWPathMonitor()

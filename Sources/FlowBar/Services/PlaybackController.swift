@@ -42,7 +42,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     var streamingFailedHandler: ((Track?) -> Void)?
 
     private enum DefaultsKey {
-        static let playbackSpeed = "LongPlayPlaybackSpeed"
+        static let playbackSpeed = "FlowBarPlaybackSpeed"
     }
 
     static let availableSpeeds: [Double] = [0.75, 1.0, 1.25, 1.5]

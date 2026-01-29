@@ -35,7 +35,7 @@ fi
 
 APP_VERSION="$APP_VERSION" BUILD_NUMBER="$BUILD_NUMBER" NOTARIZE="${NOTARIZE:-1}" "$ROOT_DIR/scripts/build-release.sh"
 
-ZIP_PATH=$(ls -t "$OUTPUT_DIR"/LongPlay-*.zip | head -n 1 || true)
+ZIP_PATH=$(ls -t "$OUTPUT_DIR"/FlowBar-*.zip | head -n 1 || true)
 if [[ -z "$ZIP_PATH" ]]; then
   echo "No release zip found in $OUTPUT_DIR" >&2
   exit 1
@@ -79,7 +79,7 @@ if [[ -z "$NOTES_FILE" ]]; then
   } > "$NOTES_FILE"
 fi
 
-ARGS=(release create "$TAG" "$ZIP_PATH" --title "LongPlay $TAG")
+ARGS=(release create "$TAG" "$ZIP_PATH" --title "FlowBar $TAG")
 if [[ -n "$NOTES_FILE" ]]; then
   ARGS+=(--notes-file "$NOTES_FILE")
 else

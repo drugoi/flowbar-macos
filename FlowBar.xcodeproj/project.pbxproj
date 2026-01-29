@@ -9,12 +9,12 @@
 /* Begin PBXBuildFile section */
 		0A64933ECEC03AACC7B72B9D /* DiagnosticsLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B891EC912E12D38750ED338C /* DiagnosticsLogger.swift */; };
 		1815FCE09B51762B38E5A73C /* YtDlpClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104AC197F3E43D26B3B19C25 /* YtDlpClient.swift */; };
-		22AACC6B1C14CE9EAACAEEC5 /* LongPlayUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A234124F9F19264781D5A485 /* LongPlayUITests.swift */; };
+		22AACC6B1C14CE9EAACAEEC5 /* FlowBarUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A234124F9F19264781D5A485 /* FlowBarUITests.swift */; };
 		267A52B904127FC87D1797AE /* BatchURLParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB5ABD7A2C5B4CA31CC0D05 /* BatchURLParser.swift */; };
 		2EC490F0E77B40DDD2D56FBD /* DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 568F5146C0ADF6CC8CECC574 /* DownloadManager.swift */; };
 		33A6116EC4D71C704644D741 /* MenuBarLabelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 475F726D5E95E321629190C2 /* MenuBarLabelView.swift */; };
 		438822125E9CBFB5EEC6CB28 /* URLValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC807784851D5D8C5023C26A /* URLValidatorTests.swift */; };
-		5B34B748F1438A7DF9461DE9 /* LongPlayApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF45F3D95CAE89A623DD1A8 /* LongPlayApp.swift */; };
+		5B34B748F1438A7DF9461DE9 /* FlowBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF45F3D95CAE89A623DD1A8 /* FlowBarApp.swift */; };
 		64E057FC3300B76A1CF443BE /* BatchURLParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3865AD95B48BF6A06EEA3FD1 /* BatchURLParserTests.swift */; };
 		674228E5B9E8E472ED0E4CDC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 70EF097B34AC70D214AD8206 /* Assets.xcassets */; };
 		6D4FE929433891F68D396353 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = B008A05ADD3FF001551C3648 /* Track.swift */; };
@@ -37,14 +37,14 @@
 			containerPortal = 0A3F4F96FCD3C2EFA825BA62 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 92734DCEB2EA188AD30B87F6;
-			remoteInfo = LongPlay;
+			remoteInfo = FlowBar;
 		};
 		4BCC3B5ED9053833D4F31823 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 0A3F4F96FCD3C2EFA825BA62 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 92734DCEB2EA188AD30B87F6;
-			remoteInfo = LongPlay;
+			remoteInfo = FlowBar;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -52,23 +52,23 @@
 		038971798A3D5B3BB0197C31 /* PlaybackController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackController.swift; sourceTree = "<group>"; };
 		104AC197F3E43D26B3B19C25 /* YtDlpClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YtDlpClient.swift; sourceTree = "<group>"; };
 		198DD2DDAD27AD36559790BE /* URLValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLValidator.swift; sourceTree = "<group>"; };
-		2AE44025648A2DD2D2EED889 /* LongPlayUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LongPlayUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		2AE44025648A2DD2D2EED889 /* FlowBarUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FlowBarUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3865AD95B48BF6A06EEA3FD1 /* BatchURLParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchURLParserTests.swift; sourceTree = "<group>"; };
 		475F726D5E95E321629190C2 /* MenuBarLabelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabelView.swift; sourceTree = "<group>"; };
 		568F5146C0ADF6CC8CECC574 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
-		619BBD6C2746326C84E77B80 /* LongPlay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LongPlay.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		619BBD6C2746326C84E77B80 /* FlowBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FlowBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7018F42501DD77CF8E4A7B81 /* UpdateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateManager.swift; sourceTree = "<group>"; };
 		70EF097B34AC70D214AD8206 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		751363014FB175AEC734B11C /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		945700A6E76399ADBF4EAB4D /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
 		99132F07D2CEBE82DA612836 /* Library.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Library.swift; sourceTree = "<group>"; };
-		A234124F9F19264781D5A485 /* LongPlayUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongPlayUITests.swift; sourceTree = "<group>"; };
+		A234124F9F19264781D5A485 /* FlowBarUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowBarUITests.swift; sourceTree = "<group>"; };
 		B008A05ADD3FF001551C3648 /* Track.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Track.swift; sourceTree = "<group>"; };
-		B03FE307AFC71B607FD3D90F /* LongPlayTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LongPlayTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B03FE307AFC71B607FD3D90F /* FlowBarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FlowBarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B891EC912E12D38750ED338C /* DiagnosticsLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsLogger.swift; sourceTree = "<group>"; };
 		C873901169AFBA8D6073A8E0 /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
 		CBE63D78D68BFBD7E40BA17F /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
-		CBF45F3D95CAE89A623DD1A8 /* LongPlayApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongPlayApp.swift; sourceTree = "<group>"; };
+		CBF45F3D95CAE89A623DD1A8 /* FlowBarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowBarApp.swift; sourceTree = "<group>"; };
 		EC807784851D5D8C5023C26A /* URLValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLValidatorTests.swift; sourceTree = "<group>"; };
 		EEB5ABD7A2C5B4CA31CC0D05 /* BatchURLParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchURLParser.swift; sourceTree = "<group>"; };
 		F79AD5D69C726DA17FC29662 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
@@ -90,9 +90,9 @@
 		3E50EED4635C99E5EAD1E276 = {
 			isa = PBXGroup;
 			children = (
-				F35A06325C2F39012DBCB017 /* LongPlay */,
-				C08E3564B9A9F7298AC1B8F4 /* LongPlayTests */,
-				B29243641C21F2C42118BAC0 /* LongPlayUITests */,
+				F35A06325C2F39012DBCB017 /* FlowBar */,
+				C08E3564B9A9F7298AC1B8F4 /* FlowBarTests */,
+				B29243641C21F2C42118BAC0 /* FlowBarUITests */,
 				760BB8554FBE0A132EAAFDC9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -109,9 +109,9 @@
 		760BB8554FBE0A132EAAFDC9 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				619BBD6C2746326C84E77B80 /* LongPlay.app */,
-				B03FE307AFC71B607FD3D90F /* LongPlayTests.xctest */,
-				2AE44025648A2DD2D2EED889 /* LongPlayUITests.xctest */,
+				619BBD6C2746326C84E77B80 /* FlowBar.app */,
+				B03FE307AFC71B607FD3D90F /* FlowBarTests.xctest */,
+				2AE44025648A2DD2D2EED889 /* FlowBarUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -119,30 +119,30 @@
 		B15A9772CCF819BD73274523 /* UI */ = {
 			isa = PBXGroup;
 			children = (
-				CBF45F3D95CAE89A623DD1A8 /* LongPlayApp.swift */,
+				CBF45F3D95CAE89A623DD1A8 /* FlowBarApp.swift */,
 				945700A6E76399ADBF4EAB4D /* MenuBarContentView.swift */,
 				475F726D5E95E321629190C2 /* MenuBarLabelView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
 		};
-		B29243641C21F2C42118BAC0 /* LongPlayUITests */ = {
+		B29243641C21F2C42118BAC0 /* FlowBarUITests */ = {
 			isa = PBXGroup;
 			children = (
-				A234124F9F19264781D5A485 /* LongPlayUITests.swift */,
+				A234124F9F19264781D5A485 /* FlowBarUITests.swift */,
 			);
-			name = LongPlayUITests;
-			path = Tests/LongPlayUITests;
+			name = FlowBarUITests;
+			path = Tests/FlowBarUITests;
 			sourceTree = "<group>";
 		};
-		C08E3564B9A9F7298AC1B8F4 /* LongPlayTests */ = {
+		C08E3564B9A9F7298AC1B8F4 /* FlowBarTests */ = {
 			isa = PBXGroup;
 			children = (
 				3865AD95B48BF6A06EEA3FD1 /* BatchURLParserTests.swift */,
 				EC807784851D5D8C5023C26A /* URLValidatorTests.swift */,
 			);
-			name = LongPlayTests;
-			path = Tests/LongPlayTests;
+			name = FlowBarTests;
+			path = Tests/FlowBarTests;
 			sourceTree = "<group>";
 		};
 		E8124A5A3E488E65381F2AEC /* Services */ = {
@@ -164,7 +164,7 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
-		F35A06325C2F39012DBCB017 /* LongPlay */ = {
+		F35A06325C2F39012DBCB017 /* FlowBar */ = {
 			isa = PBXGroup;
 			children = (
 				70EF097B34AC70D214AD8206 /* Assets.xcassets */,
@@ -172,16 +172,16 @@
 				E8124A5A3E488E65381F2AEC /* Services */,
 				B15A9772CCF819BD73274523 /* UI */,
 			);
-			name = LongPlay;
-			path = Sources/LongPlay;
+			name = FlowBar;
+			path = Sources/FlowBar;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		201F1A60F9DA5AA5DE1AE59A /* LongPlayUITests */ = {
+		201F1A60F9DA5AA5DE1AE59A /* FlowBarUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 7043EA28C00DAB80933E76B8 /* Build configuration list for PBXNativeTarget "LongPlayUITests" */;
+			buildConfigurationList = 7043EA28C00DAB80933E76B8 /* Build configuration list for PBXNativeTarget "FlowBarUITests" */;
 			buildPhases = (
 				09B8A30E90310B1D73C8A78F /* Sources */,
 			);
@@ -190,16 +190,16 @@
 			dependencies = (
 				A3499CD1780F549552305195 /* PBXTargetDependency */,
 			);
-			name = LongPlayUITests;
+			name = FlowBarUITests;
 			packageProductDependencies = (
 			);
-			productName = LongPlayUITests;
-			productReference = 2AE44025648A2DD2D2EED889 /* LongPlayUITests.xctest */;
+			productName = FlowBarUITests;
+			productReference = 2AE44025648A2DD2D2EED889 /* FlowBarUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
-		92734DCEB2EA188AD30B87F6 /* LongPlay */ = {
+		92734DCEB2EA188AD30B87F6 /* FlowBar */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2EB5084476187FC7A3D1C4B4 /* Build configuration list for PBXNativeTarget "LongPlay" */;
+			buildConfigurationList = 2EB5084476187FC7A3D1C4B4 /* Build configuration list for PBXNativeTarget "FlowBar" */;
 			buildPhases = (
 				B21081955FAAD44DC56A76F8 /* Fetch yt-dlp */,
 				65E6BB8200F06E80480FAB4E /* Fetch ffmpeg */,
@@ -212,17 +212,17 @@
 			);
 			dependencies = (
 			);
-			name = LongPlay;
+			name = FlowBar;
 			packageProductDependencies = (
 				01024F3510829E4B0F29253D /* Sparkle */,
 			);
-			productName = LongPlay;
-			productReference = 619BBD6C2746326C84E77B80 /* LongPlay.app */;
+			productName = FlowBar;
+			productReference = 619BBD6C2746326C84E77B80 /* FlowBar.app */;
 			productType = "com.apple.product-type.application";
 		};
-		B13EB6D9E333C7F6324376BC /* LongPlayTests */ = {
+		B13EB6D9E333C7F6324376BC /* FlowBarTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = CF74A6D9DFD09980F5A0CD3C /* Build configuration list for PBXNativeTarget "LongPlayTests" */;
+			buildConfigurationList = CF74A6D9DFD09980F5A0CD3C /* Build configuration list for PBXNativeTarget "FlowBarTests" */;
 			buildPhases = (
 				128B45C065370F7392FD3F9B /* Sources */,
 			);
@@ -231,11 +231,11 @@
 			dependencies = (
 				6B028ABB8634EE6D0F71EB3B /* PBXTargetDependency */,
 			);
-			name = LongPlayTests;
+			name = FlowBarTests;
 			packageProductDependencies = (
 			);
-			productName = LongPlayTests;
-			productReference = B03FE307AFC71B607FD3D90F /* LongPlayTests.xctest */;
+			productName = FlowBarTests;
+			productReference = B03FE307AFC71B607FD3D90F /* FlowBarTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
@@ -262,7 +262,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 46A133B80FD979E32B0F4D95 /* Build configuration list for PBXProject "LongPlay" */;
+			buildConfigurationList = 46A133B80FD979E32B0F4D95 /* Build configuration list for PBXProject "FlowBar" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -279,9 +279,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				92734DCEB2EA188AD30B87F6 /* LongPlay */,
-				B13EB6D9E333C7F6324376BC /* LongPlayTests */,
-				201F1A60F9DA5AA5DE1AE59A /* LongPlayUITests */,
+				92734DCEB2EA188AD30B87F6 /* FlowBar */,
+				B13EB6D9E333C7F6324376BC /* FlowBarTests */,
+				201F1A60F9DA5AA5DE1AE59A /* FlowBarUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -373,7 +373,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				22AACC6B1C14CE9EAACAEEC5 /* LongPlayUITests.swift in Sources */,
+				22AACC6B1C14CE9EAACAEEC5 /* FlowBarUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -396,7 +396,7 @@
 				2EC490F0E77B40DDD2D56FBD /* DownloadManager.swift in Sources */,
 				BCA0014FD4C8857A023444FD /* Library.swift in Sources */,
 				D890D1C7AD76FF618AB9D8B8 /* LibraryStore.swift in Sources */,
-				5B34B748F1438A7DF9461DE9 /* LongPlayApp.swift in Sources */,
+				5B34B748F1438A7DF9461DE9 /* FlowBarApp.swift in Sources */,
 				955C8D52938C670ACD78742D /* MenuBarContentView.swift in Sources */,
 				33A6116EC4D71C704644D741 /* MenuBarLabelView.swift in Sources */,
 				DE06CD85D3B86DE145970B9F /* MetadataResolver.swift in Sources */,
@@ -415,12 +415,12 @@
 /* Begin PBXTargetDependency section */
 		6B028ABB8634EE6D0F71EB3B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 92734DCEB2EA188AD30B87F6 /* LongPlay */;
+			target = 92734DCEB2EA188AD30B87F6 /* FlowBar */;
 			targetProxy = 4BCC3B5ED9053833D4F31823 /* PBXContainerItemProxy */;
 		};
 		A3499CD1780F549552305195 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 92734DCEB2EA188AD30B87F6 /* LongPlay */;
+			target = 92734DCEB2EA188AD30B87F6 /* FlowBar */;
 			targetProxy = 1A960594905C23A83DC751E5 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -437,7 +437,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_NAME = LongPlay;
+				PRODUCT_NAME = FlowBar;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -494,7 +494,7 @@
 				MARKETING_VERSION = 0.1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.longplay.macos;
+				PRODUCT_BUNDLE_IDENTIFIER = com.flowbar.macos;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -514,7 +514,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_NAME = LongPlay;
+				PRODUCT_NAME = FlowBar;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -532,7 +532,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				SDKROOT = macosx;
-				TEST_TARGET_NAME = LongPlay;
+				TEST_TARGET_NAME = FlowBar;
 			};
 			name = Debug;
 		};
@@ -549,7 +549,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LongPlay.app/Contents/MacOS/LongPlay";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FlowBar.app/Contents/MacOS/FlowBar";
 			};
 			name = Debug;
 		};
@@ -566,7 +566,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LongPlay.app/Contents/MacOS/LongPlay";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FlowBar.app/Contents/MacOS/FlowBar";
 			};
 			name = Release;
 		};
@@ -629,7 +629,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.longplay.macos;
+				PRODUCT_BUNDLE_IDENTIFIER = com.flowbar.macos;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
@@ -651,14 +651,14 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				SDKROOT = macosx;
-				TEST_TARGET_NAME = LongPlay;
+				TEST_TARGET_NAME = FlowBar;
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		2EB5084476187FC7A3D1C4B4 /* Build configuration list for PBXNativeTarget "LongPlay" */ = {
+		2EB5084476187FC7A3D1C4B4 /* Build configuration list for PBXNativeTarget "FlowBar" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				35DFCD6C34D9602475CFE91F /* Debug */,
@@ -667,7 +667,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		46A133B80FD979E32B0F4D95 /* Build configuration list for PBXProject "LongPlay" */ = {
+		46A133B80FD979E32B0F4D95 /* Build configuration list for PBXProject "FlowBar" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E0B6EC223C8D93ACFB4B3B67 /* Debug */,
@@ -676,7 +676,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		7043EA28C00DAB80933E76B8 /* Build configuration list for PBXNativeTarget "LongPlayUITests" */ = {
+		7043EA28C00DAB80933E76B8 /* Build configuration list for PBXNativeTarget "FlowBarUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				ADD916F3681E093EC0165934 /* Debug */,
@@ -685,7 +685,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		CF74A6D9DFD09980F5A0CD3C /* Build configuration list for PBXNativeTarget "LongPlayTests" */ = {
+		CF74A6D9DFD09980F5A0CD3C /* Build configuration list for PBXNativeTarget "FlowBarTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C266AC72C062974E5DAC1E90 /* Debug */,
