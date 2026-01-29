@@ -15,10 +15,10 @@ Built for people who live in their menu bar and want music without the extra noi
 ![FlowBar app screenshot](docs/assets/app-screenshot.png)
 
 ## Install
-Download the latest release from [GitHub Releases](https://github.com/drugoi/flowbar-macos/releases) and drag `FlowBar.app` into your Applications folder.
+Download the latest release from [GitHub Releases](https://github.com/drugoi/longplay-macos/releases) and drag `FlowBar.app` into your Applications folder.
 
 ## Issues & Feedback
-Please open an issue on [GitHub Issues](https://github.com/drugoi/flowbar-macos/issues) and include:
+Please open an issue on [GitHub Issues](https://github.com/drugoi/longplay-macos/issues) and include:
 - Your macOS version
 - A short description of the problem
 - Steps to reproduce (if possible)

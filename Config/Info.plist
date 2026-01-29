@@ -19,7 +19,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>SUFeedURL</key>
-	<string>https://flowbar.drugoi.dev/appcast.xml</string>
+	<string>https://longplay.drugoi.dev/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>4ztKXXySBM8HH4ioS4AJrP5MJuMM2BMX5o4Zd+qpv/M=</string>
 </dict>

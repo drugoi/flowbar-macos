@@ -8,7 +8,7 @@
             <sparkle:version>72</sparkle:version>
             <sparkle:shortVersionString>0.1.5</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/drugoi/flowbar-macos/releases/download/v0.1.5/FlowBar-0.1.5.zip" length="134741503" type="application/octet-stream" sparkle:edSignature="3SCoZoNNrsEWxEdGbCpB+mDAsrq4lk+WbPJ4CpO0329uzPv9DfNnQ4pHJroOGb7nVb5mVwqYswfxuU/IH2i4Ag=="/>
+            <enclosure url="https://github.com/drugoi/longplay-macos/releases/download/v0.1.5/LongPlay-0.1.5.zip" length="134741503" type="application/octet-stream" sparkle:edSignature="3SCoZoNNrsEWxEdGbCpB+mDAsrq4lk+WbPJ4CpO0329uzPv9DfNnQ4pHJroOGb7nVb5mVwqYswfxuU/IH2i4Ag=="/>
         </item>
         <item>
             <title>0.1.4</title>
@@ -16,7 +16,7 @@
             <sparkle:version>70</sparkle:version>
             <sparkle:shortVersionString>0.1.4</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/drugoi/flowbar-macos/releases/download/v0.1.5/FlowBar-0.1.4.zip" length="133765161" type="application/octet-stream"/>
+            <enclosure url="https://github.com/drugoi/longplay-macos/releases/download/v0.1.5/LongPlay-0.1.4.zip" length="133765161" type="application/octet-stream"/>
         </item>
         <item>
             <title>0.1.3</title>
@@ -24,7 +24,7 @@
             <sparkle:version>69</sparkle:version>
             <sparkle:shortVersionString>0.1.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/drugoi/flowbar-macos/releases/download/v0.1.5/FlowBar-0.1.3.zip" length="133753818" type="application/octet-stream"/>
+            <enclosure url="https://github.com/drugoi/longplay-macos/releases/download/v0.1.5/LongPlay-0.1.3.zip" length="133753818" type="application/octet-stream"/>
         </item>
     </channel>
 </rss>
