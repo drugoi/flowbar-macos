@@ -3,30 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>FlowBar — Menu Bar Player</title>
+    <title>FlowBar — YouTube audio for your Mac menu bar</title>
     <meta
       name="description"
-      content="FlowBar is a no-nonsense macOS menu bar player for YouTube audio. Stream instantly and cache tracks for offline focus."
+      content="Play YouTube mixes, podcasts, and ambient tracks from your Mac menu bar. Save audio for offline listening and resume where you left off."
     />
     <link rel="canonical" href="https://flowbar.drugoi.dev/" />
-    <meta property="og:title" content="FlowBar — Menu Bar Player" />
+    <meta property="og:title" content="FlowBar — YouTube audio for your Mac menu bar" />
     <meta
       property="og:description"
-      content="A macOS menu bar player for YouTube audio. Stream instantly, then cache tracks for offline focus."
+      content="Play YouTube mixes, podcasts, and ambient tracks from your Mac menu bar. Save audio for offline listening and resume where you left off."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://flowbar.drugoi.dev/" />
-    <meta property="og:image" content="https://flowbar.drugoi.dev/assets/social-card.png?v=20260108" />
+    <meta property="og:image" content="https://flowbar.drugoi.dev/assets/social-card.png?v=20261126" />
+    <meta property="og:image:alt" content="FlowBar. YouTube audio in your Mac menu bar." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="FlowBar — Menu Bar Player" />
+    <meta name="twitter:title" content="FlowBar — YouTube audio for your Mac menu bar" />
     <meta
       name="twitter:description"
-      content="A macOS menu bar player for YouTube audio. Stream instantly, then cache tracks for offline focus."
+      content="Play YouTube mixes, podcasts, and ambient tracks from your Mac menu bar. Save audio for offline listening and resume where you left off."
     />
-    <meta name="twitter:image" content="https://flowbar.drugoi.dev/assets/social-card.png?v=20260108" />
+    <meta name="twitter:image" content="https://flowbar.drugoi.dev/assets/social-card.png?v=20261126" />
+    <meta name="twitter:image:alt" content="FlowBar. YouTube audio in your Mac menu bar." />
     <link rel="icon" href="./assets/flowbar-icon.png?v=20260108" />
-    <meta name="theme-color" content="#f6f1e7" />
-    <link rel="stylesheet" href="./site.css?v=20260108" />
+    <meta name="theme-color" content="#0b111d" />
+    <link rel="stylesheet" href="./site.css?v=vinyl" />
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-W6BYB953HZ"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -43,9 +45,9 @@
         "name": "FlowBar",
         "operatingSystem": "macOS 13+",
         "applicationCategory": "MultimediaApplication",
-        "description": "A macOS menu bar player for YouTube audio. Stream instantly, then cache tracks for offline focus.",
+        "description": "Play YouTube mixes, podcasts, and ambient tracks from your Mac menu bar. Save audio for offline listening and resume where you left off.",
         "url": "https://flowbar.drugoi.dev/",
-        "downloadUrl": "https://github.com/drugoi/flowbar-macos/releases",
+        "downloadUrl": "https://github.com/drugoi/flowbar-macos/releases/latest",
         "author": {
           "@type": "Person",
           "name": "drugoi"
@@ -54,90 +56,136 @@
     </script>
   </head>
   <body>
-    <main class="page">
-      <section class="hero">
-        <div class="hero-media">
-          <img class="logo" src="./assets/flowbar-icon.png?v=20260108" alt="FlowBar logo" />
-        </div>
-        <div>
-          <h1>FlowBar keeps the music out of your way.</h1>
-          <p>
-            A no-nonsense menu bar player for YouTube audio. Paste a link,
-            stream instantly, then cache it for offline focus.
-          </p>
-          <div class="badge-row">
-            <span class="badge">macOS 13+</span>
-            <span class="badge">Menu bar only</span>
-            <span class="badge">Offline ready</span>
-            <span class="badge">Local cache</span>
+    <div class="page">
+      <header class="site-header">
+        <a class="wordmark" href="./" aria-label="FlowBar home">
+          <img src="./assets/flowbar-icon.png?v=20260108" width="38" height="38" alt="" />
+          <span>FlowBar</span>
+        </a>
+        <a href="https://github.com/drugoi/flowbar-macos">GitHub</a>
+      </header>
+
+      <main>
+        <section class="hero" aria-labelledby="hero-title">
+          <div class="hero-copy">
+            <h1 id="hero-title">YouTube audio. <span>From your<br /> <span class="menu-bar">menu bar.</span></span></h1>
+            <p>
+              Keep long mixes, podcasts, and ambient tracks within reach.
+              FlowBar saves audio for offline listening and remembers where you left off.
+            </p>
+            <div class="download">
+              <a class="download-link" href="https://github.com/drugoi/flowbar-macos/releases/latest">Download for macOS</a>
+              <span>macOS 13 or later</span>
+            </div>
           </div>
-          <div class="cta">
-            <a class="button" href="https://github.com/drugoi/flowbar-macos/releases">Download latest</a>
-            <a class="button secondary" href="https://github.com/drugoi/flowbar-macos">View on GitHub</a>
+
+          <div class="demo-stage">
+            <div class="record" aria-hidden="true">
+              <span class="record-light"></span>
+            </div>
+            <figure class="demo" id="demo">
+              <button class="demo-toggle" type="button" aria-label="Play FlowBar demo" aria-describedby="demo-caption">
+                <video
+                  muted
+                  loop
+                  playsinline
+                  preload="metadata"
+                  width="840"
+                  height="984"
+                  src="./assets/flowbar-demo.mp4"
+                  poster="./assets/flowbar-demo-poster.jpg"
+                ></video>
+              </button>
+              <figcaption id="demo-caption">
+                FlowBar in action. Select the demo to pause or play.
+              </figcaption>
+            </figure>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="showcase">
-        <figure class="screenshot-frame">
-          <img src="./assets/app-screenshot.png?v=20260108" alt="FlowBar app screenshot" />
-          <figcaption>Menu bar playback and library view.</figcaption>
-        </figure>
-        <div class="showcase-features">
-          <article class="card" style="animation-delay: 0.05s">
-            <h3>Focus-first playback</h3>
-            <p>Control playback without switching apps. Your menu bar stays calm.</p>
+        <section class="features" aria-label="Playback features">
+          <article>
+            <h2>Listen offline</h2>
+            <p>FlowBar saves audio as you listen. Set how much space your offline library can use.</p>
           </article>
-          <article class="card" style="animation-delay: 0.1s">
-            <h3>Stream then cache</h3>
-            <p>Hit play immediately, downloads finish in the background.</p>
+          <article>
+            <h2>Resume any track</h2>
+            <p>FlowBar saves your place in each track, even when you switch to something else.</p>
           </article>
-          <article class="card" style="animation-delay: 0.15s">
-            <h3>Offline library</h3>
-            <p>Keep your most used tracks ready for flights and deep work.</p>
+          <article>
+            <h2>Set your pace</h2>
+            <p>Scrub, skip 15 seconds, change playback speed, or set a sleep timer.</p>
           </article>
-          <article class="card" style="animation-delay: 0.2s">
-            <h3>How it works</h3>
-            <ul>
-              <li>Paste a YouTube URL.</li>
-              <li>Stream immediately.</li>
-              <li>Auto-cache for offline.</li>
-            </ul>
-          </article>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      <section class="grid">
-        <article class="card" style="animation-delay: 0.25s">
-          <h3>What’s next</h3>
-          <ul>
-            <li>Better download quality presets.</li>
-            <li>Smarter metadata handling.</li>
-            <li>More hotkeys.</li>
-          </ul>
-        </article>
-      </section>
-
-      <section class="callout">
-        Built for people who live in their menu bar and want music without the
-        extra noise.
-      </section>
-
-      <section class="legal">
+      <footer class="site-footer">
+        <nav aria-label="Project links">
+          <a href="https://github.com/drugoi/flowbar-macos/releases">Releases</a>
+          <a href="https://github.com/drugoi/flowbar-macos/issues">Feedback</a>
+        </nav>
         <p>
-          All content belongs to their respective owners. Use FlowBar in
-          accordance with YouTube’s Terms of Service and applicable laws.
+          All content belongs to their respective owners. Use FlowBar in accordance with
+          YouTube’s Terms of Service and applicable laws.
           FlowBar is not affiliated with or endorsed by YouTube or Google.
         </p>
-      </section>
+      </footer>
+    </div>
 
-      <section class="footer">
-        <span>FlowBar</span>
-        <span>·</span>
-        <a href="https://github.com/drugoi/flowbar-macos/releases">Releases</a>
-        <span>·</span>
-        <a href="https://github.com/drugoi/flowbar-macos/issues">Feedback</a>
-      </section>
-    </main>
+    <script>
+      const demoToggle = document.querySelector(".demo-toggle");
+      const demoVideo = demoToggle.querySelector("video");
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+      let demoVisible = !("IntersectionObserver" in window);
+      let playbackOverride;
+
+      function syncDemoPlayback() {
+        const canPlay = demoVisible && !document.hidden;
+        demoVideo.autoplay = canPlay && !reduceMotion.matches && playbackOverride !== false;
+        if (canPlay && (playbackOverride ?? !reduceMotion.matches)) {
+          demoVideo.play().catch(() => {
+            // If autoplay is blocked, the demo can still be started by the visitor.
+          });
+        } else {
+          demoVideo.pause();
+        }
+      }
+
+      demoToggle.addEventListener("click", () => {
+        playbackOverride = demoVideo.paused;
+        syncDemoPlayback();
+      });
+      demoVideo.addEventListener("play", () => demoToggle.setAttribute("aria-label", "Pause FlowBar demo"));
+      demoVideo.addEventListener("pause", () => demoToggle.setAttribute("aria-label", "Play FlowBar demo"));
+      reduceMotion.addEventListener("change", () => {
+        playbackOverride = undefined;
+        syncDemoPlayback();
+        if (reduceMotion.matches) demoVideo.load();
+      });
+      document.addEventListener("visibilitychange", syncDemoPlayback);
+
+      if ("IntersectionObserver" in window) {
+        const visibleFraction = 0.2;
+        const demoObserver = new IntersectionObserver(([entry]) => {
+          demoVisible = entry.intersectionRatio >= visibleFraction;
+          syncDemoPlayback();
+        }, { threshold: visibleFraction });
+        demoObserver.observe(demoToggle);
+      }
+      syncDemoPlayback();
+
+      const demoStage = document.querySelector(".demo-stage");
+      const recordLight = demoStage.querySelector(".record-light");
+      const canMoveLight = window.matchMedia("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)");
+
+      demoStage.addEventListener("pointermove", (event) => {
+        if (!canMoveLight.matches || event.pointerType !== "mouse") return;
+        const { left, width } = demoStage.getBoundingClientRect();
+        const turn = ((event.clientX - left) / width - 0.5) * 42;
+        recordLight.style.setProperty("--record-turn", `${turn}deg`);
+      });
+      demoStage.addEventListener("pointerleave", () => recordLight.style.removeProperty("--record-turn"));
+      canMoveLight.addEventListener("change", () => recordLight.style.removeProperty("--record-turn"));
+    </script>
   </body>
 </html>
