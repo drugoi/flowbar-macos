@@ -26,7 +26,7 @@ struct MenuBarLabelView: View {
         let downloadStatus = libraryDownloadStatus
         switch playbackController.state {
         case .playing:
-            return .playing
+            return playbackController.isBuffering ? .buffering : .playing
         case .paused:
             return .paused
         case .error:
@@ -82,6 +82,7 @@ private enum MenuBarStatusState {
     case idle
     case resolving
     case downloading
+    case buffering
     case playing
     case paused
     case error
@@ -94,6 +95,8 @@ private enum MenuBarStatusState {
             return "Resolving"
         case .downloading:
             return "Downloading"
+        case .buffering:
+            return "Buffering"
         case .playing:
             return "Playing"
         case .paused:
@@ -107,7 +110,7 @@ private enum MenuBarStatusState {
         switch self {
         case .idle:
             return nil
-        case .resolving:
+        case .resolving, .buffering:
             return "hourglass"
         case .downloading:
             return "arrow.down"

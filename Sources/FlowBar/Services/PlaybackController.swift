@@ -47,8 +47,12 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     @Published private(set) var currentTime: TimeInterval = 0
     @Published private(set) var duration: TimeInterval = 0
     @Published private(set) var isStreaming: Bool = false
+    @Published private var streamTimeControlStatus: AVPlayer.TimeControlStatus = .paused
     @Published private var streamSeek = StreamSeek()
     var pendingSeekTime: TimeInterval? { streamSeek.pending?.time }
+    var isBuffering: Bool {
+        state == .playing && isStreaming && streamTimeControlStatus != .playing
+    }
     @Published private(set) var sleepTimerRemaining: TimeInterval?
     @Published private(set) var sleepTimerDuration: TimeInterval?
     @Published private(set) var sleepTimerIsActive: Bool = false
@@ -88,6 +92,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     private var streamEndObserver: NSObjectProtocol?
     private var streamFailureObserver: NSObjectProtocol?
     private var streamStatusObserver: NSKeyValueObservation?
+    private var streamTimeControlObserver: NSKeyValueObservation?
     private var outputDeviceListener: AudioObjectPropertyListenerBlock?
     private var nowPlayingInfo: [String: Any] = [:]
     private var sleepTimer: Timer?
@@ -160,6 +165,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         addStreamEndObserver(for: item)
         addStreamFailureObserver(for: item)
         addStreamStatusObserver(for: item)
+        observeStreamTimeControl(for: player)
         player.play()
         applyPlaybackRate()
         updateNowPlayingInfo(elapsedOverride: startAt)
@@ -173,6 +179,9 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
             player?.pause()
         }
         state = .paused
+        if isStreaming, streamTimeControlStatus != .paused {
+            streamTimeControlStatus = .paused
+        }
         positionTimer?.invalidate()
         positionTimer = nil
         flushPositionUpdate()
@@ -208,6 +217,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         }
         state = .idle
         isStreaming = false
+        stopObservingStreamTimeControl()
         nowPlayingInfo.removeAll()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
@@ -354,6 +364,26 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         removeStreamStatusObserver()
         streamPlayer = nil
         isStreaming = false
+        stopObservingStreamTimeControl()
+    }
+
+    private func observeStreamTimeControl(for player: AVPlayer) {
+        streamTimeControlObserver = player.observe(\.timeControlStatus, options: [.initial, .new]) { [weak self] player, _ in
+            DispatchQueue.main.async { [weak self, weak player] in
+                guard let self, let player, self.isStreaming, self.streamPlayer === player else { return }
+                let status = player.timeControlStatus
+                if self.streamTimeControlStatus != status {
+                    self.streamTimeControlStatus = status
+                }
+            }
+        }
+    }
+
+    private func stopObservingStreamTimeControl() {
+        streamTimeControlObserver = nil
+        if streamTimeControlStatus != .paused {
+            streamTimeControlStatus = .paused
+        }
     }
 
     private func cancelPendingStreamSeek() {

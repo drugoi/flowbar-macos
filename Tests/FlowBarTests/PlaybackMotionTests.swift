@@ -64,18 +64,8 @@ final class PlaybackMotionTests: XCTestCase {
 
     @MainActor
     func testReadingLiveTimeDoesNotPublishOrSavePlaybackPosition() async throws {
-        let fileURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString).appendingPathExtension("caf")
+        let fileURL = try makeSilentAudio()
         defer { try? FileManager.default.removeItem(at: fileURL) }
-
-        let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1))
-        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 132_300))
-        buffer.frameLength = buffer.frameCapacity
-        let samples = try XCTUnwrap(buffer.floatChannelData?.pointee)
-        for index in 0..<Int(buffer.frameLength) {
-            samples[index] = 0
-        }
-        try AVAudioFile(forWriting: fileURL, settings: format.settings).write(from: buffer)
 
         let controller = PlaybackController()
         defer { controller.stop(resetPosition: false) }
@@ -108,5 +98,51 @@ final class PlaybackMotionTests: XCTestCase {
         XCTAssertNotNil(controller.averageAudioPower(owner: newMeter))
         controller.stopAudioMeter(owner: newMeter)
         XCTAssertNil(controller.averageAudioPower(owner: newMeter))
+    }
+
+    @MainActor
+    func testStreamingBuffersUntilPlaybackStartsAndClearsOnPauseOrStop() async throws {
+        let fileURL = try makeSilentAudio()
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        let controller = PlaybackController()
+        defer { controller.stop(resetPosition: false) }
+        let track = Track.makeNew(sourceURL: fileURL, videoId: "fixture", displayName: "Fixture")
+
+        controller.streamAndPlay(track: track, streamURL: fileURL)
+        XCTAssertTrue(controller.isBuffering)
+        XCTAssertEqual(controller.state, .playing)
+
+        let clock = ContinuousClock()
+        let deadline = clock.now + .seconds(3)
+        while controller.isBuffering, clock.now < deadline {
+            try await clock.sleep(for: .milliseconds(20))
+        }
+        XCTAssertFalse(controller.isBuffering)
+        XCTAssertEqual(controller.state, .playing)
+
+        controller.pause()
+        XCTAssertFalse(controller.isBuffering)
+        XCTAssertEqual(controller.state, .paused)
+
+        controller.streamAndPlay(track: track, streamURL: fileURL)
+        XCTAssertTrue(controller.isBuffering)
+        controller.stop()
+        try await clock.sleep(for: .milliseconds(50))
+        XCTAssertFalse(controller.isBuffering)
+        XCTAssertEqual(controller.state, .idle)
+    }
+
+    private func makeSilentAudio() throws -> URL {
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString).appendingPathExtension("caf")
+        let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1))
+        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 132_300))
+        buffer.frameLength = buffer.frameCapacity
+        let samples = try XCTUnwrap(buffer.floatChannelData?.pointee)
+        for index in 0..<Int(buffer.frameLength) {
+            samples[index] = 0
+        }
+        try AVAudioFile(forWriting: fileURL, settings: format.settings).write(from: buffer)
+        return fileURL
     }
 }

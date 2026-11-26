@@ -217,8 +217,8 @@ struct MenuBarContentView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .topLeading)
-            .disabled(deleteCandidate != nil || renameCandidate != nil)
-            .accessibilityHidden(deleteCandidate != nil || renameCandidate != nil)
+            .disabled(isTrackDialogPresented)
+            .accessibilityHidden(isTrackDialogPresented)
 
             if let deleteCandidate {
                 DialogOverlay(onBackgroundTap: { self.deleteCandidate = nil }) {
@@ -418,17 +418,21 @@ struct MenuBarContentView: View {
         .frame(height: 32)
     }
 
+    private var isTrackDialogPresented: Bool { deleteCandidate != nil || renameCandidate != nil }
+
     private var nowPlayingSection: some View {
         let isPlaying = playbackController.state == .playing
+        let isBuffering = playbackController.isBuffering
         let showScrubber = isPlaying || playbackController.state == .paused
+        let allowsDecorativeMotion = isPlayerWindowVisible && !isTrackDialogPresented && !reduceMotion && !isBuffering
         return VStack(alignment: .leading, spacing: 12) {
             Label {
                 Text(nowPlayingStatus)
             } icon: {
-                if isPlaying {
-                    PlaybackWaveform(isAnimated: isPlayerWindowVisible && !reduceMotion)
+                if isPlaying && !isBuffering {
+                    PlaybackWaveform(isAnimated: allowsDecorativeMotion)
                 } else {
-                    Image(systemName: "music.note")
+                    Image(systemName: isBuffering ? "hourglass" : "music.note")
                         .frame(width: 12, height: 12)
                 }
             }
@@ -468,7 +472,7 @@ struct MenuBarContentView: View {
                 UI.playerSurface
                 PlayerGrooves(
                     playbackController: playbackController,
-                    sourceID: isPlayerWindowVisible && !reduceMotion ? playbackController.audioMeterSourceID : nil
+                    sourceID: allowsDecorativeMotion ? playbackController.audioMeterSourceID : nil
                 )
                 .accessibilityHidden(true)
             }
@@ -1085,6 +1089,9 @@ struct MenuBarContentView: View {
         if playbackController.state == .idle {
             return "Ready to play"
         }
+        if playbackController.isBuffering {
+            return "Buffering"
+        }
         return playbackController.stateLabel
     }
 
@@ -1583,37 +1590,22 @@ struct MenuBarContentView: View {
 
 private struct PlaybackWaveform: View {
     let isAnimated: Bool
+    private let restingHeights = [3.5, 7.0, 11.0, 7.0, 3.5]
 
     var body: some View {
-        Group {
-            if isAnimated {
-                TimelineView(.animation(minimumInterval: 1.0 / 30)) { timeline in
-                    let time = timeline.date.timeIntervalSinceReferenceDate
-                    waveform(phase: 2 * .pi * time / 1.1)
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !isAnimated)) { timeline in
+            let phase = 2 * .pi * timeline.date.timeIntervalSinceReferenceDate / 1.1
+            HStack(spacing: 1.3) {
+                ForEach(restingHeights.indices, id: \.self) { index in
+                    Capsule()
+                        .fill(UI.playerAccent)
+                        .frame(width: 1.2, height: restingHeights[index])
+                        .scaleEffect(x: 1, y: isAnimated ? 0.65 + 0.35 * sin(phase - Double(index) * 1.2) : 1)
                 }
-            } else {
-                waveform(phase: nil)
             }
         }
         .frame(width: 12, height: 12)
         .accessibilityHidden(true)
-    }
-
-    private func waveform(phase: Double?) -> some View {
-        Canvas { context, size in
-            var bars = Path()
-            let restingHeights = [3.5, 7.0, 11.0, 7.0, 3.5]
-            for (index, restingHeight) in restingHeights.enumerated() {
-                let scale = phase.map { 0.65 + 0.35 * sin($0 - Double(index) * 1.2) } ?? 1
-                let height = restingHeight * scale
-                let x = size.width / 2 + Double(index - 2) * 2.5
-                bars.addRoundedRect(
-                    in: CGRect(x: x - 0.6, y: (size.height - height) / 2, width: 1.2, height: height),
-                    cornerSize: CGSize(width: 0.6, height: 0.6)
-                )
-            }
-            context.fill(bars, with: .color(UI.playerAccent))
-        }
     }
 }
 
@@ -1636,14 +1628,8 @@ enum GrooveResponse {
     }
 }
 
-private struct PlayerGrooves: View {
-    let playbackController: PlaybackController
-    let sourceID: UUID?
-    @State private var sampleSource: UUID?
-    @State private var level = 0.0
-
+private struct PlayerGrooveArtwork: View, Equatable {
     var body: some View {
-        let opacity = GrooveResponse.opacity(for: level, enabled: sourceID != nil && sourceID == sampleSource)
         Canvas { context, size in
             let center = CGPoint(x: size.width + 14, y: -size.height * 0.16)
             var grooves = Path()
@@ -1662,9 +1648,9 @@ private struct PlayerGrooves: View {
             }
             let sheen: GraphicsContext.Shading = .linearGradient(
                 Gradient(stops: [
-                    .init(color: UI.playerAccent.opacity(opacity * 0.22), location: 0.18),
-                    .init(color: UI.playerAccent.opacity(opacity * 0.58), location: 0.57),
-                    .init(color: UI.playerAccent.opacity(opacity), location: 1)
+                    .init(color: UI.playerAccent.opacity(0.22), location: 0.18),
+                    .init(color: UI.playerAccent.opacity(0.58), location: 0.57),
+                    .init(color: UI.playerAccent, location: 1)
                 ]),
                 startPoint: CGPoint(x: 0, y: size.height),
                 endPoint: CGPoint(x: size.width, y: 0)
@@ -1672,34 +1658,47 @@ private struct PlayerGrooves: View {
             context.stroke(grooves, with: sheen, lineWidth: 0.65)
             context.stroke(bands, with: sheen, lineWidth: 1)
         }
-        .task(id: sourceID) {
-            level = 0
-            sampleSource = sourceID
-            guard let sourceID, !Task.isCancelled,
-                  let owner = playbackController.startAudioMeter(for: sourceID) else { return }
-            defer { playbackController.stopAudioMeter(owner: owner) }
+    }
+}
 
-            let clock = ContinuousClock()
-            var previous = clock.now
-            while !Task.isCancelled {
-                do {
-                    try await clock.sleep(for: .milliseconds(50))
-                } catch {
-                    return
+private struct PlayerGrooves: View {
+    let playbackController: PlaybackController
+    let sourceID: UUID?
+    @State private var sampleSource: UUID?
+    @State private var level = 0.0
+
+    var body: some View {
+        PlayerGrooveArtwork()
+            .equatable()
+            .opacity(GrooveResponse.opacity(for: level, enabled: sourceID != nil && sourceID == sampleSource))
+            .task(id: sourceID) {
+                level = 0
+                sampleSource = sourceID
+                guard let sourceID, !Task.isCancelled,
+                      let owner = playbackController.startAudioMeter(for: sourceID) else { return }
+                defer { playbackController.stopAudioMeter(owner: owner) }
+
+                let clock = ContinuousClock()
+                var previous = clock.now
+                while !Task.isCancelled {
+                    do {
+                        try await clock.sleep(for: .milliseconds(50))
+                    } catch {
+                        return
+                    }
+                    guard !Task.isCancelled else { return }
+                    guard let power = playbackController.averageAudioPower(owner: owner) else {
+                        level = 0
+                        return
+                    }
+                    let now = clock.now
+                    let elapsed = previous.duration(to: now).components
+                    previous = now
+                    let seconds = Double(elapsed.seconds) + Double(elapsed.attoseconds) / 1e18
+                    let next = GrooveResponse.smoothedLevel(previous: level, decibels: power, elapsed: seconds)
+                    if next != level { level = next }
                 }
-                guard !Task.isCancelled else { return }
-                guard let power = playbackController.averageAudioPower(owner: owner) else {
-                    level = 0
-                    return
-                }
-                let now = clock.now
-                let elapsed = previous.duration(to: now).components
-                previous = now
-                let seconds = Double(elapsed.seconds) + Double(elapsed.attoseconds) / 1e18
-                let next = GrooveResponse.smoothedLevel(previous: level, decibels: power, elapsed: seconds)
-                if next != level { level = next }
             }
-        }
     }
 }
 
