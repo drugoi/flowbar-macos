@@ -3,12 +3,13 @@
     <channel>
         <title>FlowBar</title>
         <item>
-            <title>0.1.6</title>
-            <pubDate>Thu, 26 Nov 2026 11:53:07 +0700</pubDate>
-            <sparkle:version>95</sparkle:version>
-            <sparkle:shortVersionString>0.1.6</sparkle:shortVersionString>
+            <title>0.1.7</title>
+            <pubDate>Thu, 26 Nov 2026 12:52:34 +0700</pubDate>
+            <sparkle:version>98</sparkle:version>
+            <sparkle:shortVersionString>0.1.7</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/drugoi/flowbar-macos/releases/download/v0.1.6/FlowBar-0.1.6.zip" length="128540652" type="application/octet-stream" sparkle:edSignature="hqQ0lZPXqoyD4HPuhVsTjb4dhwjiQu4sKXQdnY9YmjYcdnnONP9ROsOx13cl70YZuYEUcPa8tKNY8uGyf76UBw=="/>
+            <description><![CDATA[<ul><li>Long YouTube tracks can start playing while the offline copy is still downloading. Playback and the offline cache share the same AAC data when a compatible stream is available.</li><li>Seeking can fetch audio that has not been cached yet. Cancelling the download keeps playback running, and retrying the last interrupted download in the same session reuses the audio already saved.</li><li>FlowBar retries audio requests after a temporary connection loss and keeps verified data for a manual retry when needed.</li><li>The player and library show the track title as soon as it is available, along with download progress. Incoming metadata preserves names you set yourself.</li><li>Improved search discovery for the FlowBar website.</li></ul>]]></description>
+            <enclosure url="https://github.com/drugoi/flowbar-macos/releases/download/v0.1.7/FlowBar-0.1.7.zip" length="128701916" type="application/octet-stream" sparkle:edSignature="UuqMaaChoZm9aSqacSZrywOjZeJFKWFQ2Jv7BpKIYWP+PdpaDfzkmT0r+KWLdm1qAg1+NqEDZtF88iS4YFVRCQ=="/>
         </item>
     </channel>
 </rss>
