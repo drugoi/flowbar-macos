@@ -14,53 +14,41 @@ final class FlowBarUITests: XCTestCase {
     }
 
     func testTabNavigationAndEmptyState() throws {
-        let app = launchApp()
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let app = launchApp(libraryDirectory: directory)
+        defer {
+            app.terminate()
+            try? FileManager.default.removeItem(at: directory)
+        }
 
         try openMenuBar(app)
 
         let listenTab = app.buttons["Listen"]
         let addTab = app.buttons["Add"]
-        let utilitiesTab = app.buttons["Utilities"]
+        let settingsTab = app.buttons["Settings"]
         XCTAssertTrue(listenTab.waitForExistence(timeout: 2))
         XCTAssertTrue(addTab.waitForExistence(timeout: 2))
-        XCTAssertTrue(utilitiesTab.waitForExistence(timeout: 2))
+        XCTAssertTrue(settingsTab.waitForExistence(timeout: 2))
 
-        listenTab.click()
-        XCTAssertTrue(app.descendants(matching: .any)["NowPlaying"].waitForExistence(timeout: 2))
-        if !app.staticTexts["No tracks yet"].waitForExistence(timeout: 1) {
-            XCTAssertTrue(app.staticTexts["My Library"].waitForExistence(timeout: 2))
-        }
-
-        addTab.click()
+        XCTAssertTrue(app.staticTexts["No tracks yet"].waitForExistence(timeout: 2))
+        app.buttons["Add a Track"].click()
         XCTAssertTrue(app.textFields["YouTube URL"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.textFields["Display name (optional)"].waitForExistence(timeout: 2))
 
-        utilitiesTab.click()
+        settingsTab.click()
         XCTAssertTrue(app.buttons["Clear all downloads"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Copy diagnostics"].waitForExistence(timeout: 2))
-        if !app.switches["Start at Login"].waitForExistence(timeout: 2) {
-            throw XCTSkip("Start at Login toggle not available on this runner.")
-        }
+        XCTAssertTrue(app.buttons["Copy Diagnostics"].waitForExistence(timeout: 2))
     }
 
-    func testAddValidationShowsError() throws {
+    func testAnEmptyAddFormShowsValidationFeedback() throws {
         let app = launchApp()
 
         try openMenuBar(app)
         app.buttons["Add"].click()
 
-        let urlField = app.textFields["YouTube URL"]
-        XCTAssertTrue(urlField.waitForExistence(timeout: 2))
-        urlField.click()
-        urlField.typeText("not a url")
-
+        XCTAssertTrue(app.textFields["YouTube URL"].waitForExistence(timeout: 2))
         try addTrackButton(in: app).click()
-        let invalidText = app.staticTexts["Invalid URL."]
-        let inputIssue = app.staticTexts["Input issue"]
-        XCTAssertTrue(
-            invalidText.waitForExistence(timeout: 2) || inputIssue.waitForExistence(timeout: 2),
-            "Expected validation feedback to appear."
-        )
+        XCTAssertTrue(app.staticTexts["Enter at least one YouTube URL."].waitForExistence(timeout: 2))
     }
 
     func testResolvedTitleAndRenameWhileDownloading() throws {
@@ -93,6 +81,7 @@ final class FlowBarUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "value == %@", "Downloading")).firstMatch.exists)
         XCTAssertFalse(app.staticTexts["Metadata unavailable"].exists)
 
+        app.activate()
         app.menuButtons["TrackActions_JRnDYB28bL8"].click()
         app.menuItems["Rename"].click()
         let name = app.textFields["Display name"]

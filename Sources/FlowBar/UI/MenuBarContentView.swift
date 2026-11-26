@@ -64,7 +64,6 @@ struct MenuBarContentView: View {
     @State private var ytdlpWarning: String?
     @State private var ffmpegMissing = false
     @State private var selectedTab: Tab = .listen
-    @Namespace private var tabNamespace
     @State private var requestedTrackID: UUID?
     @State private var startAtLoginEnabled = false
     @State private var startAtLoginBusy = false
@@ -125,7 +124,7 @@ struct MenuBarContentView: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .topLeading) {
             LinearGradient(
                 colors: [UI.base, UI.baseAlt],
                 startPoint: .topLeading,
@@ -205,8 +204,12 @@ struct MenuBarContentView: View {
                     }
                     switch selectedTab {
                     case .listen:
-                        nowPlayingSection
-                        trackListSection
+                        if nowPlayingTrack == nil {
+                            emptyListenSection
+                        } else {
+                            nowPlayingSection
+                            trackListSection
+                        }
                     case .add:
                         addNewSection
                     case .utilities:
@@ -225,6 +228,7 @@ struct MenuBarContentView: View {
                 DialogOverlay(onBackgroundTap: { self.deleteCandidate = nil }) {
                     DialogCard(title: "Delete track?", message: "This removes the track from your library. Downloaded audio is removed when no other track uses it.") {
                         HStack(spacing: 8) {
+                            Spacer(minLength: 0)
                             Button("Cancel") {
                                 logUserAction("Delete track cancelled")
                                 self.deleteCandidate = nil
@@ -241,7 +245,7 @@ struct MenuBarContentView: View {
                                 }
                                 self.deleteCandidate = nil
                             }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(PrimaryButtonStyle())
                         }
                     }
                 }
@@ -250,11 +254,23 @@ struct MenuBarContentView: View {
             if let renameCandidate {
                 DialogOverlay(onBackgroundTap: { self.renameCandidate = nil }) {
                     DialogCard(title: "Rename track") {
-                        DialogTextField(placeholder: "Display name", text: $renameText)
-                            .focused($focusedField, equals: .rename)
-                            .onAppear { focusedField = .rename }
-                            .onSubmit { saveRename(for: renameCandidate) }
+                        LabeledTextField(
+                            label: "Display name",
+                            placeholder: "Display name",
+                            text: $renameText,
+                            focusedField: $focusedField,
+                            field: .rename,
+                            onSubmit: { saveRename(for: renameCandidate) }
+                        )
+                        .defaultFocus($focusedField, .rename)
+                        .onAppear {
+                            DispatchQueue.main.async {
+                                guard self.renameCandidate?.id == renameCandidate.id else { return }
+                                focusedField = .rename
+                            }
+                        }
                         HStack(spacing: 8) {
+                            Spacer(minLength: 0)
                             Button("Cancel") {
                                 logUserAction("Rename track cancelled")
                                 self.renameCandidate = nil
@@ -367,21 +383,17 @@ struct MenuBarContentView: View {
     }
 
     private var tabBar: some View {
-        HStack(spacing: 4) {
+        let spacing: CGFloat = 4
+        return HStack(spacing: spacing) {
             ForEach(Tab.allCases) { tab in
                 Button {
-                    selectedTab = tab
-                    focusedField = tab == .add ? .url : nil
+                    selectTab(tab)
                     logUserAction("Switched tab: \(tab.rawValue)")
                 } label: {
                     let isSelected = tab == selectedTab
                     Hoverable { hovering in
                         ZStack {
-                            if isSelected {
-                                RoundedRectangle(cornerRadius: UI.smallRadius)
-                                    .fill(UI.accent.opacity(0.12))
-                                    .matchedGeometryEffect(id: "tab-pill", in: tabNamespace)
-                            } else if hovering {
+                            if hovering && !isSelected {
                                 RoundedRectangle(cornerRadius: UI.smallRadius)
                                     .fill(UI.surfaceHover)
                             }
@@ -399,10 +411,24 @@ struct MenuBarContentView: View {
                         .contentShape(Rectangle())
                     }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressFeedbackStyle())
                 .accessibilityAddTraits(tab == selectedTab ? .isSelected : [])
                 .keyboardShortcut(tab.shortcutKey, modifiers: [.command])
             }
+        }
+        .background(alignment: .leading) {
+            GeometryReader { geometry in
+                let count = CGFloat(Tab.allCases.count)
+                let width = max(0, (geometry.size.width - spacing * (count - 1)) / count)
+                let index = CGFloat(Tab.allCases.firstIndex(of: selectedTab) ?? 0)
+                RoundedRectangle(cornerRadius: UI.smallRadius)
+                    .fill(UI.accent.opacity(0.12))
+                    .frame(width: width)
+                    .offset(x: (width + spacing) * index)
+                    .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 1), value: selectedTab)
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
         }
         .padding(3)
         .background(UI.surface)
@@ -412,6 +438,30 @@ struct MenuBarContentView: View {
                 .stroke(UI.border, lineWidth: 1)
         )
         .frame(height: 32)
+    }
+
+    private func selectTab(_ tab: Tab) {
+        selectedTab = tab
+        focusedField = tab == .add ? .url : nil
+    }
+
+    private var emptyListenSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("No tracks yet")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.white)
+                .accessibilityAddTraits(.isHeader)
+            Text("Add a YouTube link to start listening.")
+                .font(.system(size: 12))
+                .foregroundStyle(UI.playerMuted)
+            Button("Add a Track") { selectTab(.add) }
+                .buttonStyle(PrimaryButtonStyle())
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
+        .background(UI.playerSurface, in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("NowPlaying")
     }
 
     private var isTrackDialogPresented: Bool { deleteCandidate != nil || renameCandidate != nil }
@@ -435,8 +485,6 @@ struct MenuBarContentView: View {
             }
             .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(UI.playerAccent)
-            .opacity(nowPlayingTrack == nil ? 0 : 1)
-            .accessibilityHidden(nowPlayingTrack == nil)
             Text(nowPlayingTitle)
                 .font(.system(size: 22, weight: .semibold))
                 .tracking(-0.4)
@@ -718,12 +766,6 @@ struct MenuBarContentView: View {
                                 .padding(.horizontal, 4)
                         }
                     }
-                    if filteredLibrary.isEmpty {
-                        EmptyStateView(
-                            title: "No tracks yet",
-                            message: "Add a YouTube URL to start listening offline."
-                        )
-                    }
                 }
             }
             .accessibilityElement(children: .contain)
@@ -736,11 +778,10 @@ struct MenuBarContentView: View {
     private var addNewSection: some View {
         SectionCard {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Add New")
-                    .font(sectionTitleFont)
                 LabeledTextField(
                     icon: "link",
-                    placeholder: "YouTube URL",
+                    label: "YouTube URL",
+                    placeholder: "https://www.youtube.com/watch?v=…",
                     text: $newURL,
                     focusedField: $focusedField,
                     field: .url,
@@ -758,9 +799,13 @@ struct MenuBarContentView: View {
                         batchAddErrors = []
                     }
                 }
+                Text("For multiple tracks, separate links with spaces or new lines.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(UI.inkMuted)
                 LabeledTextField(
                     icon: "pencil",
-                    placeholder: "Display name (optional)",
+                    label: "Display name (optional)",
+                    placeholder: "Use the YouTube title",
                     text: $newDisplayName,
                     focusedField: $focusedField,
                     field: .displayName,
@@ -783,7 +828,7 @@ struct MenuBarContentView: View {
                         }
                     }
                 }
-                Button("Add") {
+                Button("Add Tracks") {
                     logUserAction("Add track tapped")
                     addNewTrack()
                 }
@@ -797,13 +842,12 @@ struct MenuBarContentView: View {
     }
 
     private var utilitiesSection: some View {
-        SectionCard {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 6) {
-                    SettingsCard(title: "Updates") {
+        ScrollView {
+            SectionCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    SettingsGroup(title: "Updates") {
                         settingsActionRow(
                             title: "Check for Updates",
-                            subtitle: "Check the update feed now.",
                             actionTitle: "Check"
                         ) {
                             logUserAction("Check for updates tapped")
@@ -824,7 +868,8 @@ struct MenuBarContentView: View {
                         }
                     }
 
-                    SettingsCard(title: "System") {
+                    Divider()
+                    SettingsGroup(title: "System") {
                         settingsToggle(
                             title: "Start at Login",
                             subtitle: "Launch FlowBar when you sign in.",
@@ -848,23 +893,25 @@ struct MenuBarContentView: View {
                         }
                     }
 
-                    SettingsCard(title: "Storage") {
+                    Divider()
+                    SettingsGroup(title: "Storage") {
                         HStack(alignment: .center, spacing: 10) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Cache limit")
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(UI.ink)
-                                Text("Auto-evict least-recently-played downloads.")
+                                Text("Removes least recently played downloads first.")
                                     .font(.system(size: 10.5, weight: .regular))
                                     .foregroundColor(UI.inkMuted)
                             }
                             Spacer()
                             Stepper(value: cacheLimitGBBinding, in: 1...50, step: 1) {
-                                Text("\(cacheLimitGBBinding.wrappedValue) GB")
+                                Text("\(cacheLimitGBBinding.wrappedValue) GiB")
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(UI.ink)
                             }
                             .controlSize(.small)
+                            .accessibilityLabel("Cache limit")
                         }
                         Button {
                             logUserAction("Clear downloads tapped")
@@ -888,7 +935,7 @@ struct MenuBarContentView: View {
                                 logUserAction("Clear downloads cancelled")
                             }
                         }
-                        Text("Cache: \(formattedBytes(libraryStore.cacheSizeBytes)) of \(formattedBytes(libraryStore.cacheLimitBytes))")
+                        Text("\(formattedBytes(libraryStore.cacheSizeBytes)) used")
                             .font(.system(size: 10.5, weight: .regular))
                             .foregroundColor(UI.inkMuted)
                     }
@@ -904,7 +951,6 @@ struct MenuBarContentView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -1083,11 +1129,9 @@ struct MenuBarContentView: View {
     }
 
     private var nowPlayingStatus: String {
-        if playbackController.currentTrack == nil, let track = nowPlayingTrack {
+        if playbackController.currentTrack == nil || playbackController.state == .idle,
+           let track = nowPlayingTrack {
             return track.downloadState == .downloaded ? "Ready to play" : trackStatus(for: track)
-        }
-        if playbackController.state == .idle {
-            return "Ready to play"
         }
         if playbackController.isBuffering {
             return "Buffering"
@@ -1410,8 +1454,9 @@ struct MenuBarContentView: View {
 
     private func beginRename(_ track: Track) {
         logUserAction("Begin rename for \(track.videoId)")
-        renameCandidate = track
         renameText = track.knownTitle ?? ""
+        focusedField = nil
+        renameCandidate = track
     }
 
     private func saveRename(for track: Track) {
@@ -1443,6 +1488,7 @@ struct MenuBarContentView: View {
         let formatter = ByteCountFormatter()
         formatter.allowedUnits = [.useKB, .useMB, .useGB]
         formatter.countStyle = .file
+        formatter.allowsNonnumericFormatting = false
         return formatter.string(fromByteCount: bytes)
     }
 
@@ -1509,6 +1555,7 @@ struct MenuBarContentView: View {
                 .toggleStyle(.switch)
                 .controlSize(.small)
                 .labelsHidden()
+                .accessibilityLabel(title)
         }
         .padding(.vertical, 1)
     }
@@ -1534,6 +1581,7 @@ struct MenuBarContentView: View {
             Spacer()
             Button(actionTitle, action: action)
                 .buttonStyle(SecondaryButtonStyle())
+                .accessibilityLabel(title)
         }
         .padding(.vertical, 1)
     }
@@ -1557,7 +1605,7 @@ struct MenuBarContentView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    private struct SettingsCard<Content: View>: View {
+    private struct SettingsGroup<Content: View>: View {
         let title: String
         let content: Content
 
@@ -1569,18 +1617,12 @@ struct MenuBarContentView: View {
         var body: some View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(title)
-                    .font(sectionTitleFont)
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(UI.ink)
+                    .accessibilityAddTraits(.isHeader)
                 content
             }
-            .padding(8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(UI.surfaceAlt)
-            .cornerRadius(UI.cornerRadius)
-            .overlay(
-                RoundedRectangle(cornerRadius: UI.cornerRadius)
-                    .stroke(UI.border, lineWidth: 1)
-            )
         }
     }
 
@@ -1963,7 +2005,6 @@ private struct SectionCard<Content: View>: View {
                 RoundedRectangle(cornerRadius: UI.cornerRadius)
                     .stroke(UI.border, lineWidth: 1)
             )
-            .shadow(color: UI.shadow, radius: 8, x: 0, y: 3)
     }
 }
 
@@ -1993,22 +2034,29 @@ private struct NoticeCard: View {
     }
 }
 
+private struct PressFeedbackStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(isEnabled ? (configuration.isPressed ? 0.70 : 1) : 0.48)
+    }
+}
+
 private struct PrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
     func makeBody(configuration: Configuration) -> some View {
         Hoverable { hovering in
             configuration.label
                 .font(.system(size: 12, weight: .semibold))
                 .padding(.vertical, 7)
                 .padding(.horizontal, 14)
-                .background(hovering ? UI.primaryFillHover : UI.primaryFill)
+                .background(configuration.role == .destructive ? UI.destructiveFill
+                            : (hovering ? UI.primaryFillHover : UI.primaryFill))
                 .foregroundColor(.white)
                 .cornerRadius(UI.cornerRadius)
-                .overlay(
-                    RoundedRectangle(cornerRadius: UI.cornerRadius)
-                        .stroke(Color.clear, lineWidth: 0)
-                )
-                .scaleEffect(configuration.isPressed ? 0.98 : 1)
-                .opacity(configuration.isPressed ? 0.9 : 1)
+                .opacity(isEnabled ? (configuration.isPressed ? 0.78 : 1) : 0.48)
         }
     }
 }
@@ -2129,13 +2177,10 @@ private enum UI {
         dark: NSColor(calibratedRed: 1.0, green: 0.78, blue: 0.30, alpha: 1)
     )
     static let danger = dynamicColor(
-        light: NSColor(calibratedRed: 0.92, green: 0.26, blue: 0.38, alpha: 1),
-        dark: NSColor(calibratedRed: 0.98, green: 0.35, blue: 0.45, alpha: 1)
+        light: NSColor(calibratedRed: 0.67, green: 0.17, blue: 0.25, alpha: 1),
+        dark: NSColor(calibratedRed: 1.0, green: 0.53, blue: 0.61, alpha: 1)
     )
-    static let shadow = dynamicColor(
-        light: NSColor(calibratedWhite: 0.0, alpha: 0.06),
-        dark: NSColor(calibratedWhite: 0.0, alpha: 0.35)
-    )
+    static let destructiveFill = Color(red: 0.64, green: 0.15, blue: 0.23)
     static let overlayScrim = dynamicColor(
         light: NSColor(calibratedWhite: 0.0, alpha: 0.18),
         dark: NSColor(calibratedWhite: 0.0, alpha: 0.55)
@@ -2210,7 +2255,8 @@ private struct ProgressBar: View {
 }
 
 private struct LabeledTextField: View {
-    let icon: String
+    var icon: String? = nil
+    let label: String
     let placeholder: String
     @Binding var text: String
     var focusedField: FocusState<FocusField?>.Binding
@@ -2220,26 +2266,35 @@ private struct LabeledTextField: View {
 
     var body: some View {
         let isFocused = focusedField.wrappedValue == field
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(UI.inkMuted)
-            TextField(placeholder, text: $text)
-                .textFieldStyle(.plain)
-                .onSubmit(onSubmit)
-                .focused(focusedField, equals: field)
-        }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 10)
-        .background(isHovering ? UI.surfaceHover : UI.surface)
-        .cornerRadius(UI.cornerRadius)
-        .overlay(
-            RoundedRectangle(cornerRadius: UI.cornerRadius)
-                .stroke(isFocused ? UI.accent : UI.border, lineWidth: isFocused ? 2 : 1)
-        )
-        .accessibilityLabel(placeholder)
-        .onHover { hovering in
-            isHovering = hovering
+        VStack(alignment: .leading, spacing: 4) {
+            if icon != nil {
+                Text(label)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(UI.ink)
+                    .accessibilityHidden(true)
+            }
+            HStack(spacing: 8) {
+                if let icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(UI.inkMuted)
+                        .accessibilityHidden(true)
+                }
+                TextField(label, text: $text, prompt: Text(placeholder).foregroundColor(UI.inkMuted))
+                    .textFieldStyle(.plain)
+                    .onSubmit(onSubmit)
+                    .focused(focusedField, equals: field)
+                    .accessibilityLabel(label)
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 10)
+            .background(isHovering ? UI.surfaceHover : UI.surface, in: RoundedRectangle(cornerRadius: UI.cornerRadius))
+            .overlay {
+                RoundedRectangle(cornerRadius: UI.cornerRadius)
+                    .strokeBorder(isFocused ? UI.selectedTabInk : UI.border, lineWidth: isFocused ? 2 : 1)
+                    .allowsHitTesting(false)
+            }
+            .onHover { isHovering = $0 }
         }
     }
 }
@@ -2286,12 +2341,13 @@ private struct TrackActionButton: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .semibold))
-                .frame(width: 24, height: 24)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
                 .foregroundStyle(accent ? UI.selectedTabInk : UI.ink)
                 .background(isHovering ? UI.surfaceHover : Color.clear)
                 .cornerRadius(UI.smallRadius)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressFeedbackStyle())
         .accessibilityLabel(label)
         .help(label)
         .onHover { hovering in
@@ -2350,56 +2406,7 @@ private struct DialogCard<Actions: View>: View {
             RoundedRectangle(cornerRadius: UI.cornerRadius)
                 .fill(UI.surface)
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: UI.cornerRadius)
-                .stroke(UI.border, lineWidth: 1)
-        )
-        .shadow(color: UI.shadow, radius: 10, x: 0, y: 4)
-    }
-}
-
-private struct DialogTextField: View {
-    let placeholder: String
-    @Binding var text: String
-    @State private var isHovering = false
-
-    var body: some View {
-        TextField(placeholder, text: $text)
-            .textFieldStyle(.plain)
-            .padding(.vertical, 8)
-            .padding(.horizontal, 10)
-            .background(isHovering ? UI.surfaceHover : UI.surface)
-            .cornerRadius(UI.cornerRadius)
-            .overlay(
-                RoundedRectangle(cornerRadius: UI.cornerRadius)
-                    .stroke(UI.border, lineWidth: 1)
-            )
-            .onHover { hovering in
-                isHovering = hovering
-            }
-    }
-}
-
-private struct EmptyStateView: View {
-    let title: String
-    let message: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 12, weight: .semibold))
-            Text(message)
-                .font(.system(size: 11, weight: .regular))
-                .foregroundColor(UI.inkMuted)
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(UI.surfaceAlt)
-        .cornerRadius(UI.cornerRadius)
-        .overlay(
-            RoundedRectangle(cornerRadius: UI.cornerRadius)
-                .stroke(UI.border, lineWidth: 1)
-        )
+        .shadow(color: .black.opacity(0.22), radius: 16, x: 0, y: 8)
     }
 }
 
