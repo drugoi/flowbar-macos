@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SPARKLE_VERSION="${SPARKLE_VERSION:-2.8.1}"
+SPARKLE_VERSION="${SPARKLE_VERSION:-2.10.1}"
 TOOLS_DIR="${TOOLS_DIR:-$ROOT_DIR/build/sparkle-tools/$SPARKLE_VERSION}"
 BIN_DIR="$TOOLS_DIR/bin"
 

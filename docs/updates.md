@@ -14,7 +14,7 @@ Sparkle signs update archives using an Ed25519 key. Keep the private key secret.
 1. Fetch Sparkle tools:
    - `scripts/fetch-sparkle-tools.sh`
 2. Generate a keypair (run locally):
-   - `build/sparkle-tools/2.8.1/bin/generate_keys`
+   - `build/sparkle-tools/2.10.1/bin/generate_keys`
    - Copy the `public key` output into `SUPublicEDKey` in `Config/Info.plist`.
 3. Store the private key securely and export it when generating/publishing the appcast:
    - `export SPARKLE_ED25519_PRIVATE_KEY="<private key contents>"`

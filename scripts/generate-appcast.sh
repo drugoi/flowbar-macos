@@ -31,7 +31,7 @@ if [[ -z "$REPO" ]]; then
   exit 1
 fi
 
-SPARKLE_VERSION="${SPARKLE_VERSION:-2.8.1}"
+SPARKLE_VERSION="${SPARKLE_VERSION:-2.10.1}"
 "$ROOT_DIR/scripts/fetch-sparkle-tools.sh" >/dev/null
 TOOLS_BIN="$ROOT_DIR/build/sparkle-tools/$SPARKLE_VERSION/bin"
 

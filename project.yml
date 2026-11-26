@@ -39,6 +39,7 @@ targets:
         showEnvVars: false
         inputFiles:
           - scripts/fetch-ffmpeg.sh
+          - scripts/build-ffmpeg-minimal.sh
         outputFiles:
           - Resources/bin/ffmpeg
           - Resources/bin/ffprobe
@@ -91,4 +92,4 @@ targets:
 packages:
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
-    from: 2.8.1
+    from: 2.10.1

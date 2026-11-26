@@ -54,7 +54,7 @@ struct YtDlpClient {
         self.executable = executable
     }
 
-    static let minimumSupportedVersion = "2024.01.01"
+    static let minimumSupportedVersion = "2026.11.23"
 
     private var bundledExecutableURL: URL? {
         Bundle.main.url(forResource: "yt-dlp", withExtension: nil, subdirectory: "bin")
