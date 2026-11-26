@@ -422,11 +422,20 @@ struct MenuBarContentView: View {
         let isPlaying = playbackController.state == .playing
         let showScrubber = isPlaying || playbackController.state == .paused
         return VStack(alignment: .leading, spacing: 12) {
-            Label(nowPlayingStatus, systemImage: isPlaying ? "waveform" : "music.note")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(UI.playerAccent)
-                .opacity(nowPlayingTrack == nil ? 0 : 1)
-                .accessibilityHidden(nowPlayingTrack == nil)
+            Label {
+                Text(nowPlayingStatus)
+            } icon: {
+                if isPlaying {
+                    PlaybackWaveform(isAnimated: isPlayerWindowVisible && !reduceMotion)
+                } else {
+                    Image(systemName: "music.note")
+                        .frame(width: 12, height: 12)
+                }
+            }
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(UI.playerAccent)
+            .opacity(nowPlayingTrack == nil ? 0 : 1)
+            .accessibilityHidden(nowPlayingTrack == nil)
             Text(nowPlayingTitle)
                 .font(.system(size: 22, weight: .semibold))
                 .tracking(-0.4)
@@ -1572,6 +1581,42 @@ struct MenuBarContentView: View {
     }
 }
 
+private struct PlaybackWaveform: View {
+    let isAnimated: Bool
+
+    var body: some View {
+        Group {
+            if isAnimated {
+                TimelineView(.animation(minimumInterval: 1.0 / 30)) { timeline in
+                    let time = timeline.date.timeIntervalSinceReferenceDate
+                    waveform(phase: 2 * .pi * time / 1.1)
+                }
+            } else {
+                waveform(phase: nil)
+            }
+        }
+        .frame(width: 12, height: 12)
+        .accessibilityHidden(true)
+    }
+
+    private func waveform(phase: Double?) -> some View {
+        Canvas { context, size in
+            var bars = Path()
+            let restingHeights = [3.5, 7.0, 11.0, 7.0, 3.5]
+            for (index, restingHeight) in restingHeights.enumerated() {
+                let scale = phase.map { 0.65 + 0.35 * sin($0 - Double(index) * 1.2) } ?? 1
+                let height = restingHeight * scale
+                let x = size.width / 2 + Double(index - 2) * 2.5
+                bars.addRoundedRect(
+                    in: CGRect(x: x - 0.6, y: (size.height - height) / 2, width: 1.2, height: height),
+                    cornerSize: CGSize(width: 0.6, height: 0.6)
+                )
+            }
+            context.fill(bars, with: .color(UI.playerAccent))
+        }
+    }
+}
+
 enum GrooveResponse {
     static func normalizedLevel(decibels: Double) -> Double {
         guard decibels.isFinite else { return 0 }
@@ -1600,15 +1645,32 @@ private struct PlayerGrooves: View {
     var body: some View {
         let opacity = GrooveResponse.opacity(for: level, enabled: sourceID != nil && sourceID == sampleSource)
         Canvas { context, size in
-            let center = CGPoint(x: size.width - 9, y: 20)
+            let center = CGPoint(x: size.width + 14, y: -size.height * 0.16)
             var grooves = Path()
-            for radius in stride(from: 38.0, through: 170.0, by: 12.0) {
-                grooves.addEllipse(in: CGRect(
+            var bands = Path()
+            let outerRadius = size.width * 0.84
+            for (index, radius) in stride(from: outerRadius, through: outerRadius * 0.19, by: -7.0).enumerated() {
+                let ring = CGRect(
                     x: center.x - radius, y: center.y - radius,
                     width: radius * 2, height: radius * 2
-                ))
+                )
+                if index.isMultiple(of: 6) {
+                    bands.addEllipse(in: ring)
+                } else {
+                    grooves.addEllipse(in: ring)
+                }
             }
-            context.stroke(grooves, with: .color(UI.playerAccent.opacity(opacity)), lineWidth: 0.75)
+            let sheen: GraphicsContext.Shading = .linearGradient(
+                Gradient(stops: [
+                    .init(color: UI.playerAccent.opacity(opacity * 0.22), location: 0.18),
+                    .init(color: UI.playerAccent.opacity(opacity * 0.58), location: 0.57),
+                    .init(color: UI.playerAccent.opacity(opacity), location: 1)
+                ]),
+                startPoint: CGPoint(x: 0, y: size.height),
+                endPoint: CGPoint(x: size.width, y: 0)
+            )
+            context.stroke(grooves, with: sheen, lineWidth: 0.65)
+            context.stroke(bands, with: sheen, lineWidth: 1)
         }
         .task(id: sourceID) {
             level = 0
