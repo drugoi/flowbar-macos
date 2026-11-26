@@ -4,6 +4,28 @@ import ServiceManagement
 
 private enum FocusField {
     case url
+    case displayName
+    case scrubber
+}
+
+struct ScrubberDrag {
+    private(set) var position: TimeInterval?
+    private var hasMoved = false
+
+    mutating func begin(at time: TimeInterval) {
+        position = time
+        hasMoved = false
+    }
+
+    mutating func move(to time: TimeInterval) {
+        hasMoved = hasMoved || time != position
+        position = time
+    }
+
+    mutating func end() -> TimeInterval? {
+        defer { self = ScrubberDrag() }
+        return hasMoved ? position : nil
+    }
 }
 
 private struct BatchAddError: Identifiable {
@@ -19,6 +41,7 @@ struct MenuBarContentView: View {
     @ObservedObject var updateManager: UpdateManager
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focusedField: FocusField?
 
     @StateObject private var networkMonitor = NetworkMonitor()
@@ -45,8 +68,8 @@ struct MenuBarContentView: View {
     @State private var startAtLoginEnabled = false
     @State private var startAtLoginBusy = false
     @State private var startAtLoginError: String?
-    @State private var isScrubbing = false
-    @State private var scrubberOverrideTime: TimeInterval?
+    @State private var isPlayerWindowVisible = false
+    @State private var scrubberDrag = ScrubberDrag()
     private let tabContentMinHeight: CGFloat = 420
     private let skipInterval: TimeInterval = 15
     private let sleepTimerOptions: [(label: String, duration: TimeInterval)] = [
@@ -146,7 +169,7 @@ struct MenuBarContentView: View {
                     if let globalErrorMessage {
                         SectionCard {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(failedTrack == nil ? "Input issue" : "Download issue")
+                                Text(failedTrack == nil ? "Couldn’t complete action" : "Download issue")
                                     .font(sectionTitleFont)
                                 Text(globalErrorMessage)
                                     .font(.system(size: 12, weight: .regular))
@@ -194,22 +217,29 @@ struct MenuBarContentView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .topLeading)
+            .disabled(deleteCandidate != nil || renameCandidate != nil)
+            .accessibilityHidden(deleteCandidate != nil || renameCandidate != nil)
 
             if let deleteCandidate {
                 DialogOverlay(onBackgroundTap: { self.deleteCandidate = nil }) {
-                    DialogCard(title: "Delete track?", message: "This removes the track and any downloaded audio.") {
+                    DialogCard(title: "Delete track?", message: "This removes the track from your library. Downloaded audio is removed when no other track uses it.") {
                         HStack(spacing: 8) {
                             Button("Cancel") {
                                 logUserAction("Delete track cancelled")
                                 self.deleteCandidate = nil
                             }
                             .buttonStyle(SecondaryButtonStyle())
-                            Button("Delete") {
+                            Button("Delete Track", role: .destructive) {
                                 logUserAction("Delete track confirmed: \(deleteCandidate.videoId)")
-                                libraryStore.removeTrack(deleteCandidate)
+                                if libraryStore.removeTrack(deleteCandidate) {
+                                    playbackController.discardTrack(deleteCandidate.id)
+                                } else {
+                                    failedTrack = nil
+                                    globalErrorMessage = libraryStore.lastError
+                                }
                                 self.deleteCandidate = nil
                             }
-                            .buttonStyle(PrimaryButtonStyle())
+                            .buttonStyle(.bordered)
                         }
                     }
                 }
@@ -226,7 +256,7 @@ struct MenuBarContentView: View {
                             }
                             .buttonStyle(SecondaryButtonStyle())
                             Button("Save") {
-                                var updated = renameCandidate
+                                guard var updated = libraryStore.track(withId: renameCandidate.id) else { return }
                                 let trimmed = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
                                 guard !trimmed.isEmpty else { return }
                                 updated.displayName = trimmed
@@ -239,6 +269,11 @@ struct MenuBarContentView: View {
                     }
                 }
             }
+        }
+        .background {
+            PlayerWindowActivity { isPlayerWindowVisible = $0 }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
         }
         .onAppear {
             libraryStore.load()
@@ -294,11 +329,21 @@ struct MenuBarContentView: View {
             updateSuggestedTrack()
         }
         .onChange(of: playbackController.currentTrack?.id) { _ in
-            scrubberOverrideTime = nil
-            isScrubbing = false
+            scrubberDrag = ScrubberDrag()
+        }
+        .onChange(of: isPlayerWindowVisible) { isVisible in
+            if !isVisible {
+                scrubberDrag = ScrubberDrag()
+            }
         }
         .onExitCommand {
-            dismiss()
+            if deleteCandidate != nil {
+                deleteCandidate = nil
+            } else if renameCandidate != nil {
+                renameCandidate = nil
+            } else {
+                dismiss()
+            }
         }
     }
 
@@ -311,15 +356,8 @@ struct MenuBarContentView: View {
             }
             Spacer()
             Text(appVersionText)
-                .font(.system(size: 11, weight: .semibold))
-                .padding(.vertical, 4)
-                .padding(.horizontal, 8)
-                .background(UI.surfaceAlt)
-                .cornerRadius(UI.smallRadius)
-                .overlay(
-                    RoundedRectangle(cornerRadius: UI.smallRadius)
-                        .stroke(UI.border, lineWidth: 1)
-                )
+                .font(.system(size: 11))
+                .foregroundStyle(UI.inkMuted)
         }
     }
 
@@ -360,12 +398,13 @@ struct MenuBarContentView: View {
                             .padding(.vertical, 5)
                             .padding(.horizontal, 8)
                             .frame(maxWidth: .infinity)
-                            .foregroundColor(isSelected ? UI.accent : UI.ink)
+                            .foregroundStyle(isSelected ? UI.selectedTabInk : UI.ink)
                         }
                         .contentShape(Rectangle())
                     }
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(tab == selectedTab ? .isSelected : [])
                 .keyboardShortcut(tab.shortcutKey, modifiers: [.command])
             }
         }
@@ -380,147 +419,211 @@ struct MenuBarContentView: View {
     }
 
     private var nowPlayingSection: some View {
-        SectionCard {
-            let showScrubber = playbackController.state == .playing || playbackController.state == .paused
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Now Playing")
-                    .font(sectionTitleFont)
-                Text(nowPlayingTitle)
-                    .font(.system(size: 14, weight: .medium))
-                    .lineLimit(2)
-                HStack(spacing: 8) {
-                    StatusPill(label: nowPlayingStatus, color: nowPlayingStatusColor)
-                    Spacer()
-                    Button(playbackController.state == .playing ? "Pause" : "Play") {
-                        logUserAction("Primary play/pause tapped")
-                        handlePrimaryPlay()
-                    }
-                    .keyboardShortcut(.space, modifiers: [])
-                    .accessibilityLabel(playbackController.state == .playing ? "Pause playback" : "Resume playback")
-                    .buttonStyle(PrimaryButtonStyle())
-                    Button("Stop") {
-                        logUserAction("Stop playback tapped")
-                        playbackController.stop()
-                        playbackController.cancelSleepTimer()
-                        if let trackId = playbackController.currentTrack?.id {
-                            libraryStore.resetPlaybackPosition(trackId: trackId)
-                        }
-                    }
-                    .accessibilityLabel("Stop playback")
-                    .buttonStyle(SecondaryButtonStyle())
-                }
+        let isPlaying = playbackController.state == .playing
+        let showScrubber = isPlaying || playbackController.state == .paused
+        return VStack(alignment: .leading, spacing: 12) {
+            Label(nowPlayingStatus, systemImage: isPlaying ? "waveform" : "music.note")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(UI.playerAccent)
+                .opacity(nowPlayingTrack == nil ? 0 : 1)
+                .accessibilityHidden(nowPlayingTrack == nil)
+            Text(nowPlayingTitle)
+                .font(.system(size: 22, weight: .semibold))
+                .tracking(-0.4)
+                .lineLimit(2, reservesSpace: true)
+                .foregroundStyle(.white)
+                .accessibilityAddTraits(.isHeader)
+            playbackScrubber
+                .opacity(showScrubber ? 1 : 0)
+                .disabled(!showScrubber)
+                .allowsHitTesting(showScrubber)
+                .accessibilityHidden(!showScrubber)
+            playbackControls(isPlaying: isPlaying)
                 .disabled(!canControlPlayback)
-                if showScrubber {
-                    VStack(spacing: 6) {
-                        Slider(
-                            value: Binding(
-                                get: { scrubberDisplayTime },
-                                set: { newValue in
-                                    let upperBound = max(scrubberDuration, 0)
-                                    let clampedValue = min(max(newValue, 0), upperBound)
-                                    scrubberOverrideTime = clampedValue
-                                }
-                            ),
-                            in: 0...max(scrubberDuration, 0),
-                            onEditingChanged: { editing in
-                                isScrubbing = editing
-                                if !editing, let finalValue = scrubberOverrideTime {
-                                    if scrubberDuration > 0 {
-                                        playbackController.seek(to: finalValue)
-                                    }
-                                    scrubberOverrideTime = nil
-                                }
-                            }
-                        )
-                        .disabled(!canScrub)
-                        .accessibilityLabel("Playback position")
-                        .accessibilityValue({
-                            let current = formattedTime(scrubberDisplayTime)
-                            let total = formattedTime(scrubberDuration)
-                            if current == "--:--" && total == "--:--" {
-                                return "Position unavailable"
-                            }
-                            return "\(current) of \(total)"
-                        }())
-                        HStack {
-                            Text(formattedTime(scrubberDisplayTime))
-                                .font(.system(size: 11, weight: .regular))
-                                .foregroundColor(UI.inkMuted)
-                            Spacer()
-                            Text(formattedDuration(scrubberDuration))
-                                .font(.system(size: 11, weight: .regular))
-                                .foregroundColor(UI.inkMuted)
-                        }
-                    }
-                }
-                HStack(spacing: 8) {
-                    Button {
-                        logUserAction("Skip back tapped")
-                        playbackController.skip(by: -skipInterval)
-                    } label: {
-                        Label("Back", systemImage: "gobackward")
-                            .labelStyle(.iconOnly)
-                    }
-                    .keyboardShortcut(.leftArrow, modifiers: [])
-                    .accessibilityLabel("Skip back \(Int(skipInterval)) seconds")
-                    .disabled(!canSkip)
-                    .buttonStyle(SecondaryButtonStyle())
-                    Button {
-                        logUserAction("Skip forward tapped")
-                        playbackController.skip(by: skipInterval)
-                    } label: {
-                        Label("Forward", systemImage: "goforward")
-                            .labelStyle(.iconOnly)
-                    }
-                    .keyboardShortcut(.rightArrow, modifiers: [])
-                    .accessibilityLabel("Skip forward \(Int(skipInterval)) seconds")
-                    .disabled(!canSkip)
-                    .buttonStyle(SecondaryButtonStyle())
-                    Menu {
-                        ForEach(PlaybackController.availableSpeeds, id: \.self) { speed in
-                            Button(speedLabel(speed)) {
-                                playbackSpeedBinding.wrappedValue = speed
-                            }
-                        }
-                    } label: {
-                        Label("Speed", systemImage: "speedometer")
-                            .labelStyle(.iconOnly)
-                    }
-                    .accessibilityLabel("Playback speed")
-                    .buttonStyle(SecondaryButtonStyle())
-                    Menu {
-                        Button("Cancel Timer", action: playbackController.cancelSleepTimer)
-                            .disabled(!playbackController.sleepTimerIsActive)
-                        Divider()
-                        ForEach(sleepTimerOptions, id: \.duration) { option in
-                            Button(option.label) {
-                                playbackController.startSleepTimer(duration: option.duration)
-                            }
-                        }
-                    } label: {
-                        Label("Sleep timer", systemImage: "moon.zzz")
-                            .labelStyle(.iconOnly)
-                    }
-                    .accessibilityLabel("Sleep timer selection")
-                    .buttonStyle(SecondaryButtonStyle())
-                    Spacer()
-                }
-                .controlSize(.small)
-                .disabled(!canControlPlayback)
-                if playbackController.sleepTimerRemaining != nil {
-                    Text(sleepTimerStatus)
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(UI.inkMuted)
-                        .accessibilityLabel("Sleep timer status")
-                }
-                if let activeId = downloadManager.activeTrackId,
-                   activeId == playbackController.currentTrack?.id,
-                   let progress = downloadManager.progress {
-                    ProgressBar(value: progress)
+            if playbackController.sleepTimerRemaining != nil {
+                Text(sleepTimerStatus)
+                    .font(.system(size: 11))
+                    .monospacedDigit()
+                    .foregroundStyle(UI.playerMuted)
+            }
+            if let activeId = downloadManager.activeTrackId,
+               activeId == playbackController.currentTrack?.id,
+               let progress = downloadManager.progress {
+                ProgressBar(value: progress)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            ZStack {
+                UI.playerSurface
+                PlayerGrooves(
+                    playbackController: playbackController,
+                    sourceID: isPlayerWindowVisible && !reduceMotion ? playbackController.audioMeterSourceID : nil
+                )
+                .accessibilityHidden(true)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("NowPlaying")
+        .onChange(of: showScrubber) { isVisible in
+            if !isVisible {
+                scrubberDrag = ScrubberDrag()
+                if focusedField == .scrubber {
+                    focusedField = nil
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .onDisappear { scrubberDrag = ScrubberDrag() }
+    }
+
+    private var playbackScrubber: some View {
+        let shouldSample = isPlayerWindowVisible && canScrub && scrubberDrag.position == nil
+            && playbackController.state == .playing
+        return TimelineView(.animation(minimumInterval: reduceMotion ? 1 : 1.0 / 30, paused: !shouldSample)) { _ in
+            let time = shouldSample ? playbackController.currentPlaybackTime() : playbackController.currentTime
+            scrubber(at: min(max(time, 0), scrubberDuration))
+        }
+    }
+
+    private func scrubber(at sampledTime: TimeInterval) -> some View {
+        let displayedTime = min(scrubberDrag.position ?? playbackController.pendingSeekTime ?? sampledTime, scrubberDuration)
+        return VStack(spacing: 3) {
+            Slider(
+                value: Binding(
+                    get: { displayedTime },
+                    set: { newValue in
+                        let upperBound = max(scrubberDuration, 0)
+                        let clampedValue = min(max(newValue, 0), upperBound)
+                        if scrubberDrag.position != nil {
+                            scrubberDrag.move(to: clampedValue)
+                        } else {
+                            playbackController.seek(to: clampedValue)
+                        }
+                    }
+                ),
+                in: 0...max(scrubberDuration, 0),
+                onEditingChanged: { editing in
+                    if editing {
+                        scrubberDrag.begin(at: displayedTime)
+                    } else if let finalValue = scrubberDrag.end(), scrubberDuration > 0 {
+                        playbackController.seek(to: finalValue)
+                    }
+                }
+            )
+            .tint(UI.playerAccent)
+            .environment(\.colorScheme, .dark)
+            .disabled(!canScrub)
+            .focused($focusedField, equals: .scrubber)
+            .accessibilityLabel("Playback position")
+            .accessibilityValue({
+                let current = formattedTime(displayedTime)
+                let total = formattedTime(scrubberDuration)
+                if current == "--:--" && total == "--:--" {
+                    return "Position unavailable"
+                }
+                return "\(current) of \(total)"
+            }())
+            HStack {
+                Text(formattedTime(displayedTime))
+                Spacer()
+                Text(formattedDuration(scrubberDuration))
+            }
+            .font(.system(size: 11))
+            .monospacedDigit()
+            .foregroundStyle(UI.playerMuted)
+        }
+    }
+
+    private func playbackControls(isPlaying: Bool) -> some View {
+        HStack(spacing: 5) {
+            Button {
+                logUserAction("Skip back tapped")
+                playbackController.skip(by: -skipInterval)
+            } label: {
+                Image(systemName: "gobackward.15")
+            }
+            .keyboardShortcut(focusedField == .scrubber ? nil : KeyboardShortcut(.leftArrow, modifiers: []))
+            .accessibilityLabel("Skip back 15 seconds")
+            .help("Skip back 15 seconds")
+            .disabled(!canSkip)
+            .buttonStyle(TransportButtonStyle())
+
+            Button {
+                logUserAction("Primary play/pause tapped")
+                handlePrimaryPlay()
+            } label: {
+                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+            }
+            .keyboardShortcut(.space, modifiers: [])
+            .accessibilityLabel(isPlaying ? "Pause playback" : "Resume playback")
+            .help(isPlaying ? "Pause" : "Play")
+            .buttonStyle(TransportButtonStyle(prominent: true))
+
+            Button {
+                logUserAction("Skip forward tapped")
+                playbackController.skip(by: skipInterval)
+            } label: {
+                Image(systemName: "goforward.15")
+            }
+            .keyboardShortcut(focusedField == .scrubber ? nil : KeyboardShortcut(.rightArrow, modifiers: []))
+            .accessibilityLabel("Skip forward 15 seconds")
+            .help("Skip forward 15 seconds")
+            .disabled(!canSkip)
+            .buttonStyle(TransportButtonStyle())
+
+            Button {
+                logUserAction("Stop playback tapped")
+                playbackController.stop()
+                playbackController.cancelSleepTimer()
+                if let trackId = playbackController.currentTrack?.id {
+                    libraryStore.resetPlaybackPosition(trackId: trackId)
+                }
+            } label: {
+                Image(systemName: "stop.fill")
+            }
+            .accessibilityLabel("Stop playback")
+            .help("Stop")
+            .buttonStyle(TransportButtonStyle())
+
+            Spacer(minLength: 8)
+
+            Menu {
+                Picker("Playback speed", selection: playbackSpeedBinding) {
+                    ForEach(PlaybackController.availableSpeeds, id: \.self) { speed in
+                        Text(speedLabel(speed)).tag(speed)
+                    }
+                }
+            } label: {
+                Text(speedLabel(playbackSpeedBinding.wrappedValue))
+                    .font(.system(size: 12, weight: .semibold))
+                    .monospacedDigit()
+            }
+            .accessibilityLabel("Playback speed")
+            .accessibilityValue(speedLabel(playbackSpeedBinding.wrappedValue))
+            .help("Playback speed")
+
+            Menu {
+                Button("Cancel Timer", action: playbackController.cancelSleepTimer)
+                    .disabled(!playbackController.sleepTimerIsActive)
+                Divider()
+                ForEach(sleepTimerOptions, id: \.duration) { option in
+                    Button(option.label) {
+                        playbackController.startSleepTimer(duration: option.duration)
+                    }
+                }
+            } label: {
+                Image(systemName: "moon.zzz")
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .accessibilityLabel("Sleep timer")
+            .help("Sleep timer")
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .environment(\.colorScheme, .dark)
+        .foregroundStyle(.white)
     }
 
     private var statusLine: String {
@@ -544,69 +647,75 @@ struct MenuBarContentView: View {
     }
 
     private var trackListSection: some View {
-        SectionCard {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Tracks")
-                    .font(sectionTitleFont)
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 8) {
-                        if !filteredLibrary.isEmpty {
-                            Text("My Library")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(UI.inkMuted)
-                            ForEach(filteredLibrary) { track in
-                                TrackRow(
-                                    track: track,
-                                    progress: progressText(for: track),
-                                    downloadDisabled: downloadManager.isQueued(trackId: track.id)
-                                        || downloadManager.activeTrackId == track.id,
-                                    isUserTrack: true,
-                                    onPlay: {
-                                        logUserAction("Play track tapped: \(track.videoId)")
-                                        play(track)
-                                    },
-                                    onDownload: {
-                                        logUserAction("Download track tapped: \(track.videoId)")
-                                        resolveAndDownload(track)
-                                    },
-                                    onRetry: {
-                                        logUserAction("Retry download tapped: \(track.videoId)")
-                                        resolveAndDownload(track)
-                                    },
-                                    onCancel: {
-                                        logUserAction("Cancel download tapped: \(track.videoId)")
-                                        cancelDownload(for: track)
-                                    },
-                                    onRemoveDownload: {
-                                        logUserAction("Remove download tapped: \(track.videoId)")
-                                        libraryStore.removeDownload(for: track)
-                                    },
-                                    onDiagnostics: {
-                                        logUserAction("Track diagnostics tapped: \(track.videoId)")
-                                        copyDiagnostics()
-                                    },
-                                    onDelete: {
-                                        logUserAction("Delete track tapped: \(track.videoId)")
-                                        deleteCandidate = track
-                                    },
-                                    onRename: {
-                                        logUserAction("Rename track tapped: \(track.videoId)")
-                                        beginRename(track)
-                                    }
-                                )
+        VStack(alignment: .leading, spacing: 6) {
+            Text("My Library")
+                .font(.system(size: 15, weight: .semibold))
+                .accessibilityAddTraits(.isHeader)
+                .padding(.horizontal, 4)
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(filteredLibrary) { track in
+                        TrackRow(
+                            track: track,
+                            progress: progressText(for: track),
+                            isCurrent: playbackController.currentTrack?.id == track.id
+                                && (playbackController.state == .playing || playbackController.state == .paused),
+                            downloadDisabled: downloadManager.isQueued(trackId: track.id)
+                                || downloadManager.activeTrackId == track.id,
+                            isUserTrack: true,
+                            onPlay: {
+                                logUserAction("Play track tapped: \(track.videoId)")
+                                play(track)
+                            },
+                            onDownload: {
+                                logUserAction("Download track tapped: \(track.videoId)")
+                                resolveAndDownload(track)
+                            },
+                            onRetry: {
+                                logUserAction("Retry download tapped: \(track.videoId)")
+                                resolveAndDownload(track)
+                            },
+                            onCancel: {
+                                logUserAction("Cancel download tapped: \(track.videoId)")
+                                cancelDownload(for: track)
+                            },
+                            onRemoveDownload: {
+                                logUserAction("Remove download tapped: \(track.videoId)")
+                                if libraryStore.removeDownload(for: track) {
+                                    playbackController.discardTrack(track.id)
+                                } else {
+                                    failedTrack = nil
+                                    globalErrorMessage = libraryStore.lastError
+                                }
+                            },
+                            onDiagnostics: {
+                                logUserAction("Track diagnostics tapped: \(track.videoId)")
+                                copyDiagnostics()
+                            },
+                            onDelete: {
+                                logUserAction("Delete track tapped: \(track.videoId)")
+                                deleteCandidate = track
+                            },
+                            onRename: {
+                                logUserAction("Rename track tapped: \(track.videoId)")
+                                beginRename(track)
                             }
-                        }
-                        if filteredLibrary.isEmpty {
-                            EmptyStateView(
-                                title: "No tracks yet",
-                                message: "Add a YouTube URL to start listening offline."
-                            )
+                        )
+                        if track.id != filteredLibrary.last?.id {
+                            Divider()
+                                .padding(.horizontal, 4)
                         }
                     }
+                    if filteredLibrary.isEmpty {
+                        EmptyStateView(
+                            title: "No tracks yet",
+                            message: "Add a YouTube URL to start listening offline."
+                        )
+                    }
                 }
-                .accessibilityElement(children: .contain)
-                .frame(maxHeight: .infinity, alignment: .top)
             }
+            .accessibilityElement(children: .contain)
+            .frame(maxHeight: .infinity, alignment: .top)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("FlowBarMainWindow")
@@ -642,7 +751,7 @@ struct MenuBarContentView: View {
                     placeholder: "Display name (optional)",
                     text: $newDisplayName,
                     focusedField: $focusedField,
-                    field: nil,
+                    field: .displayName,
                     onSubmit: addNewTrack
                 )
                 if let validationError {
@@ -887,7 +996,9 @@ struct MenuBarContentView: View {
         Task {
             for track in tracks {
                 await waitForDownloadSlot()
-                await downloadOnly(track)
+                guard let current = libraryStore.track(withId: track.id),
+                      current.downloadState == .resolving else { continue }
+                await downloadOnly(current)
             }
         }
     }
@@ -962,38 +1073,20 @@ struct MenuBarContentView: View {
         if playbackController.currentTrack == nil, let track = nowPlayingTrack, track.downloadState != .downloaded {
             return "Not downloaded"
         }
+        if playbackController.state == .idle {
+            return "Ready to play"
+        }
         return playbackController.stateLabel
     }
 
-    private var nowPlayingStatusColor: Color {
-        if playbackController.currentTrack == nil, let track = nowPlayingTrack, track.downloadState != .downloaded {
-            return UI.warning
-        }
-        return playbackController.stateColor
-    }
-
     private var scrubberDuration: TimeInterval {
-        if playbackController.duration > 0 {
+        if playbackController.duration.isFinite, playbackController.duration > 0 {
             return playbackController.duration
         }
-        if let duration = nowPlayingTrack?.durationSeconds, duration > 0 {
+        if let duration = nowPlayingTrack?.durationSeconds, duration.isFinite, duration > 0 {
             return duration
         }
         return 0
-    }
-
-    private var scrubberCurrentTime: TimeInterval {
-        if playbackController.currentTrack != nil {
-            if scrubberDuration > 0 {
-                return min(playbackController.currentTime, scrubberDuration)
-            }
-            return playbackController.currentTime
-        }
-        return 0
-    }
-
-    private var scrubberDisplayTime: TimeInterval {
-        scrubberOverrideTime ?? scrubberCurrentTime
     }
 
     private var canScrub: Bool {
@@ -1112,9 +1205,20 @@ struct MenuBarContentView: View {
 
     private func streamAndDownload(_ track: Track) {
         logUserAction("Stream then download for \(track.videoId)")
-        Task {
+        guard !downloadManager.isPreparing(trackId: track.id),
+              !downloadManager.isQueued(trackId: track.id),
+              downloadManager.activeTrackId != track.id,
+              var current = libraryStore.track(withId: track.id) else { return }
+        current.downloadState = .resolving
+        current.lastError = nil
+        libraryStore.updateTrack(current)
+        downloadManager.startPreparation(for: track.id) {
+            guard !Task.isCancelled else {
+                resetCancelledDownload(for: track.id)
+                return
+            }
             guard networkMonitor.isOnline else {
-                var failed = track
+                guard var failed = libraryStore.track(withId: track.id) else { return }
                 failed.downloadState = .failed
                 failed.lastError = "No internet connection."
                 libraryStore.updateTrack(failed)
@@ -1123,21 +1227,18 @@ struct MenuBarContentView: View {
                 DiagnosticsLogger.shared.log(level: "warning", message: "Streaming blocked: offline")
                 return
             }
-            if track.downloadState != .resolving {
-                var updated = libraryStore.track(withId: track.id) ?? track
-                updated.downloadState = .resolving
-                updated.lastError = nil
-                libraryStore.updateTrack(updated)
-            }
             do {
                 let streamURL = try await YtDlpClient().fetchStreamURL(url: track.sourceURL)
-                await MainActor.run {
-                    playbackController.streamAndPlay(
-                        track: track,
-                        streamURL: streamURL,
-                        startAt: track.playbackPositionSeconds
-                    )
-                }
+                try Task.checkCancellation()
+                guard let prepared = libraryStore.track(withId: track.id) else { return }
+                playbackController.streamAndPlay(
+                    track: prepared,
+                    streamURL: streamURL,
+                    startAt: prepared.playbackPositionSeconds
+                )
+            } catch is CancellationError {
+                resetCancelledDownload(for: track.id)
+                return
             } catch {
                 DiagnosticsLogger.shared.log(level: "warning", message: "Streaming failed: \(error.localizedDescription)")
             }
@@ -1148,8 +1249,12 @@ struct MenuBarContentView: View {
     private func downloadOnly(_ track: Track) async {
         logUserAction("Download started for \(track.videoId)")
         guard networkMonitor.isOnline else {
+            guard var failed = libraryStore.track(withId: track.id) else { return }
+            failed.downloadState = .failed
+            failed.lastError = "No internet connection."
+            libraryStore.updateTrack(failed)
             globalErrorMessage = "No internet connection."
-            failedTrack = track
+            failedTrack = failed
             return
         }
         if downloadManager.activeTrackId == track.id || downloadManager.isQueued(trackId: track.id) {
@@ -1194,11 +1299,7 @@ struct MenuBarContentView: View {
             NotificationManager.shared.notifyDownloadComplete(track: completed)
         } catch let error as DownloadError {
             if case .cancelled = error {
-                var cancelled = libraryStore.track(withId: track.id) ?? track
-                cancelled.downloadState = .notDownloaded
-                cancelled.downloadProgress = nil
-                cancelled.lastError = nil
-                libraryStore.updateTrack(cancelled)
+                resetCancelledDownload(for: track.id)
                 return
             }
             var failed = libraryStore.track(withId: track.id) ?? track
@@ -1270,15 +1371,17 @@ struct MenuBarContentView: View {
             downloadManager.cancelActiveDownload()
         } else if downloadManager.isQueued(trackId: track.id) {
             downloadManager.removeFromQueue(trackId: track.id)
-        } else {
-            return
+        } else if !downloadManager.cancelPreparation(for: track.id) {
+            resetCancelledDownload(for: track.id)
         }
-        var updated = track
+    }
+
+    private func resetCancelledDownload(for trackId: UUID) {
+        guard var updated = libraryStore.track(withId: trackId) else { return }
         updated.downloadState = .notDownloaded
         updated.downloadProgress = nil
-        updated.lastError = "Download cancelled."
+        updated.lastError = nil
         libraryStore.updateTrack(updated)
-        DiagnosticsLogger.shared.log(level: "info", message: "Download cancelled for \(track.videoId)")
     }
 
     private func beginRename(_ track: Track) {
@@ -1369,7 +1472,7 @@ struct MenuBarContentView: View {
                 }
             }
             Spacer()
-            Toggle("", isOn: isOn)
+            Toggle(title, isOn: isOn)
                 .toggleStyle(.switch)
                 .controlSize(.small)
                 .labelsHidden()
@@ -1458,7 +1561,9 @@ struct MenuBarContentView: View {
             return "Queued \(position) of \(total)"
         }
         if track.downloadState == .resolving {
-            return "Preparing download…"
+            return downloadManager.isPreparing(trackId: track.id)
+                ? "Looking for an audio stream…"
+                : "Waiting to download…"
         }
         if track.downloadState == .failed, let error = track.lastError {
             return error
@@ -1467,9 +1572,129 @@ struct MenuBarContentView: View {
     }
 }
 
+enum GrooveResponse {
+    static func normalizedLevel(decibels: Double) -> Double {
+        guard decibels.isFinite else { return 0 }
+        return min(max((decibels + 45) / 35, 0), 1)
+    }
+
+    static func smoothedLevel(previous: Double, decibels: Double, elapsed: TimeInterval) -> Double {
+        let target = normalizedLevel(decibels: decibels)
+        let timeConstant = target > previous ? 0.20 : 0.55
+        let response = 1 - exp(-max(elapsed, 0) / timeConstant)
+        let level = previous + (target - previous) * response
+        return target == 0 && level < 0.01 ? 0 : level
+    }
+
+    static func opacity(for level: Double, enabled: Bool) -> Double {
+        0.130 + (enabled ? 0.035 * min(max(level, 0), 1) : 0)
+    }
+}
+
+private struct PlayerGrooves: View {
+    let playbackController: PlaybackController
+    let sourceID: UUID?
+    @State private var sampleSource: UUID?
+    @State private var level = 0.0
+
+    var body: some View {
+        let opacity = GrooveResponse.opacity(for: level, enabled: sourceID != nil && sourceID == sampleSource)
+        Canvas { context, size in
+            let center = CGPoint(x: size.width - 9, y: 20)
+            var grooves = Path()
+            for radius in stride(from: 38.0, through: 170.0, by: 12.0) {
+                grooves.addEllipse(in: CGRect(
+                    x: center.x - radius, y: center.y - radius,
+                    width: radius * 2, height: radius * 2
+                ))
+            }
+            context.stroke(grooves, with: .color(UI.playerAccent.opacity(opacity)), lineWidth: 0.75)
+        }
+        .task(id: sourceID) {
+            level = 0
+            sampleSource = sourceID
+            guard let sourceID, !Task.isCancelled,
+                  let owner = playbackController.startAudioMeter(for: sourceID) else { return }
+            defer { playbackController.stopAudioMeter(owner: owner) }
+
+            let clock = ContinuousClock()
+            var previous = clock.now
+            while !Task.isCancelled {
+                do {
+                    try await clock.sleep(for: .milliseconds(50))
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled else { return }
+                guard let power = playbackController.averageAudioPower(owner: owner) else {
+                    level = 0
+                    return
+                }
+                let now = clock.now
+                let elapsed = previous.duration(to: now).components
+                previous = now
+                let seconds = Double(elapsed.seconds) + Double(elapsed.attoseconds) / 1e18
+                let next = GrooveResponse.smoothedLevel(previous: level, decibels: power, elapsed: seconds)
+                if next != level { level = next }
+            }
+        }
+    }
+}
+
+private struct PlayerWindowActivity: NSViewRepresentable {
+    let onChange: (Bool) -> Void
+
+    func makeNSView(context: Context) -> ActivityView {
+        let view = ActivityView()
+        view.onChange = onChange
+        return view
+    }
+
+    func updateNSView(_ nsView: ActivityView, context: Context) {
+        nsView.onChange = onChange
+    }
+
+    final class ActivityView: NSView {
+        var onChange: ((Bool) -> Void)?
+        private var reportedActivity = false
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            let center = NotificationCenter.default
+            center.removeObserver(self)
+            if let window {
+                for name in [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification,
+                             NSWindow.didChangeOcclusionStateNotification] {
+                    center.addObserver(self, selector: #selector(windowActivityDidChange(_:)), name: name, object: window)
+                }
+            }
+            reportActivity()
+        }
+
+        @objc private func windowActivityDidChange(_ notification: Notification) {
+            reportActivity()
+        }
+
+        private func reportActivity() {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                let active = self.window?.isVisible == true && self.window?.isKeyWindow == true
+                guard active != self.reportedActivity else { return }
+                self.reportedActivity = active
+                self.onChange?(active)
+            }
+        }
+
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+    }
+}
+
 private struct TrackRow: View {
     let track: Track
     let progress: String?
+    let isCurrent: Bool
     let downloadDisabled: Bool
     let isUserTrack: Bool
     let onPlay: () -> Void
@@ -1483,114 +1708,152 @@ private struct TrackRow: View {
     @State private var isHovering = false
 
     var body: some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(track.displayName)
-                    .font(.system(size: 13, weight: .semibold))
-                    .accessibilityIdentifier("TrackTitle_\(track.videoId)")
-                if let resolvedTitle = track.resolvedTitle, resolvedTitle != track.displayName {
-                    Text(resolvedTitle)
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(UI.inkMuted)
+        HStack(spacing: 10) {
+            if isBusy {
+                trackDetails
+            } else {
+                Button(action: activateTrack) {
+                    trackDetails
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
-                if let durationText = formattedTrackDuration(track.durationSeconds) {
-                    Text(durationText)
-                        .font(.system(size: 10, weight: .regular))
-                        .foregroundColor(UI.inkMuted)
-                } else if track.metadataUnavailable == true {
-                    Text("Metadata unavailable")
-                        .font(.system(size: 10, weight: .regular))
-                        .foregroundColor(UI.inkMuted)
-                }
-                if let progress {
-                    Text(progress)
-                        .font(.system(size: 10, weight: .regular))
-                        .foregroundColor(UI.inkMuted)
-                }
+                .buttonStyle(.plain)
+                .disabled(downloadDisabled)
             }
-            Spacer(minLength: 6)
-            HStack(spacing: 8) {
-                statusPillView
-                actionsView
-                    .frame(width: 56, alignment: .trailing)
-            }
-            .frame(width: 148, alignment: .trailing)
+            Spacer(minLength: 0)
+            actionsView
+                .fixedSize()
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 10)
-        .background(isHovering ? UI.surfaceHover : UI.surface)
-        .cornerRadius(UI.cornerRadius)
-        .overlay(
-            RoundedRectangle(cornerRadius: UI.cornerRadius)
-                .stroke(UI.border, lineWidth: 1)
-        )
-        .animation(.easeInOut(duration: 0.12), value: isHovering)
+        .padding(.vertical, 9)
+        .padding(.horizontal, 5)
+        .background(rowBackground, in: RoundedRectangle(cornerRadius: UI.smallRadius))
         .onHover { hovering in
             isHovering = hovering
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(isCurrent ? .isSelected : [])
         .accessibilityIdentifier("TrackRow_\(track.videoId)")
-        .onTapGesture {
-            switch track.downloadState {
-            case .downloaded:
-                onPlay()
-            case .downloading, .resolving, .queued:
-                break
-            default:
-                onDownload()
-            }
-        }
         .contextMenu {
-            if track.downloadState == .downloaded {
-                Button("Play", action: onPlay)
-                Button("Remove Download", action: onRemoveDownload)
-            } else if track.downloadState == .failed {
-                Button("Retry Download", action: onRetry)
-                Button("Copy Diagnostics", action: onDiagnostics)
-            } else if track.downloadState == .downloading || track.downloadState == .queued {
-                Button("Cancel Download", action: onCancel)
-            } else {
-                Button("Download", action: onDownload)
+            primaryMenuAction
+            trackManagementActions
+        }
+    }
+
+    private var rowBackground: Color {
+        if isHovering { return UI.surfaceHover }
+        return isCurrent ? UI.accent.opacity(0.13) : .clear
+    }
+
+    private var trackDetails: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(track.displayName)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(isCurrent ? UI.selectedTabInk : UI.ink)
+                .accessibilityIdentifier("TrackTitle_\(track.videoId)")
+            if let resolvedTitle = track.resolvedTitle, resolvedTitle != track.displayName {
+                Text(resolvedTitle)
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundColor(UI.inkMuted)
             }
-            if isUserTrack {
-                if let onRename {
-                    Button("Rename", action: onRename)
+            HStack(spacing: 6) {
+                if let durationText = formattedTrackDuration(track.durationSeconds) {
+                    Text(durationText)
+                        .monospacedDigit()
+                        .accessibilityLabel("Duration \(durationText)")
+                } else if track.metadataUnavailable == true {
+                    Text("Metadata unavailable")
                 }
-                if let onDelete {
-                    Button("Delete", role: .destructive, action: onDelete)
+                if progress == nil {
+                    if track.durationSeconds != nil || track.metadataUnavailable == true {
+                        Circle()
+                            .frame(width: 2, height: 2)
+                            .accessibilityHidden(true)
+                    }
+                    Text(downloadStatusLabel)
                 }
+            }
+            .font(.system(size: 11))
+            .foregroundStyle(UI.inkMuted)
+            if let progress {
+                Text(progress)
+                    .font(.system(size: 10, weight: .regular))
+                    .foregroundColor(UI.inkMuted)
             }
         }
     }
 
-    private var statusPillView: some View {
-        StatusPill(label: statusPillLabel, color: statusPillColor)
-            .frame(width: 84, alignment: .leading)
+    private var isBusy: Bool {
+        [.resolving, .queued, .downloading].contains(track.downloadState)
+    }
+
+    private func activateTrack() {
+        switch track.downloadState {
+        case .downloaded: onPlay()
+        case .failed: onRetry()
+        default: onDownload()
+        }
+    }
+
+    @ViewBuilder
+    private var primaryMenuAction: some View {
+        if track.downloadState == .downloaded {
+            Button("Play", action: onPlay)
+        } else if isBusy {
+            Button("Cancel Download", action: onCancel)
+        } else if track.downloadState == .failed {
+            Button("Retry Download", action: onRetry)
+        } else {
+            Button("Download", action: onDownload)
+                .disabled(downloadDisabled)
+        }
+    }
+
+    @ViewBuilder
+    private var trackManagementActions: some View {
+        if track.downloadState == .downloaded {
+            Button("Remove Download", action: onRemoveDownload)
+        } else if track.downloadState == .failed {
+            Button("Copy Diagnostics", action: onDiagnostics)
+        }
+        if isUserTrack {
+            if let onRename {
+                Button("Rename", action: onRename)
+            }
+            if let onDelete {
+                Button("Delete Track", role: .destructive, action: onDelete)
+                    .disabled(isBusy)
+            }
+        }
     }
 
     private var actionsView: some View {
         HStack(spacing: 6) {
             if track.downloadState == .downloaded {
                 TrackActionButton(icon: "play.fill", label: "Play", action: onPlay)
-                if isUserTrack, let onDelete {
-                    TrackActionButton(icon: "trash", label: "Delete", action: onDelete)
-                } else {
-                    TrackActionButton(icon: "trash", label: "Remove Download", action: onRemoveDownload)
-                }
-            } else if track.downloadState == .downloading || track.downloadState == .queued {
-                TrackActionButton(icon: "xmark.circle", label: "Cancel", action: onCancel)
+            } else if isBusy {
+                TrackActionButton(icon: "xmark.circle", label: "Cancel download", action: onCancel)
             } else if track.downloadState == .failed {
                 TrackActionButton(icon: "arrow.clockwise", label: "Retry", accent: true, action: onRetry)
-                TrackActionButton(icon: "doc.on.doc", label: "Logs", action: onDiagnostics)
             } else {
                 TrackActionButton(icon: "arrow.down.circle", label: "Download", accent: true, action: onDownload)
                     .disabled(downloadDisabled)
             }
+            Menu {
+                trackManagementActions
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(width: 24, height: 24)
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .accessibilityLabel("Actions for \(track.displayName)")
+            .help("Track actions")
         }
     }
 
-    private var statusPillLabel: String {
+    private var downloadStatusLabel: String {
         switch track.downloadState {
         case .notDownloaded:
             return "Online"
@@ -1604,23 +1867,6 @@ private struct TrackRow: View {
             return "Downloading"
         case .failed:
             return "Issue"
-        }
-    }
-
-    private var statusPillColor: Color {
-        switch track.downloadState {
-        case .notDownloaded:
-            return UI.border
-        case .downloaded:
-            return UI.success
-        case .resolving:
-            return UI.warning
-        case .queued:
-            return UI.accent
-        case .downloading:
-            return UI.accent
-        case .failed:
-            return UI.danger
         }
     }
 }
@@ -1637,7 +1883,7 @@ private func formattedTrackDuration(_ seconds: Double?) -> String? {
     } else {
         formatted = String(format: "%d:%02d", minutes, remainingSeconds)
     }
-    return "Duration \(formatted)"
+    return formatted
 }
 
 private struct SectionCard<Content: View>: View {
@@ -1694,7 +1940,7 @@ private struct PrimaryButtonStyle: ButtonStyle {
                 .font(.system(size: 12, weight: .semibold))
                 .padding(.vertical, 7)
                 .padding(.horizontal, 14)
-                .background(hovering ? UI.accentHover : UI.accent)
+                .background(hovering ? UI.primaryFillHover : UI.primaryFill)
                 .foregroundColor(.white)
                 .cornerRadius(UI.cornerRadius)
                 .overlay(
@@ -1758,6 +2004,10 @@ private enum UI {
         })
     }
 
+    static let playerSurface = Color(red: 0.08, green: 0.14, blue: 0.23)
+    static let playerAccent = Color(red: 0.78, green: 0.89, blue: 1)
+    static let playerMuted = Color(red: 0.72, green: 0.80, blue: 0.89)
+
     static let base = dynamicColor(
         light: NSColor(calibratedRed: 0.97, green: 0.97, blue: 0.95, alpha: 1),
         dark: NSColor(calibratedRed: 0.10, green: 0.10, blue: 0.11, alpha: 1)
@@ -1798,9 +2048,17 @@ private enum UI {
         light: NSColor(calibratedRed: 0.28, green: 0.55, blue: 0.9, alpha: 1),
         dark: NSColor(calibratedRed: 0.35, green: 0.65, blue: 0.98, alpha: 1)
     )
-    static let accentHover = dynamicColor(
-        light: NSColor(calibratedRed: 0.24, green: 0.50, blue: 0.85, alpha: 1),
-        dark: NSColor(calibratedRed: 0.30, green: 0.60, blue: 0.95, alpha: 1)
+    static let selectedTabInk = dynamicColor(
+        light: NSColor(calibratedRed: 0.10, green: 0.26, blue: 0.52, alpha: 1),
+        dark: NSColor(calibratedRed: 0.65, green: 0.80, blue: 1.0, alpha: 1)
+    )
+    static let primaryFill = dynamicColor(
+        light: NSColor(calibratedRed: 0.10, green: 0.26, blue: 0.52, alpha: 1),
+        dark: NSColor(calibratedRed: 0.15, green: 0.33, blue: 0.60, alpha: 1)
+    )
+    static let primaryFillHover = dynamicColor(
+        light: NSColor(calibratedRed: 0.08, green: 0.22, blue: 0.46, alpha: 1),
+        dark: NSColor(calibratedRed: 0.12, green: 0.28, blue: 0.54, alpha: 1)
     )
     static let success = dynamicColor(
         light: NSColor(calibratedRed: 0.22, green: 0.70, blue: 0.42, alpha: 1),
@@ -1826,22 +2084,28 @@ private enum UI {
     static let smallRadius: CGFloat = 8
 }
 
-private struct StatusPill: View {
-    let label: String
-    let color: Color
+private struct TransportButtonStyle: ButtonStyle {
+    var prominent = false
+    @Environment(\.isEnabled) private var isEnabled
 
-    var body: some View {
-        Text(label)
-            .font(.system(size: 9, weight: .semibold))
-            .padding(.vertical, 3)
-            .padding(.horizontal, 7)
-            .background(UI.surfaceAlt)
-            .foregroundColor(UI.ink)
-            .cornerRadius(UI.smallRadius)
-            .overlay(
-                RoundedRectangle(cornerRadius: UI.smallRadius)
-                    .stroke(color.opacity(0.7), lineWidth: 1)
-            )
+    func makeBody(configuration: Configuration) -> some View {
+        Hoverable { hovering in
+            configuration.label
+                .font(.system(size: prominent ? 15 : 14, weight: .semibold))
+                .frame(width: prominent ? 40 : 32, height: 40)
+                .foregroundStyle(prominent ? UI.playerSurface : Color.white)
+                .background {
+                    if prominent {
+                        Circle()
+                            .fill(isEnabled && hovering ? Color.white : UI.playerAccent)
+                    } else if isEnabled && hovering {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(.white.opacity(0.12))
+                    }
+                }
+                .contentShape(Rectangle())
+                .opacity(isEnabled ? (configuration.isPressed ? 0.72 : 1) : 0.42)
+        }
     }
 }
 
@@ -1890,7 +2154,7 @@ private struct LabeledTextField: View {
     let placeholder: String
     @Binding var text: String
     var focusedField: FocusState<FocusField?>.Binding
-    let field: FocusField?
+    let field: FocusField
     let onSubmit: () -> Void
     @State private var isHovering = false
 
@@ -1963,7 +2227,7 @@ private struct TrackActionButton: View {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .semibold))
                 .frame(width: 24, height: 24)
-                .foregroundColor(UI.ink)
+                .foregroundStyle(accent ? UI.selectedTabInk : UI.ink)
                 .background(isHovering ? UI.surfaceHover : Color.clear)
                 .cornerRadius(UI.smallRadius)
         }

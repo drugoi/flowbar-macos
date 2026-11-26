@@ -248,10 +248,13 @@ struct YtDlpClient {
             "bestaudio[acodec^=mp4a][protocol^=https]"
         ]
         for format in preferredFormats {
+            try Task.checkCancellation()
             do {
-                return try await fetchStreamURL(url: url, format: format)
+                let streamURL = try await fetchStreamURL(url: url, format: format)
+                try Task.checkCancellation()
+                return streamURL
             } catch {
-                continue
+                try Task.checkCancellation()
             }
         }
         throw YtDlpError.invalidOutput
@@ -297,14 +300,9 @@ struct YtDlpClient {
         let stderr = Pipe()
         process.standardOutput = stdout
         process.standardError = stderr
+        let launchLock = NSLock()
 
         return try await withTaskCancellationHandler(operation: {
-            do {
-                try process.run()
-            } catch {
-                throw YtDlpError.notInstalled
-            }
-
             var output = ""
             let outputQueue = DispatchQueue(label: "flowbar.ytdlp.output")
 
@@ -346,10 +344,24 @@ struct YtDlpClient {
                         }
                     }
                 }
+                do {
+                    try launchLock.withLock {
+                        try Task.checkCancellation()
+                        try process.run()
+                    }
+                } catch {
+                    outputHandle.readabilityHandler = nil
+                    errorHandle.readabilityHandler = nil
+                    process.terminationHandler = nil
+                    continuation.resume(throwing: error is CancellationError ? error : YtDlpError.notInstalled)
+                }
             }
-        }
-        , onCancel: {
-            process.terminate()
+        }, onCancel: {
+            launchLock.withLock {
+                if process.isRunning {
+                    process.terminate()
+                }
+            }
         })
     }
 

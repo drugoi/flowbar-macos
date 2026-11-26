@@ -26,7 +26,7 @@ final class FlowBarUITests: XCTestCase {
         XCTAssertTrue(utilitiesTab.waitForExistence(timeout: 2))
 
         listenTab.click()
-        XCTAssertTrue(app.staticTexts["Now Playing"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.descendants(matching: .any)["NowPlaying"].waitForExistence(timeout: 2))
         if !app.staticTexts["No tracks yet"].waitForExistence(timeout: 1) {
             XCTAssertTrue(app.staticTexts["My Library"].waitForExistence(timeout: 2))
         }
@@ -82,7 +82,7 @@ final class FlowBarUITests: XCTestCase {
 
         try addTrackButton(in: app).click()
         app.buttons["Listen"].click()
-        XCTAssertTrue(app.staticTexts["Tracks"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["My Library"].waitForExistence(timeout: 2))
 
         let trackRow = trackRowElement(in: app, fallbackTimeout: 10)
         guard trackRow.exists else {

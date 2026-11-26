@@ -82,23 +82,46 @@ final class LibraryStore: ObservableObject {
         save()
     }
 
-    func removeTrack(_ track: Track) {
+    @discardableResult
+    func removeTrack(_ track: Track) -> Bool {
+        guard let track = trackById(track.id), removeCachedAudio(for: track) else { return false }
         library.userLibrary.removeAll { $0.id == track.id }
         save()
+        refreshCacheSize()
+        return true
     }
 
-    func removeDownload(for track: Track) {
-        guard let path = track.localFilePath else { return }
+    func removeDownload(for track: Track) -> Bool {
+        guard let track = trackById(track.id), track.localFilePath != nil,
+              removeCachedAudio(for: track) else { return false }
+        updateTrack(resetDownloadState(for: track))
+        refreshCacheSize()
+        return true
+    }
+
+    private func removeCachedAudio(for track: Track) -> Bool {
+        guard let path = track.localFilePath else { return true }
         do {
-            try FileManager.default.removeItem(atPath: path)
-            let updated = resetDownloadState(for: track)
-            if replace(track: updated) {
-                save()
+            let file = URL(fileURLWithPath: path).standardizedFileURL
+            let cache = try AppPaths.cachesDirectory().resolvingSymlinksInPath()
+            let parent = file.deletingLastPathComponent().resolvingSymlinksInPath()
+            guard parent.path == cache.path, file.pathExtension == "m4a" else { return true }
+            let cachedFile = parent.appendingPathComponent(file.lastPathComponent)
+            let shared = library.userLibrary.contains { other in
+                guard other.id != track.id, let otherPath = other.localFilePath else { return false }
+                return URL(fileURLWithPath: otherPath).resolvingSymlinksInPath().path == cachedFile.path
             }
-            refreshCacheSize()
+            guard !shared else { return true }
+            let attributes = try FileManager.default.attributesOfItem(atPath: cachedFile.path)
+            guard attributes[.type] as? FileAttributeType == .typeRegular else { return true }
+            try FileManager.default.removeItem(at: cachedFile)
+            return true
+        } catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile {
+            return true
         } catch {
-            lastError = "Failed to remove download."
+            lastError = "Couldn’t remove the downloaded audio."
             DiagnosticsLogger.shared.log(level: "error", message: "Failed to remove download: \(error)")
+            return false
         }
     }
 

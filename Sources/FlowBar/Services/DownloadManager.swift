@@ -28,7 +28,26 @@ final class DownloadManager: ObservableObject, @unchecked Sendable {
     }
 
     private var activeTask: Task<URL, Error>?
+    private var preparationTasks: [UUID: Task<Void, Never>] = [:]
     private var queue: [DownloadRequest] = []
+
+    func startPreparation(for trackId: UUID, operation: @escaping @MainActor () async -> Void) {
+        guard preparationTasks[trackId] == nil else { return }
+        preparationTasks[trackId] = Task {
+            defer { preparationTasks.removeValue(forKey: trackId) }
+            await operation()
+        }
+    }
+
+    func cancelPreparation(for trackId: UUID) -> Bool {
+        guard let task = preparationTasks[trackId] else { return false }
+        task.cancel()
+        return true
+    }
+
+    func isPreparing(trackId: UUID) -> Bool {
+        preparationTasks[trackId] != nil
+    }
 
     func enqueueDownload(for track: Track, onStart: @escaping @MainActor () -> Void) async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in
@@ -94,6 +113,7 @@ final class DownloadManager: ObservableObject, @unchecked Sendable {
                     self?.progress = value
                 }
             }
+            try Task.checkCancellation()
             return destination
         }
         activeTask = task
@@ -105,7 +125,8 @@ final class DownloadManager: ObservableObject, @unchecked Sendable {
             } catch is CancellationError {
                 finishActiveDownload(request, result: .failure(DownloadError.cancelled))
             } catch {
-                finishActiveDownload(request, result: .failure(DownloadError.failed(error.localizedDescription)))
+                let failure = task.isCancelled ? DownloadError.cancelled : DownloadError.failed(error.localizedDescription)
+                finishActiveDownload(request, result: .failure(failure))
             }
         }
     }

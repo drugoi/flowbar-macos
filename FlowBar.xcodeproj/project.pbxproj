@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		06FC78325E7EED9DD22A7DE9 /* TrackActionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BC0571D3EDBF41A6A09E99B /* TrackActionTests.swift */; };
+		341245A9EEB141D1AB72A38E /* PlaybackMotionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D214E451D3944682B4EFCA7A /* PlaybackMotionTests.swift */; };
 		0A64933ECEC03AACC7B72B9D /* DiagnosticsLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B891EC912E12D38750ED338C /* DiagnosticsLogger.swift */; };
 		1815FCE09B51762B38E5A73C /* YtDlpClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104AC197F3E43D26B3B19C25 /* YtDlpClient.swift */; };
 		22AACC6B1C14CE9EAACAEEC5 /* FlowBarUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A234124F9F19264781D5A485 /* FlowBarUITests.swift */; };
@@ -49,6 +51,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		3BC0571D3EDBF41A6A09E99B /* TrackActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackActionTests.swift; sourceTree = "<group>"; };
+		D214E451D3944682B4EFCA7A /* PlaybackMotionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackMotionTests.swift; sourceTree = "<group>"; };
 		038971798A3D5B3BB0197C31 /* PlaybackController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackController.swift; sourceTree = "<group>"; };
 		104AC197F3E43D26B3B19C25 /* YtDlpClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YtDlpClient.swift; sourceTree = "<group>"; };
 		198DD2DDAD27AD36559790BE /* URLValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLValidator.swift; sourceTree = "<group>"; };
@@ -139,6 +143,8 @@
 			isa = PBXGroup;
 			children = (
 				3865AD95B48BF6A06EEA3FD1 /* BatchURLParserTests.swift */,
+				3BC0571D3EDBF41A6A09E99B /* TrackActionTests.swift */,
+				D214E451D3944682B4EFCA7A /* PlaybackMotionTests.swift */,
 				EC807784851D5D8C5023C26A /* URLValidatorTests.swift */,
 			);
 			name = FlowBarTests;
@@ -383,6 +389,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				64E057FC3300B76A1CF443BE /* BatchURLParserTests.swift in Sources */,
+				06FC78325E7EED9DD22A7DE9 /* TrackActionTests.swift in Sources */,
+				341245A9EEB141D1AB72A38E /* PlaybackMotionTests.swift in Sources */,
 				438822125E9CBFB5EEC6CB28 /* URLValidatorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

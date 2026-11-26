@@ -11,12 +11,44 @@ enum PlaybackState: String {
     case error
 }
 
+struct StreamSeek {
+    struct Request: Equatable {
+        let id = UUID()
+        let time: TimeInterval
+    }
+
+    private(set) var pending: Request?
+
+    mutating func begin(at time: TimeInterval) -> Request {
+        let request = Request(time: time)
+        pending = request
+        return request
+    }
+
+    @discardableResult
+    mutating func clear(_ request: Request) -> Bool {
+        guard pending == request else { return false }
+        pending = nil
+        return true
+    }
+
+    mutating func invalidate() {
+        pending = nil
+    }
+
+    func skipOrigin(actualTime: TimeInterval) -> TimeInterval {
+        pending?.time ?? actualTime
+    }
+}
+
 final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published private(set) var state: PlaybackState = .idle
     @Published private(set) var currentTrack: Track?
     @Published private(set) var currentTime: TimeInterval = 0
     @Published private(set) var duration: TimeInterval = 0
     @Published private(set) var isStreaming: Bool = false
+    @Published private var streamSeek = StreamSeek()
+    var pendingSeekTime: TimeInterval? { streamSeek.pending?.time }
     @Published private(set) var sleepTimerRemaining: TimeInterval?
     @Published private(set) var sleepTimerDuration: TimeInterval?
     @Published private(set) var sleepTimerIsActive: Bool = false
@@ -48,6 +80,8 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     static let availableSpeeds: [Double] = [0.75, 1.0, 1.25, 1.5]
 
     private var player: AVAudioPlayer?
+    private var audioMeterPlayerID: UUID?
+    private var audioMeterOwner: UUID?
     private var positionTimer: Timer?
     private var streamPlayer: AVPlayer?
     private var streamObserver: Any?
@@ -78,6 +112,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     func loadAndPlay(track: Track, fileURL: URL, startAt: TimeInterval = 0) throws {
         do {
             stopStreaming()
+            resetAudioMeter()
             player?.stop()
             let player = try AVAudioPlayer(contentsOf: fileURL)
             player.delegate = self
@@ -85,6 +120,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
             player.rate = Float(playbackSpeed)
             player.prepareToPlay()
             self.player = player
+            audioMeterPlayerID = UUID()
             currentTrack = track
             duration = player.duration
             isStreaming = false
@@ -130,12 +166,15 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     }
 
     func pause() {
+        resetAudioMeter()
         if isStreaming {
             streamPlayer?.pause()
         } else {
             player?.pause()
         }
         state = .paused
+        positionTimer?.invalidate()
+        positionTimer = nil
         flushPositionUpdate()
         updateNowPlayingInfo()
     }
@@ -144,6 +183,9 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         if isStreaming {
             streamPlayer?.play()
         } else {
+            if state != .playing, player != nil {
+                audioMeterPlayerID = UUID()
+            }
             player?.play()
             startPositionTimer()
         }
@@ -153,6 +195,8 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     }
 
     func stop(resetPosition: Bool = true) {
+        resetAudioMeter()
+        cancelPendingStreamSeek()
         player?.stop()
         streamPlayer?.pause()
         positionTimer?.invalidate()
@@ -168,19 +212,44 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 
+    func discardTrack(_ id: UUID) {
+        guard currentTrack?.id == id else { return }
+        stop(resetPosition: false)
+        stopStreaming()
+        cancelSleepTimer()
+        player = nil
+        audioMeterPlayerID = nil
+        currentTrack = nil
+        currentTime = 0
+        duration = 0
+    }
+
     /// Seeks to a target time in seconds, clamped to the current track's duration bounds.
     /// - Parameter time: The desired playback position in seconds.
     func seek(to time: TimeInterval) {
-        guard currentTrack != nil else { return }
+        guard let trackId = currentTrack?.id, time.isFinite else { return }
         let clamped = clampedTime(time)
         if isStreaming {
+            guard let streamPlayer, let item = streamPlayer.currentItem else { return }
+            let request = streamSeek.begin(at: clamped)
             let targetTime = CMTime(seconds: clamped, preferredTimescale: 600)
-            streamPlayer?.seek(to: targetTime, completionHandler: { [weak self] finished in
-                guard let self, finished else { return }
-                self.currentTime = clamped
-                self.positionUpdateHandler?(clamped)
-                self.updateNowPlayingInfo(elapsedOverride: clamped)
-            })
+            streamPlayer.seek(to: targetTime) { [weak self, weak item] finished in
+                DispatchQueue.main.async {
+                    guard let self, let item,
+                          self.currentTrack?.id == trackId,
+                          self.streamPlayer?.currentItem === item,
+                          self.streamSeek.pending == request else { return }
+                    let sample = self.streamPlayer?.currentTime().seconds
+                    let fallback = finished ? request.time : self.currentTime
+                    let resolved = sample.flatMap { $0.isFinite && $0 >= 0 ? $0 : nil } ?? fallback
+                    self.currentTime = self.clampedTime(resolved)
+                    if finished {
+                        self.positionUpdateHandler?(self.currentTime)
+                        self.updateNowPlayingInfo(elapsedOverride: self.currentTime)
+                    }
+                    self.streamSeek.clear(request)
+                }
+            }
         } else {
             player?.currentTime = clamped
             currentTime = clamped
@@ -192,7 +261,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     /// Skips the current playback position by the provided interval in seconds.
     /// - Parameter interval: The number of seconds to skip forward or backward.
     func skip(by interval: TimeInterval) {
-        let target = currentPlaybackTime() + interval
+        let target = streamSeek.skipOrigin(actualTime: currentPlaybackTime()) + interval
         seek(to: target)
     }
 
@@ -219,7 +288,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
 
     func swapToLocalIfStreaming(trackId: UUID, fileURL: URL) throws {
         guard isStreaming, let track = currentTrack, track.id == trackId else { return }
-        let resumeTime = currentPlaybackTime()
+        let resumeTime = streamSeek.skipOrigin(actualTime: currentPlaybackTime())
         pause()
         stopStreaming()
         try loadAndPlay(track: track, fileURL: fileURL, startAt: resumeTime)
@@ -236,6 +305,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     }
 
     private func flushPositionUpdate() {
+        guard pendingSeekTime == nil else { return }
         if isStreaming, let time = streamPlayer?.currentTime().seconds, time.isFinite {
             currentTime = time
             positionUpdateHandler?(time)
@@ -253,17 +323,17 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         let interval = CMTime(seconds: 1, preferredTimescale: 2)
         streamObserver = streamPlayer?.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
             guard let self else { return }
-            let seconds = time.seconds
-            guard seconds.isFinite else { return }
-            currentTime = seconds
-            positionUpdateHandler?(seconds)
-            updateNowPlayingInfo(elapsedOverride: seconds)
             if let item = streamPlayer?.currentItem {
                 let duration = item.duration.seconds
-                if duration.isFinite, duration > 0 {
+                if duration.isFinite, duration > 0, duration != self.duration {
                     self.duration = duration
                 }
             }
+            let seconds = time.seconds
+            guard pendingSeekTime == nil, seconds.isFinite else { return }
+            currentTime = seconds
+            positionUpdateHandler?(seconds)
+            updateNowPlayingInfo(elapsedOverride: seconds)
         }
     }
 
@@ -275,6 +345,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     }
 
     private func stopStreaming() {
+        cancelPendingStreamSeek()
         streamPlayer?.pause()
         streamPlayer?.replaceCurrentItem(with: nil)
         removeStreamObserver()
@@ -283,6 +354,12 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         removeStreamStatusObserver()
         streamPlayer = nil
         isStreaming = false
+    }
+
+    private func cancelPendingStreamSeek() {
+        guard pendingSeekTime != nil else { return }
+        streamSeek.invalidate()
+        streamPlayer?.currentItem?.cancelPendingSeeks()
     }
 
     private func configureRemoteCommands() {
@@ -417,11 +494,49 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         handlePlaybackFinished()
     }
 
-    private func currentPlaybackTime() -> TimeInterval {
-        if isStreaming, let time = streamPlayer?.currentTime().seconds, time.isFinite {
+    func currentPlaybackTime() -> TimeInterval {
+        let liveTime = isStreaming ? streamPlayer?.currentTime().seconds : player?.currentTime
+        if let time = liveTime, time.isFinite, time >= 0 {
             return time
         }
-        return player?.currentTime ?? currentTime
+        return currentTime.isFinite ? max(currentTime, 0) : 0
+    }
+
+    var audioMeterSourceID: UUID? {
+        guard state == .playing, !isStreaming, player?.isPlaying == true else { return nil }
+        return audioMeterPlayerID
+    }
+
+    func startAudioMeter(for source: UUID) -> UUID? {
+        guard source == audioMeterSourceID, let player, player.numberOfChannels > 0 else { return nil }
+        let owner = UUID()
+        audioMeterOwner = owner
+        player.isMeteringEnabled = true
+        return owner
+    }
+
+    func stopAudioMeter(owner: UUID) {
+        guard owner == audioMeterOwner else { return }
+        resetAudioMeter()
+    }
+
+    func averageAudioPower(owner: UUID) -> Double? {
+        guard owner == audioMeterOwner, audioMeterSourceID != nil, let player else { return nil }
+        player.updateMeters()
+        var loudestChannel: Double?
+        for channel in 0..<player.numberOfChannels {
+            let power = Double(player.averagePower(forChannel: channel))
+            guard power.isFinite else { continue }
+            loudestChannel = max(loudestChannel ?? power, power)
+        }
+        return loudestChannel
+    }
+
+    private func resetAudioMeter() {
+        if audioMeterOwner != nil {
+            player?.isMeteringEnabled = false
+            audioMeterOwner = nil
+        }
     }
 
     private func clampedTime(_ time: TimeInterval) -> TimeInterval {
@@ -447,8 +562,9 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         guard let track = currentTrack else { return }
         var info = nowPlayingInfo
         info[MPMediaItemPropertyTitle] = track.displayName
-        let playbackTime = elapsedOverride ?? currentPlaybackTime()
-        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = playbackTime
+        if elapsedOverride != nil || pendingSeekTime == nil {
+            info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsedOverride ?? currentPlaybackTime()
+        }
         info[MPNowPlayingInfoPropertyPlaybackRate] = state == .playing ? playbackSpeed : 0.0
         info[MPNowPlayingInfoPropertyDefaultPlaybackRate] = playbackSpeed
         if duration > 0 {
