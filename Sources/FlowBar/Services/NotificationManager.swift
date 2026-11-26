@@ -31,7 +31,7 @@ final class NotificationManager {
     private func scheduleDownloadNotification(for track: Track) {
         let content = UNMutableNotificationContent()
         content.title = "Download complete"
-        content.body = track.displayName
+        content.body = track.title
         content.sound = .default
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
         center.add(request) { error in

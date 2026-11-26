@@ -63,6 +63,48 @@ final class FlowBarUITests: XCTestCase {
         )
     }
 
+    func testResolvedTitleAndRenameWhileDownloading() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let title = "Severance — Music To Refine To feat. ODESZA | Apple TV"
+        let track: [String: Any] = [
+            "id": UUID().uuidString,
+            "sourceURL": "https://www.youtube.com/watch?v=JRnDYB28bL8",
+            "videoId": "JRnDYB28bL8",
+            "displayName": "JRnDYB28bL8",
+            "resolvedTitle": title,
+            "metadataUnavailable": true,
+            "addedAt": "2026-01-01T00:00:00Z",
+            "playbackPositionSeconds": 0,
+            "downloadState": "downloading"
+        ]
+        let data = try JSONSerialization.data(withJSONObject: ["schemaVersion": 2, "userLibrary": [track]])
+        try data.write(to: directory.appendingPathComponent("library.json"))
+
+        let app = launchApp(libraryDirectory: directory)
+        defer { app.terminate() }
+        try openMenuBar(app)
+        let playerTitle = app.staticTexts["NowPlayingTitle"]
+        let libraryTitle = app.staticTexts["TrackTitle_JRnDYB28bL8"]
+        XCTAssertTrue(playerTitle.waitForExistence(timeout: 3))
+        XCTAssertEqual(playerTitle.label, title)
+        XCTAssertTrue((libraryTitle.value as? String ?? libraryTitle.label).hasPrefix("Severance — Music"))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "value == %@", "Downloading")).firstMatch.exists)
+        XCTAssertFalse(app.staticTexts["Metadata unavailable"].exists)
+
+        app.menuButtons["TrackActions_JRnDYB28bL8"].click()
+        app.menuItems["Rename"].click()
+        let name = app.textFields["Display name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 2))
+        XCTAssertEqual(name.value as? String, title)
+        name.typeKey("a", modifierFlags: .command)
+        name.typeText("Focus mix")
+        name.typeKey(.return, modifierFlags: [])
+        XCTAssertEqual(playerTitle.label, "Focus mix")
+        XCTAssertEqual(libraryTitle.value as? String ?? libraryTitle.label, "Focus mix")
+    }
+
     func testDownloadAndPlaybackForKnownURL() throws {
         let env = ProcessInfo.processInfo.environment
         let shouldRunNetworkTests = env["RUN_NETWORK_TESTS"] == "1" || env["CI"] == nil
@@ -125,10 +167,11 @@ final class FlowBarUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Listen"].waitForExistence(timeout: 2))
     }
 
-    private func launchApp() -> XCUIApplication {
+    private func launchApp(libraryDirectory: URL? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing", "-ApplePersistenceIgnoreState", "YES"]
         app.launchEnvironment["UITESTING"] = "1"
+        app.launchEnvironment["FLOWBAR_UI_TEST_DIRECTORY"] = libraryDirectory?.path
         app.launch()
         _ = app.wait(for: .runningForeground, timeout: 5)
         return app

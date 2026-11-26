@@ -88,6 +88,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     private var audioMeterOwner: UUID?
     private var positionTimer: Timer?
     private var streamPlayer: AVPlayer?
+    private var streamServer: AACPlaybackServer?
     private var streamObserver: Any?
     private var streamEndObserver: NSObjectProtocol?
     private var streamFailureObserver: NSObjectProtocol?
@@ -114,7 +115,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         removeOutputDeviceListener()
     }
 
-    func loadAndPlay(track: Track, fileURL: URL, startAt: TimeInterval = 0) throws {
+    func loadAndPlay(track: Track, fileURL: URL, startAt: TimeInterval = 0, autoplay: Bool = true) throws {
         do {
             stopStreaming()
             resetAudioMeter()
@@ -133,9 +134,11 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
                 player.currentTime = min(startAt, player.duration)
             }
             currentTime = player.currentTime
-            state = .playing
-            player.play()
-            startPositionTimer()
+            state = autoplay ? .playing : .paused
+            if autoplay {
+                player.play()
+                startPositionTimer()
+            }
             updateNowPlayingInfo(elapsedOverride: player.currentTime)
         } catch {
             state = .error
@@ -144,9 +147,10 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         }
     }
 
-    func streamAndPlay(track: Track, streamURL: URL, startAt: TimeInterval = 0) {
+    func streamAndPlay(track: Track, streamURL: URL, server: AACPlaybackServer? = nil, startAt: TimeInterval = 0) {
         stop(resetPosition: false)
         stopStreaming()
+        streamServer = server
         let item = AVPlayerItem(url: streamURL)
         let player = AVPlayer(playerItem: item)
         player.automaticallyWaitsToMinimizeStalling = true
@@ -169,6 +173,15 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         player.play()
         applyPlaybackRate()
         updateNowPlayingInfo(elapsedOverride: startAt)
+    }
+
+    func refreshTrackMetadata(from track: Track) {
+        guard let currentTrack, currentTrack.id == track.id,
+              currentTrack.title != track.title || currentTrack.durationSeconds != track.durationSeconds else { return }
+        self.currentTrack = track
+        if state != .idle {
+            updateNowPlayingInfo()
+        }
     }
 
     func pause() {
@@ -216,8 +229,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
             positionUpdateHandler?(0)
         }
         state = .idle
-        isStreaming = false
-        stopObservingStreamTimeControl()
+        stopStreaming()
         nowPlayingInfo.removeAll()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
@@ -298,10 +310,15 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
 
     func swapToLocalIfStreaming(trackId: UUID, fileURL: URL) throws {
         guard isStreaming, let track = currentTrack, track.id == trackId else { return }
+        let autoplay = state == .playing
         let resumeTime = streamSeek.skipOrigin(actualTime: currentPlaybackTime())
         pause()
         stopStreaming()
-        try loadAndPlay(track: track, fileURL: fileURL, startAt: resumeTime)
+        try loadAndPlay(track: track, fileURL: fileURL, startAt: resumeTime, autoplay: autoplay)
+    }
+
+    func isStreaming(from cache: AACRangeCache) -> Bool {
+        isStreaming && streamServer?.cache === cache
     }
 
     private func startPositionTimer() {
@@ -363,6 +380,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
         removeStreamFailureObserver()
         removeStreamStatusObserver()
         streamPlayer = nil
+        streamServer = nil
         isStreaming = false
         stopObservingStreamTimeControl()
     }
@@ -489,8 +507,9 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     private func addStreamStatusObserver(for item: AVPlayerItem) {
         removeStreamStatusObserver()
         streamStatusObserver = item.observe(\.status, options: [.new]) { [weak self] observed, _ in
-            guard let self else { return }
-            if observed.status == .failed {
+            guard observed.status == .failed else { return }
+            DispatchQueue.main.async { [weak self, weak observed] in
+                guard let self, let observed, self.streamPlayer?.currentItem === observed else { return }
                 self.handleStreamingFailure(observed.error)
             }
         }
@@ -591,7 +610,7 @@ final class PlaybackController: NSObject, ObservableObject, AVAudioPlayerDelegat
     private func updateNowPlayingInfo(elapsedOverride: TimeInterval? = nil) {
         guard let track = currentTrack else { return }
         var info = nowPlayingInfo
-        info[MPMediaItemPropertyTitle] = track.displayName
+        info[MPMediaItemPropertyTitle] = track.title
         if elapsedOverride != nil || pendingSeekTime == nil {
             info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsedOverride ?? currentPlaybackTime()
         }

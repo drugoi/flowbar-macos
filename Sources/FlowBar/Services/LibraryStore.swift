@@ -73,15 +73,6 @@ final class LibraryStore: ObservableObject {
         save()
     }
 
-    func updateDisplayNameIfDefault(trackId: UUID, defaultName: String, newName: String) {
-        guard let track = trackById(trackId) else { return }
-        guard track.displayName == defaultName else { return }
-        var updated = track
-        updated.displayName = newName
-        guard replace(track: updated) else { return }
-        save()
-    }
-
     @discardableResult
     func removeTrack(_ track: Track) -> Bool {
         guard let track = trackById(track.id), removeCachedAudio(for: track) else { return false }

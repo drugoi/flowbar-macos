@@ -7,6 +7,11 @@ struct FlowBarMain {
         let env = ProcessInfo.processInfo.environment
         let isUITestRun = env["XCTestConfigurationFilePath"] != nil
         if isUITestRun || env["UITESTING"] == "1" || ProcessInfo.processInfo.arguments.contains("-ui-testing") {
+            if let testDirectory = env["FLOWBAR_UI_TEST_DIRECTORY"] {
+                let directory = URL(fileURLWithPath: testDirectory, isDirectory: true)
+                AppPaths.overrideApplicationSupportDirectory = directory
+                AppPaths.overrideCachesDirectory = directory.appendingPathComponent("Caches", isDirectory: true)
+            }
             NSApplication.shared.setActivationPolicy(.regular)
             NSRunningApplication.current.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
             FlowBarUITestApp.main()

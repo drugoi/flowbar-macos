@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		254A19D7D5514834AF5E8961 /* AACPlaybackServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 948F7E2BB9B84BD88E45B51D /* AACPlaybackServer.swift */; };
+		63DEFA12882F4019B97449C4 /* AACRangeCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 746B10A8DA5641E4BC9192A5 /* AACRangeCache.swift */; };
 		06FC78325E7EED9DD22A7DE9 /* TrackActionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BC0571D3EDBF41A6A09E99B /* TrackActionTests.swift */; };
 		341245A9EEB141D1AB72A38E /* PlaybackMotionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D214E451D3944682B4EFCA7A /* PlaybackMotionTests.swift */; };
 		0A64933ECEC03AACC7B72B9D /* DiagnosticsLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B891EC912E12D38750ED338C /* DiagnosticsLogger.swift */; };
@@ -18,6 +20,7 @@
 		438822125E9CBFB5EEC6CB28 /* URLValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC807784851D5D8C5023C26A /* URLValidatorTests.swift */; };
 		5B34B748F1438A7DF9461DE9 /* FlowBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBF45F3D95CAE89A623DD1A8 /* FlowBarApp.swift */; };
 		64E057FC3300B76A1CF443BE /* BatchURLParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3865AD95B48BF6A06EEA3FD1 /* BatchURLParserTests.swift */; };
+		738B52A143D94B2F86BC274A /* LibraryDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B0BDB73B7F441BD8EF9712F /* LibraryDecodingTests.swift */; };
 		674228E5B9E8E472ED0E4CDC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 70EF097B34AC70D214AD8206 /* Assets.xcassets */; };
 		6D4FE929433891F68D396353 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = B008A05ADD3FF001551C3648 /* Track.swift */; };
 		76D883D5779F94A64578DC91 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 01024F3510829E4B0F29253D /* Sparkle */; };
@@ -51,6 +54,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		948F7E2BB9B84BD88E45B51D /* AACPlaybackServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AACPlaybackServer.swift; sourceTree = "<group>"; };
+		746B10A8DA5641E4BC9192A5 /* AACRangeCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AACRangeCache.swift; sourceTree = "<group>"; };
 		3BC0571D3EDBF41A6A09E99B /* TrackActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackActionTests.swift; sourceTree = "<group>"; };
 		D214E451D3944682B4EFCA7A /* PlaybackMotionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackMotionTests.swift; sourceTree = "<group>"; };
 		038971798A3D5B3BB0197C31 /* PlaybackController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackController.swift; sourceTree = "<group>"; };
@@ -58,6 +63,7 @@
 		198DD2DDAD27AD36559790BE /* URLValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLValidator.swift; sourceTree = "<group>"; };
 		2AE44025648A2DD2D2EED889 /* FlowBarUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FlowBarUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3865AD95B48BF6A06EEA3FD1 /* BatchURLParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchURLParserTests.swift; sourceTree = "<group>"; };
+		0B0BDB73B7F441BD8EF9712F /* LibraryDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryDecodingTests.swift; sourceTree = "<group>"; };
 		475F726D5E95E321629190C2 /* MenuBarLabelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabelView.swift; sourceTree = "<group>"; };
 		568F5146C0ADF6CC8CECC574 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
 		619BBD6C2746326C84E77B80 /* FlowBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FlowBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -143,6 +149,7 @@
 			isa = PBXGroup;
 			children = (
 				3865AD95B48BF6A06EEA3FD1 /* BatchURLParserTests.swift */,
+				0B0BDB73B7F441BD8EF9712F /* LibraryDecodingTests.swift */,
 				3BC0571D3EDBF41A6A09E99B /* TrackActionTests.swift */,
 				D214E451D3944682B4EFCA7A /* PlaybackMotionTests.swift */,
 				EC807784851D5D8C5023C26A /* URLValidatorTests.swift */,
@@ -157,6 +164,8 @@
 				F79AD5D69C726DA17FC29662 /* AppPaths.swift */,
 				EEB5ABD7A2C5B4CA31CC0D05 /* BatchURLParser.swift */,
 				B891EC912E12D38750ED338C /* DiagnosticsLogger.swift */,
+				948F7E2BB9B84BD88E45B51D /* AACPlaybackServer.swift */,
+				746B10A8DA5641E4BC9192A5 /* AACRangeCache.swift */,
 				568F5146C0ADF6CC8CECC574 /* DownloadManager.swift */,
 				C873901169AFBA8D6073A8E0 /* LibraryStore.swift */,
 				FFE10CBD3062ACB8F748396E /* MetadataResolver.swift */,
@@ -389,6 +398,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				64E057FC3300B76A1CF443BE /* BatchURLParserTests.swift in Sources */,
+				738B52A143D94B2F86BC274A /* LibraryDecodingTests.swift in Sources */,
 				06FC78325E7EED9DD22A7DE9 /* TrackActionTests.swift in Sources */,
 				341245A9EEB141D1AB72A38E /* PlaybackMotionTests.swift in Sources */,
 				438822125E9CBFB5EEC6CB28 /* URLValidatorTests.swift in Sources */,
@@ -402,6 +412,8 @@
 				9BE16290BC22CDB639BF6AFC /* AppPaths.swift in Sources */,
 				267A52B904127FC87D1797AE /* BatchURLParser.swift in Sources */,
 				0A64933ECEC03AACC7B72B9D /* DiagnosticsLogger.swift in Sources */,
+				254A19D7D5514834AF5E8961 /* AACPlaybackServer.swift in Sources */,
+				63DEFA12882F4019B97449C4 /* AACRangeCache.swift in Sources */,
 				2EC490F0E77B40DDD2D56FBD /* DownloadManager.swift in Sources */,
 				BCA0014FD4C8857A023444FD /* Library.swift in Sources */,
 				D890D1C7AD76FF618AB9D8B8 /* LibraryStore.swift in Sources */,
@@ -486,7 +498,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 98;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
@@ -500,7 +512,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.1.7;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.flowbar.macos;
@@ -614,7 +626,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 98;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -634,7 +646,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.1.7;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

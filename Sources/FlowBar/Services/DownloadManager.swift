@@ -22,14 +22,18 @@ final class DownloadManager: ObservableObject, @unchecked Sendable {
     @Published private(set) var progress: Double?
 
     private struct DownloadRequest {
+        let id = UUID()
         let track: Track
+        let sharedCache: AACRangeCache?
         let continuation: CheckedContinuation<URL, Error>
         let onStart: @MainActor () -> Void
     }
 
     private var activeTask: Task<URL, Error>?
+    private var activeRequestId: UUID?
     private var preparationTasks: [UUID: Task<Void, Never>] = [:]
     private var queue: [DownloadRequest] = []
+    private var resumableDownload: (trackID: UUID, cache: AACRangeCache)?
 
     func startPreparation(for trackId: UUID, operation: @escaping @MainActor () async -> Void) {
         guard preparationTasks[trackId] == nil else { return }
@@ -49,9 +53,19 @@ final class DownloadManager: ObservableObject, @unchecked Sendable {
         preparationTasks[trackId] != nil
     }
 
-    func enqueueDownload(for track: Track, onStart: @escaping @MainActor () -> Void) async throws -> URL {
+    func resumableCache(for trackID: UUID) -> AACRangeCache? {
+        guard resumableDownload?.trackID == trackID else { return nil }
+        return resumableDownload?.cache
+    }
+
+    func discardResumableCache(for trackID: UUID) {
+        if resumableDownload?.trackID == trackID { resumableDownload = nil }
+    }
+
+    func enqueueDownload(for track: Track, sharedCache: AACRangeCache? = nil,
+                         onStart: @escaping @MainActor () -> Void) async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in
-            let request = DownloadRequest(track: track, continuation: continuation, onStart: onStart)
+            let request = DownloadRequest(track: track, sharedCache: sharedCache, continuation: continuation, onStart: onStart)
             queue.append(request)
             queuedTrackIds = queue.map { $0.track.id }
             processQueue()
@@ -60,6 +74,16 @@ final class DownloadManager: ObservableObject, @unchecked Sendable {
 
     func cancelActiveDownload() {
         activeTask?.cancel()
+    }
+
+    func cancelAllDownloads() {
+        activeTask?.cancel()
+        preparationTasks.values.forEach { $0.cancel() }
+        let requests = queue
+        queue = []
+        queuedTrackIds = []
+        resumableDownload = nil
+        requests.forEach { $0.continuation.resume(throwing: DownloadError.cancelled) }
     }
 
     func removeFromQueue(trackId: UUID) {
@@ -88,6 +112,7 @@ final class DownloadManager: ObservableObject, @unchecked Sendable {
     }
 
     private func startDownload(_ request: DownloadRequest) {
+        activeRequestId = request.id
         activeTrackId = request.track.id
         progress = 0
         request.onStart()
@@ -106,13 +131,28 @@ final class DownloadManager: ObservableObject, @unchecked Sendable {
             return
         }
 
-        let client = YtDlpClient()
+        if let cache = request.sharedCache {
+            resumableDownload = (request.track.id, cache)
+        }
+        let reportProgress: @Sendable (Double?) -> Void = { [weak self, id = request.id] value in
+            Task { @MainActor in
+                guard self?.activeRequestId == id else { return }
+                self?.progress = value
+            }
+        }
         let task = Task { () throws -> URL in
-            try await client.downloadAudio(url: request.track.sourceURL, destinationURL: destination) { [weak self] value in
-                Task { @MainActor in
-                    self?.progress = value
+            if let cache = request.sharedCache {
+                do {
+                    try await cache.fill(destination: destination) { reportProgress($0) }
+                    discardResumableCache(for: request.track.id)
+                    return destination
+                } catch AACRangeError.invalidResponse {
+                    try Task.checkCancellation()
+                    discardResumableCache(for: request.track.id)
+                    DiagnosticsLogger.shared.log(level: "warning", message: "AAC source stopped serving byte ranges. Retrying as an offline download.")
                 }
             }
+            try await YtDlpClient().downloadAudio(url: request.track.sourceURL, destinationURL: destination, progress: reportProgress)
             try Task.checkCancellation()
             return destination
         }
@@ -133,6 +173,7 @@ final class DownloadManager: ObservableObject, @unchecked Sendable {
 
     private func finishActiveDownload(_ request: DownloadRequest, result: Result<URL, Error>) {
         activeTask = nil
+        activeRequestId = nil
         activeTrackId = nil
         progress = nil
         request.continuation.resume(with: result)

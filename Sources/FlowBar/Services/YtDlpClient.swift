@@ -197,7 +197,7 @@ struct YtDlpClient {
         return YtDlpMetadata(title: title, durationSeconds: durationValue)
     }
 
-    func fetchTitleFallback(url: URL) async -> String? {
+    func fetchTitleFromOEmbed(url: URL) async -> String? {
         var components = URLComponents()
         components.scheme = "https"
         components.host = "www.youtube.com"
@@ -208,7 +208,8 @@ struct YtDlpClient {
         ]
         guard let oembedURL = components.url else { return nil }
         do {
-            let (data, response) = try await URLSession.shared.data(from: oembedURL)
+            let request = URLRequest(url: oembedURL, timeoutInterval: 8)
+            let (data, response) = try await URLSession.shared.data(for: request)
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
                 return nil
             }
@@ -241,41 +242,33 @@ struct YtDlpClient {
         _ = try await run(args, progress: progress)
     }
 
-    func fetchStreamURL(url: URL) async throws -> URL {
-        let preferredFormats = [
-            "bestaudio[acodec^=mp4a][ext=m4a]",
-            "bestaudio[acodec^=mp4a][ext=mp4]",
-            "bestaudio[acodec^=mp4a][protocol^=https]"
-        ]
-        for format in preferredFormats {
-            try Task.checkCancellation()
+    func openAACStream(url: URL) async throws -> (server: AACPlaybackServer, url: URL) {
+        let directory = try AppPaths.cachesDirectory()
+        let prefix = "FLOWBAR_AAC "
+        for clients in ["visionos", "default"] {
+            let args = baseArgs(playerClients: clients) + [
+                "-f", "bestaudio[acodec^=mp4a][ext=m4a][protocol=https]",
+                "--print", prefix + "%(.{url,http_headers})j",
+                "--no-playlist",
+                "--socket-timeout", "8",
+                "--retries", "0",
+                url.absoluteString
+            ]
             do {
-                let streamURL = try await fetchStreamURL(url: url, format: format)
+                let output = try await run(args)
+                guard let record = output.split(separator: "\n").first(where: { $0.hasPrefix(prefix) }),
+                      let source = try? JSONDecoder().decode(AACHTTPSource.self, from: Data(record.dropFirst(prefix.count).utf8)),
+                      source.url.scheme == "https" else { continue }
+                let cache = try await source.open(in: directory)
+                let stream = try await AACPlaybackServer.open(cache: cache)
                 try Task.checkCancellation()
-                return streamURL
+                return stream
             } catch {
                 try Task.checkCancellation()
+                DiagnosticsLogger.shared.log(level: "warning", message: "AAC from \(clients) could not be opened.")
             }
         }
-        throw YtDlpError.invalidOutput
-    }
-
-    private func fetchStreamURL(url: URL, format: String?) async throws -> URL {
-        var args = baseArgs(playerClients: "web,web_safari,android") + [
-            "-g",
-            "--no-playlist",
-            url.absoluteString
-        ]
-        if let format {
-            args.insert(contentsOf: ["-f", format], at: 0)
-        }
-        let output = try await run(args)
-        let lines = output.split(separator: "\n").map(String.init)
-        guard let line = lines.first(where: { $0.hasPrefix("http") || $0.hasPrefix("https") }),
-              let streamURL = URL(string: line.trimmingCharacters(in: .whitespacesAndNewlines)) else {
-            throw YtDlpError.invalidOutput
-        }
-        return streamURL
+        throw AACRangeError.invalidResponse
     }
 
     private func baseArgs(playerClients: String) -> [String] {

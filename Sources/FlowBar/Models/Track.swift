@@ -25,9 +25,28 @@ struct Track: Identifiable, Codable, Equatable {
     var localFilePath: String?
     var fileSizeBytes: Int64?
     var lastError: String?
+    var hasCustomName: Bool?
 }
 
 extension Track {
+    var title: String {
+        knownTitle ?? "YouTube track"
+    }
+
+    var knownTitle: String? {
+        let usesCustomName = hasCustomName ?? (displayName != videoId)
+        return usesCustomName ? displayName : resolvedTitle
+    }
+
+    @discardableResult
+    mutating func rename(to name: String) -> Bool {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        displayName = trimmed
+        hasCustomName = true
+        return true
+    }
+
     static func makeNew(sourceURL: URL, videoId: String, displayName: String) -> Track {
         Track(
             id: UUID(),

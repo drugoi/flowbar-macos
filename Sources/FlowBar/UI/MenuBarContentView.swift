@@ -6,6 +6,7 @@ private enum FocusField {
     case url
     case displayName
     case scrubber
+    case rename
 }
 
 struct ScrubberDrag {
@@ -64,7 +65,7 @@ struct MenuBarContentView: View {
     @State private var ffmpegMissing = false
     @State private var selectedTab: Tab = .listen
     @Namespace private var tabNamespace
-    @State private var suggestedTrack: Track?
+    @State private var requestedTrackID: UUID?
     @State private var startAtLoginEnabled = false
     @State private var startAtLoginBusy = false
     @State private var startAtLoginError: String?
@@ -232,6 +233,7 @@ struct MenuBarContentView: View {
                             Button("Delete Track", role: .destructive) {
                                 logUserAction("Delete track confirmed: \(deleteCandidate.videoId)")
                                 if libraryStore.removeTrack(deleteCandidate) {
+                                    downloadManager.discardResumableCache(for: deleteCandidate.id)
                                     playbackController.discardTrack(deleteCandidate.id)
                                 } else {
                                     failedTrack = nil
@@ -247,8 +249,11 @@ struct MenuBarContentView: View {
 
             if let renameCandidate {
                 DialogOverlay(onBackgroundTap: { self.renameCandidate = nil }) {
-                    DialogCard(title: "Rename track", message: "Update the track display name.") {
+                    DialogCard(title: "Rename track") {
                         DialogTextField(placeholder: "Display name", text: $renameText)
+                            .focused($focusedField, equals: .rename)
+                            .onAppear { focusedField = .rename }
+                            .onSubmit { saveRename(for: renameCandidate) }
                         HStack(spacing: 8) {
                             Button("Cancel") {
                                 logUserAction("Rename track cancelled")
@@ -256,15 +261,10 @@ struct MenuBarContentView: View {
                             }
                             .buttonStyle(SecondaryButtonStyle())
                             Button("Save") {
-                                guard var updated = libraryStore.track(withId: renameCandidate.id) else { return }
-                                let trimmed = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
-                                guard !trimmed.isEmpty else { return }
-                                updated.displayName = trimmed
-                                libraryStore.updateTrack(updated)
-                                logUserAction("Rename track saved: \(renameCandidate.videoId)")
-                                self.renameCandidate = nil
+                                saveRename(for: renameCandidate)
                             }
                             .buttonStyle(PrimaryButtonStyle())
+                            .disabled(renameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
                     }
                 }
@@ -322,11 +322,7 @@ struct MenuBarContentView: View {
             DispatchQueue.main.async {
                 focusedField = selectedTab == .add ? .url : nil
             }
-            updateSuggestedTrack()
             refreshStartAtLoginState()
-        }
-        .onChange(of: libraryStore.library) { _ in
-            updateSuggestedTrack()
         }
         .onChange(of: playbackController.currentTrack?.id) { _ in
             scrubberDrag = ScrubberDrag()
@@ -432,7 +428,8 @@ struct MenuBarContentView: View {
                 if isPlaying && !isBuffering {
                     PlaybackWaveform(isAnimated: allowsDecorativeMotion)
                 } else {
-                    Image(systemName: isBuffering ? "hourglass" : "music.note")
+                    Image(systemName: isBuffering || nowPlayingTrack?.downloadState == .resolving
+                          ? "hourglass" : "music.note")
                         .frame(width: 12, height: 12)
                 }
             }
@@ -445,7 +442,9 @@ struct MenuBarContentView: View {
                 .tracking(-0.4)
                 .lineLimit(2, reservesSpace: true)
                 .foregroundStyle(.white)
+                .help(nowPlayingTitle)
                 .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("NowPlayingTitle")
             playbackScrubber
                 .opacity(showScrubber ? 1 : 0)
                 .disabled(!showScrubber)
@@ -460,7 +459,7 @@ struct MenuBarContentView: View {
                     .foregroundStyle(UI.playerMuted)
             }
             if let activeId = downloadManager.activeTrackId,
-               activeId == playbackController.currentTrack?.id,
+               activeId == nowPlayingTrack?.id,
                let progress = downloadManager.progress {
                 ProgressBar(value: progress)
             }
@@ -670,7 +669,7 @@ struct MenuBarContentView: View {
                     ForEach(filteredLibrary) { track in
                         TrackRow(
                             track: track,
-                            progress: progressText(for: track),
+                            status: trackStatus(for: track),
                             isCurrent: playbackController.currentTrack?.id == track.id
                                 && (playbackController.state == .playing || playbackController.state == .paused),
                             downloadDisabled: downloadManager.isQueued(trackId: track.id)
@@ -882,6 +881,7 @@ struct MenuBarContentView: View {
                         ) {
                             Button("Clear Downloads", role: .destructive) {
                                 logUserAction("Clear downloads confirmed")
+                                downloadManager.cancelAllDownloads()
                                 libraryStore.clearDownloads()
                             }
                             Button("Cancel", role: .cancel) {
@@ -970,12 +970,14 @@ struct MenuBarContentView: View {
                 batchAddErrors.append(BatchAddError(input: entry, message: error.localizedDescription))
                 DiagnosticsLogger.shared.log(level: "warning", message: "URL validation failed: \(entry) - \(error.localizedDescription)")
             case .success(let validated):
-                let displayName = useCustomName ? name : validated.videoId
                 var track = Track.makeNew(
                     sourceURL: validated.canonicalURL,
                     videoId: validated.videoId,
-                    displayName: displayName
+                    displayName: validated.videoId
                 )
+                if useCustomName {
+                    track.rename(to: name)
+                }
                 track.downloadState = .resolving
                 libraryStore.addToLibrary(track)
                 DiagnosticsLogger.shared.log(level: "info", message: "Added track \(validated.videoId)")
@@ -1024,39 +1026,31 @@ struct MenuBarContentView: View {
 
     private func resolveMetadata(for track: Track) {
         Task {
-            let url = track.sourceURL
+            async let quickTitle: Void = resolveQuickTitle(for: track)
             do {
-                let metadata = try await MetadataResolver.resolve(for: url)
-                await MainActor.run {
-                    var updated = libraryStore.track(withId: track.id) ?? track
-                    updated.resolvedTitle = metadata.title
-                    updated.durationSeconds = metadata.durationSeconds
-                    updated.metadataUnavailable = false
-                    libraryStore.updateTrack(updated)
-                    libraryStore.updateDisplayNameIfDefault(
-                        trackId: updated.id,
-                        defaultName: updated.videoId,
-                        newName: metadata.title
-                    )
-                }
+                let metadata = try await MetadataResolver.resolve(for: track.sourceURL)
+                guard var updated = libraryStore.track(withId: track.id) else { return }
+                updated.resolvedTitle = metadata.title
+                updated.durationSeconds = metadata.durationSeconds
+                updated.metadataUnavailable = false
+                libraryStore.updateTrack(updated)
+                playbackController.refreshTrackMetadata(from: updated)
             } catch {
                 DiagnosticsLogger.shared.log(level: "warning", message: "Metadata resolution failed: \(error.localizedDescription)")
-                let fallbackTitle = await YtDlpClient().fetchTitleFallback(url: url)
-                await MainActor.run {
-                    var updated = libraryStore.track(withId: track.id) ?? track
-                    if let fallbackTitle {
-                        updated.resolvedTitle = fallbackTitle
-                        libraryStore.updateDisplayNameIfDefault(
-                            trackId: updated.id,
-                            defaultName: updated.videoId,
-                            newName: fallbackTitle
-                        )
-                    }
-                    updated.metadataUnavailable = true
-                    libraryStore.updateTrack(updated)
-                }
+                await quickTitle
             }
         }
+    }
+
+    private func resolveQuickTitle(for track: Track) async {
+        guard let title = await YtDlpClient().fetchTitleFromOEmbed(url: track.sourceURL),
+              !Task.isCancelled,
+              var updated = libraryStore.track(withId: track.id),
+              updated.resolvedTitle == nil else { return }
+        updated.resolvedTitle = title
+        updated.metadataUnavailable = false
+        libraryStore.updateTrack(updated)
+        playbackController.refreshTrackMetadata(from: updated)
     }
 
     private var filteredLibrary: [Track] {
@@ -1068,11 +1062,17 @@ struct MenuBarContentView: View {
         if let current = playbackController.currentTrack {
             return libraryStore.track(withId: current.id) ?? current
         }
-        return suggestedTrack
+        if let requestedTrackID, let track = libraryStore.track(withId: requestedTrackID) {
+            return track
+        }
+        let tracks = libraryStore.library.userLibrary
+        return tracks.filter { $0.lastPlayedAt != nil }
+            .max { ($0.lastPlayedAt ?? .distantPast) < ($1.lastPlayedAt ?? .distantPast) }
+            ?? tracks.last
     }
 
     private var nowPlayingTitle: String {
-        nowPlayingTrack?.displayName ?? "Nothing yet"
+        nowPlayingTrack?.title ?? "Nothing yet"
     }
 
     private var canControlPlayback: Bool {
@@ -1083,8 +1083,8 @@ struct MenuBarContentView: View {
     }
 
     private var nowPlayingStatus: String {
-        if playbackController.currentTrack == nil, let track = nowPlayingTrack, track.downloadState != .downloaded {
-            return "Not downloaded"
+        if playbackController.currentTrack == nil, let track = nowPlayingTrack {
+            return track.downloadState == .downloaded ? "Ready to play" : trackStatus(for: track)
         }
         if playbackController.state == .idle {
             return "Ready to play"
@@ -1125,17 +1125,6 @@ struct MenuBarContentView: View {
             return "Sleep timer: Off"
         }
         return "Sleep timer: \(formattedSleepTimer(remaining)) remaining"
-    }
-
-    private func updateSuggestedTrack() {
-        let allTracks = libraryStore.library.userLibrary
-        if let lastPlayed = allTracks
-            .filter({ $0.lastPlayedAt != nil })
-            .max(by: { ($0.lastPlayedAt ?? .distantPast) < ($1.lastPlayedAt ?? .distantPast) }) {
-            suggestedTrack = lastPlayed
-            return
-        }
-        suggestedTrack = allTracks.randomElement()
     }
 
     private var startAtLoginBinding: Binding<Bool> {
@@ -1186,7 +1175,7 @@ struct MenuBarContentView: View {
             playbackController.pause()
             return
         }
-        if playbackController.currentTrack != nil {
+        if playbackController.currentTrack != nil, playbackController.state == .paused {
             playbackController.resume()
             return
         }
@@ -1225,6 +1214,7 @@ struct MenuBarContentView: View {
               !downloadManager.isQueued(trackId: track.id),
               downloadManager.activeTrackId != track.id,
               var current = libraryStore.track(withId: track.id) else { return }
+        requestedTrackID = track.id
         current.downloadState = .resolving
         current.lastError = nil
         libraryStore.updateTrack(current)
@@ -1243,13 +1233,21 @@ struct MenuBarContentView: View {
                 DiagnosticsLogger.shared.log(level: "warning", message: "Streaming blocked: offline")
                 return
             }
+            let cache: AACRangeCache
             do {
-                let streamURL = try await YtDlpClient().fetchStreamURL(url: track.sourceURL)
+                let stream: (server: AACPlaybackServer, url: URL)
+                if let partial = downloadManager.resumableCache(for: track.id) {
+                    stream = try await AACPlaybackServer.open(cache: partial)
+                } else {
+                    stream = try await YtDlpClient().openAACStream(url: track.sourceURL)
+                }
+                cache = stream.server.cache
                 try Task.checkCancellation()
                 guard let prepared = libraryStore.track(withId: track.id) else { return }
                 playbackController.streamAndPlay(
                     track: prepared,
-                    streamURL: streamURL,
+                    streamURL: stream.url,
+                    server: stream.server,
                     startAt: prepared.playbackPositionSeconds
                 )
             } catch is CancellationError {
@@ -1257,12 +1255,14 @@ struct MenuBarContentView: View {
                 return
             } catch {
                 DiagnosticsLogger.shared.log(level: "warning", message: "Streaming failed: \(error.localizedDescription)")
+                await downloadOnly(track, playWhenReady: true)
+                return
             }
-            await downloadOnly(track)
+            await downloadOnly(track, sharedCache: cache)
         }
     }
 
-    private func downloadOnly(_ track: Track) async {
+    private func downloadOnly(_ track: Track, playWhenReady: Bool = false, sharedCache: AACRangeCache? = nil) async {
         logUserAction("Download started for \(track.videoId)")
         guard networkMonitor.isOnline else {
             guard var failed = libraryStore.track(withId: track.id) else { return }
@@ -1280,18 +1280,19 @@ struct MenuBarContentView: View {
         do {
             globalErrorMessage = nil
             failedTrack = nil
-            var updated = libraryStore.track(withId: track.id) ?? track
+            guard var updated = libraryStore.track(withId: track.id) else { return }
+            let cache = sharedCache ?? downloadManager.resumableCache(for: track.id)
             updated.downloadState = .queued
             updated.lastError = nil
             libraryStore.updateTrack(updated)
-            let fileURL = try await downloadManager.enqueueDownload(for: updated) { [weak libraryStore] in
+            let fileURL = try await downloadManager.enqueueDownload(for: updated, sharedCache: cache) { [weak libraryStore] in
                 guard let libraryStore else { return }
                 var started = libraryStore.track(withId: updated.id) ?? updated
                 started.downloadState = .downloading
                 started.lastError = nil
                 libraryStore.updateTrack(started)
             }
-            var completed = libraryStore.track(withId: updated.id) ?? updated
+            guard var completed = libraryStore.track(withId: updated.id), completed.downloadState == .downloading else { return }
             completed.downloadState = .downloaded
             completed.downloadProgress = 1.0
             completed.localFilePath = fileURL.path
@@ -1305,11 +1306,18 @@ struct MenuBarContentView: View {
             DispatchQueue.global(qos: .background).async {
                 libraryStore.enforceCacheLimit(excludingTrackId: excludingId)
             }
-            if let localURL = completed.localFilePath {
+            let streamUsesCompletedFile = if let cache, await cache.isComplete {
+                playbackController.isStreaming(from: cache)
+            } else {
+                false
+            }
+            if !streamUsesCompletedFile, let localURL = completed.localFilePath {
                 try? playbackController.swapToLocalIfStreaming(trackId: completed.id, fileURL: URL(fileURLWithPath: localURL))
             }
             if playbackController.currentTrack?.id == completed.id,
                playbackController.state == .error {
+                play(completed)
+            } else if playWhenReady, requestedTrackID == completed.id, playbackController.currentTrack == nil {
                 play(completed)
             }
             NotificationManager.shared.notifyDownloadComplete(track: completed)
@@ -1318,7 +1326,7 @@ struct MenuBarContentView: View {
                 resetCancelledDownload(for: track.id)
                 return
             }
-            var failed = libraryStore.track(withId: track.id) ?? track
+            guard var failed = libraryStore.track(withId: track.id), failed.downloadState == .downloading else { return }
             failed.downloadState = .failed
             failed.lastError = error.localizedDescription
             libraryStore.updateTrack(failed)
@@ -1326,7 +1334,7 @@ struct MenuBarContentView: View {
             failedTrack = failed
             DiagnosticsLogger.shared.log(level: "error", message: "Download failed: \(error.localizedDescription)")
         } catch {
-            var failed = libraryStore.track(withId: track.id) ?? track
+            guard var failed = libraryStore.track(withId: track.id), failed.downloadState == .downloading else { return }
             failed.downloadState = .failed
             failed.lastError = error.localizedDescription
             libraryStore.updateTrack(failed)
@@ -1403,7 +1411,16 @@ struct MenuBarContentView: View {
     private func beginRename(_ track: Track) {
         logUserAction("Begin rename for \(track.videoId)")
         renameCandidate = track
-        renameText = track.displayName
+        renameText = track.knownTitle ?? ""
+    }
+
+    private func saveRename(for track: Track) {
+        guard var updated = libraryStore.track(withId: track.id),
+              updated.rename(to: renameText) else { return }
+        libraryStore.updateTrack(updated)
+        playbackController.refreshTrackMetadata(from: updated)
+        logUserAction("Rename track saved: \(track.videoId)")
+        renameCandidate = nil
     }
 
     private func shouldOfferDownloadAnyway(_ track: Track) -> Bool {
@@ -1567,7 +1584,7 @@ struct MenuBarContentView: View {
         }
     }
 
-    private func progressText(for track: Track) -> String? {
+    private func trackStatus(for track: Track) -> String {
         if downloadManager.activeTrackId == track.id {
             let percentage = Int((downloadManager.progress ?? 0) * 100)
             return "Downloading \(percentage)%"
@@ -1576,15 +1593,17 @@ struct MenuBarContentView: View {
             let total = downloadManager.queuedTrackIds.count
             return "Queued \(position) of \(total)"
         }
-        if track.downloadState == .resolving {
+        switch track.downloadState {
+        case .resolving:
             return downloadManager.isPreparing(trackId: track.id)
-                ? "Looking for an audio stream…"
-                : "Waiting to download…"
+                ? "Preparing audio…"
+                : "Waiting to download"
+        case .queued: return "Queued"
+        case .downloading: return "Downloading"
+        case .downloaded: return "Offline"
+        case .notDownloaded: return "Online"
+        case .failed: return "Download failed"
         }
-        if track.downloadState == .failed, let error = track.lastError {
-            return error
-        }
-        return nil
     }
 }
 
@@ -1754,7 +1773,7 @@ private struct PlayerWindowActivity: NSViewRepresentable {
 
 private struct TrackRow: View {
     let track: Track
-    let progress: String?
+    let status: String
     let isCurrent: Bool
     let downloadDisabled: Bool
     let isUserTrack: Bool
@@ -1808,40 +1827,35 @@ private struct TrackRow: View {
 
     private var trackDetails: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(track.displayName)
+            Text(track.title)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(isCurrent ? UI.selectedTabInk : UI.ink)
+                .lineLimit(2)
+                .help(track.title)
+                .accessibilityLabel(track.title)
                 .accessibilityIdentifier("TrackTitle_\(track.videoId)")
-            if let resolvedTitle = track.resolvedTitle, resolvedTitle != track.displayName {
+            if let resolvedTitle = track.resolvedTitle, resolvedTitle != track.title {
                 Text(resolvedTitle)
                     .font(.system(size: 11, weight: .regular))
                     .foregroundColor(UI.inkMuted)
+                    .lineLimit(1)
             }
             HStack(spacing: 6) {
                 if let durationText = formattedTrackDuration(track.durationSeconds) {
                     Text(durationText)
                         .monospacedDigit()
                         .accessibilityLabel("Duration \(durationText)")
-                } else if track.metadataUnavailable == true {
-                    Text("Metadata unavailable")
+                    Circle()
+                        .frame(width: 2, height: 2)
+                        .accessibilityHidden(true)
                 }
-                if progress == nil {
-                    if track.durationSeconds != nil || track.metadataUnavailable == true {
-                        Circle()
-                            .frame(width: 2, height: 2)
-                            .accessibilityHidden(true)
-                    }
-                    Text(downloadStatusLabel)
-                }
+                Text(status)
+                    .monospacedDigit()
             }
             .font(.system(size: 11))
             .foregroundStyle(UI.inkMuted)
-            if let progress {
-                Text(progress)
-                    .font(.system(size: 10, weight: .regular))
-                    .foregroundColor(UI.inkMuted)
-            }
         }
+        .help(track.lastError ?? track.title)
     }
 
     private var isBusy: Bool {
@@ -1909,27 +1923,12 @@ private struct TrackRow: View {
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
-            .accessibilityLabel("Actions for \(track.displayName)")
+            .accessibilityLabel("Actions for \(track.title)")
+            .accessibilityIdentifier("TrackActions_\(track.videoId)")
             .help("Track actions")
         }
     }
 
-    private var downloadStatusLabel: String {
-        switch track.downloadState {
-        case .notDownloaded:
-            return "Online"
-        case .downloaded:
-            return "Offline"
-        case .resolving:
-            return "Preparing"
-        case .queued:
-            return "Queued"
-        case .downloading:
-            return "Downloading"
-        case .failed:
-            return "Issue"
-        }
-    }
 }
 
 private func formattedTrackDuration(_ seconds: Double?) -> String? {
@@ -2324,10 +2323,10 @@ private struct DialogOverlay<Content: View>: View {
 
 private struct DialogCard<Actions: View>: View {
     let title: String
-    let message: String
+    let message: String?
     let actions: Actions
 
-    init(title: String, message: String, @ViewBuilder actions: () -> Actions) {
+    init(title: String, message: String? = nil, @ViewBuilder actions: () -> Actions) {
         self.title = title
         self.message = message
         self.actions = actions()
@@ -2338,9 +2337,11 @@ private struct DialogCard<Actions: View>: View {
             Text(title)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(UI.ink)
-            Text(message)
-                .font(.system(size: 12, weight: .regular))
-                .foregroundColor(UI.inkMuted)
+            if let message {
+                Text(message)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(UI.inkMuted)
+            }
             actions
         }
         .padding(14)
