@@ -74,6 +74,8 @@ Resources/ffmpeg
 /build-arm64
 /build-x86_64
 /dist
+/plans/
+/animation-plans/
 .env
 /.codex/skills
 /.agents/ralph
