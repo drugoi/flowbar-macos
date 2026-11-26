@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>FlowBar — YouTube audio for your Mac menu bar</title>
+    <title>YouTube Audio Player for macOS with Offline Mode | FlowBar</title>
     <meta
       name="description"
-      content="Play YouTube mixes, podcasts, and ambient tracks from your Mac menu bar. Save audio for offline listening and resume where you left off."
+      content="FlowBar is a free YouTube audio player for macOS. Play long mixes and podcasts from the menu bar, save them for offline listening, and pick up where you left off."
     />
     <link rel="canonical" href="https://flowbar.drugoi.dev/" />
     <meta property="og:title" content="FlowBar — YouTube audio for your Mac menu bar" />
@@ -15,6 +15,7 @@
       content="Play YouTube mixes, podcasts, and ambient tracks from your Mac menu bar. Save audio for offline listening and resume where you left off."
     />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FlowBar" />
     <meta property="og:url" content="https://flowbar.drugoi.dev/" />
     <meta property="og:image" content="https://flowbar.drugoi.dev/assets/social-card.png?v=20261126" />
     <meta property="og:image:alt" content="FlowBar. YouTube audio in your Mac menu bar." />
@@ -41,17 +42,35 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "FlowBar",
-        "operatingSystem": "macOS 13+",
-        "applicationCategory": "MultimediaApplication",
-        "description": "Play YouTube mixes, podcasts, and ambient tracks from your Mac menu bar. Save audio for offline listening and resume where you left off.",
-        "url": "https://flowbar.drugoi.dev/",
-        "downloadUrl": "https://github.com/drugoi/flowbar-macos/releases/latest",
-        "author": {
-          "@type": "Person",
-          "name": "drugoi"
-        }
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://flowbar.drugoi.dev/#website",
+            "name": "FlowBar",
+            "url": "https://flowbar.drugoi.dev/",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://flowbar.drugoi.dev/#app",
+            "name": "FlowBar",
+            "operatingSystem": "macOS 13 or later",
+            "applicationCategory": "MultimediaApplication",
+            "description": "FlowBar is a free YouTube audio player for macOS. Play long mixes and podcasts from the menu bar, save them for offline listening, and pick up where you left off.",
+            "url": "https://flowbar.drugoi.dev/",
+            "image": "https://flowbar.drugoi.dev/assets/flowbar-icon.png",
+            "downloadUrl": "https://github.com/drugoi/flowbar-macos/releases/latest",
+            "offers": {
+              "@type": "Offer",
+              "price": 0,
+              "priceCurrency": "USD"
+            },
+            "author": {
+              "@type": "Person",
+              "name": "drugoi"
+            }
+          }
+        ]
       }
     </script>
   </head>
@@ -70,8 +89,8 @@
           <div class="hero-copy">
             <h1 id="hero-title">YouTube audio. <span>From your<br /> <span class="menu-bar">menu bar.</span></span></h1>
             <p>
-              Keep long mixes, podcasts, and ambient tracks within reach.
-              FlowBar saves audio for offline listening and remembers where you left off.
+              FlowBar is a free YouTube audio player for macOS. Play long mixes, podcasts,
+              and ambient tracks from the menu bar. Save them to listen offline.
             </p>
             <div class="download">
               <a class="download-link" href="https://github.com/drugoi/flowbar-macos/releases/latest">Download for macOS</a>
@@ -97,7 +116,7 @@
                 ></video>
               </button>
               <figcaption id="demo-caption">
-                FlowBar in action. Select the demo to pause or play.
+                See FlowBar seek, pause, and resume a track. Select the demo to pause or play.
               </figcaption>
             </figure>
           </div>
@@ -114,7 +133,7 @@
           </article>
           <article>
             <h2>Set your pace</h2>
-            <p>Scrub, skip 15 seconds, change playback speed, or set a sleep timer.</p>
+            <p>Paste a YouTube link to start listening. Scrub, skip 15 seconds, change playback speed, or set a sleep timer.</p>
           </article>
         </section>
       </main>
